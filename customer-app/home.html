@@ -758,28 +758,89 @@
     // ── Item detail sheet ──────────────────────────────────────
     let _sheetItem = null;
     let _sheetQty = 1;
+    let _sheetExtras = new Set();
+    let _sheetAllergens = new Set();
+    const ALLERGENS = ['Nuts','Dairy','Gluten','Shellfish','Soy','Eggs','Sesame','Fish'];
 
     function openItemSheet(itemId) {
       _sheetItem = menuItems.find(i => i.id === itemId);
       if (!_sheetItem) return;
       _sheetQty = 1;
+      _sheetExtras = new Set();
+      _sheetAllergens = new Set();
 
       const inCart = cart.find(c => c.item.id === itemId);
+      const extras = _sheetItem.extras || [];
+
       document.getElementById('item-sheet-body').innerHTML = `
-        <div style="font-weight:800;font-size:1.15rem;margin-bottom:6px">${_sheetItem.name}</div>
-        ${_sheetItem.description ? `<p style="color:var(--muted);font-size:0.85rem;margin:0 0 10px;line-height:1.5">${_sheetItem.description}</p>` : ''}
-        <div style="font-size:1.1rem;font-weight:700;margin-bottom:16px">R${Number(_sheetItem.price).toFixed(2)}</div>
-        ${inCart ? `<div style="background:#fef9c3;border-radius:10px;padding:8px 12px;font-size:0.8rem;color:#854d0e;margin-bottom:12px">Already in basket · ${inCart.qty} added</div>` : ''}
-        <div style="margin-bottom:16px">
-          <label style="font-size:0.82rem;font-weight:700;display:flex;align-items:center;gap:5px;margin-bottom:6px">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-            Special request
-            <span style="font-weight:400;color:var(--muted)">(optional)</span>
-          </label>
-          <textarea id="item-note" rows="2"
-            placeholder="Allergy info, no onions, extra sauce…"
-            style="width:100%;border:1.5px solid var(--border);border-radius:12px;padding:10px 12px;font-family:inherit;font-size:0.85rem;resize:none;box-sizing:border-box;background:var(--bg);color:var(--ink);outline:none;line-height:1.5"></textarea>
-        </div>`;
+        <div style="font-weight:800;font-size:1.25rem;margin-bottom:6px">${_sheetItem.name}</div>
+        ${_sheetItem.description ? `<p style="color:var(--muted);font-size:0.85rem;margin:0 0 8px;line-height:1.5">${_sheetItem.description}</p>` : ''}
+        <div style="font-size:1.05rem;font-weight:700;margin-bottom:${extras.length ? 16 : 20}px">R${Number(_sheetItem.price).toFixed(2)}</div>
+        ${inCart ? `<div style="background:#fef9c3;border-radius:10px;padding:8px 12px;font-size:0.8rem;color:#854d0e;margin-bottom:14px">Already in basket · ${inCart.qty} added</div>` : ''}
+
+        ${extras.length ? `
+        <div style="margin-bottom:8px">
+          <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px">Add extras</div>
+          ${extras.map((ex, idx) => `
+            <label style="display:flex;align-items:center;padding:12px 0;border-top:1px solid var(--border);cursor:pointer;gap:12px">
+              <input type="checkbox" class="extra-check" data-idx="${idx}" style="width:20px;height:20px;accent-color:var(--primary);cursor:pointer;flex-shrink:0">
+              <span style="flex:1;font-size:0.92rem">${ex.name}</span>
+              <span style="color:var(--muted);font-size:0.88rem;font-weight:500">+R${Number(ex.price).toFixed(2)}</span>
+            </label>`).join('')}
+        </div>` : ''}
+
+        <div style="margin-top:${extras.length ? 8 : 0}px;padding-top:${extras.length ? 12 : 0}px;${extras.length ? 'border-top:1px solid var(--border);' : ''}margin-bottom:4px">
+          <div style="font-size:1rem;font-weight:700;margin-bottom:8px">Special instructions</div>
+          <textarea id="item-note" rows="3"
+            placeholder="Add a note"
+            style="width:100%;border:none;border-radius:12px;padding:12px 14px;font-family:inherit;font-size:0.9rem;resize:none;box-sizing:border-box;background:var(--bg);color:var(--ink);outline:none;line-height:1.5;min-height:80px"></textarea>
+          <p style="font-size:0.78rem;color:var(--muted);margin:4px 0 0">You may be charged for extras.</p>
+        </div>
+
+        <div id="allergy-row" style="display:flex;align-items:center;padding:16px 0;border-top:1px solid var(--border);margin-top:14px;cursor:pointer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="22" height="22" style="flex-shrink:0;margin-right:12px;color:var(--muted)"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <div style="flex:1">
+            <div style="font-size:0.92rem;font-weight:600">Allergy requests</div>
+            <div id="allergy-sub" style="font-size:0.8rem;color:var(--muted);margin-top:2px">None selected</div>
+          </div>
+          <svg id="allergy-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" style="color:var(--muted);transition:transform 0.2s"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+        <div id="allergy-panel" style="display:none;padding:4px 0 12px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            ${ALLERGENS.map(a => `
+              <label style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;border:1.5px solid var(--border);cursor:pointer;font-size:0.85rem">
+                <input type="checkbox" class="allergy-check" data-allergen="${a}" style="accent-color:var(--primary);cursor:pointer">
+                ${a}
+              </label>`).join('')}
+          </div>
+        </div>
+        <div style="height:6px"></div>`;
+
+      // Extras checkboxes
+      document.querySelectorAll('.extra-check').forEach(cb => {
+        cb.addEventListener('change', () => {
+          const idx = parseInt(cb.dataset.idx);
+          cb.checked ? _sheetExtras.add(idx) : _sheetExtras.delete(idx);
+          updateSheetBtn();
+        });
+      });
+
+      // Allergy toggle
+      document.getElementById('allergy-row').addEventListener('click', () => {
+        const panel = document.getElementById('allergy-panel');
+        const chevron = document.getElementById('allergy-chevron');
+        const open = panel.style.display === 'none';
+        panel.style.display = open ? 'block' : 'none';
+        chevron.style.transform = open ? 'rotate(90deg)' : '';
+      });
+
+      document.querySelectorAll('.allergy-check').forEach(cb => {
+        cb.addEventListener('change', () => {
+          cb.checked ? _sheetAllergens.add(cb.dataset.allergen) : _sheetAllergens.delete(cb.dataset.allergen);
+          const sub = document.getElementById('allergy-sub');
+          sub.textContent = _sheetAllergens.size === 0 ? 'None selected' : [..._sheetAllergens].join(', ');
+        });
+      });
 
       updateSheetBtn();
       document.getElementById('item-sheet').style.display = 'block';
@@ -787,30 +848,45 @@
 
     function updateSheetBtn() {
       if (!_sheetItem) return;
-      const total = (Number(_sheetItem.price) * _sheetQty).toFixed(2);
+      const extras = _sheetItem.extras || [];
+      const extrasTotal = [..._sheetExtras].reduce((sum, idx) => sum + Number((extras[idx] || {}).price || 0), 0);
+      const unitPrice = Number(_sheetItem.price) + extrasTotal;
+      const total = (unitPrice * _sheetQty).toFixed(2);
       document.getElementById('item-sheet-qty').textContent = _sheetQty;
       document.getElementById('item-sheet-dec').style.opacity = _sheetQty <= 1 ? '0.4' : '1';
       document.getElementById('item-sheet-add').textContent = `Add ${_sheetQty > 1 ? _sheetQty + '× ' : ''}to basket · R${total}`;
     }
 
-    function closeItemSheet() { document.getElementById('item-sheet').style.display = 'none'; _sheetItem = null; _sheetQty = 1; }
+    function closeItemSheet() {
+      document.getElementById('item-sheet').style.display = 'none';
+      _sheetItem = null; _sheetQty = 1;
+      _sheetExtras = new Set(); _sheetAllergens = new Set();
+    }
 
     document.getElementById('item-sheet-backdrop').addEventListener('click', closeItemSheet);
     document.getElementById('item-sheet-dec').addEventListener('click', () => { if (_sheetQty > 1) { _sheetQty--; updateSheetBtn(); } });
     document.getElementById('item-sheet-inc').addEventListener('click', () => { _sheetQty++; updateSheetBtn(); });
     document.getElementById('item-sheet-add').addEventListener('click', () => {
       if (!_sheetItem) return;
-      const note = document.getElementById('item-note')?.value.trim() || '';
-      addToCart(_sheetItem.id, _sheetQty, note);
+      const noteVal = (document.getElementById('item-note')?.value || '').trim();
+      const allergenStr = _sheetAllergens.size > 0 ? `Allergies: ${[..._sheetAllergens].join(', ')}` : '';
+      const note = [noteVal, allergenStr].filter(Boolean).join(' · ');
+      const extras = (_sheetItem.extras || []).filter((_, idx) => _sheetExtras.has(idx));
+      addToCart(_sheetItem.id, _sheetQty, note, extras);
       closeItemSheet();
     });
 
-    function addToCart(itemId, qty = 1, note = '') {
+    function cartEntryPrice(c) {
+      return Number(c.item.price) + (c.extras || []).reduce((s, e) => s + Number(e.price || 0), 0);
+    }
+
+    function addToCart(itemId, qty = 1, note = '', extras = []) {
       const item = menuItems.find(i => i.id === itemId);
       if (!item) return;
-      const existing = cart.find(c => c.item.id === itemId && c.note === note);
+      const extrasKey = extras.map(e => e.name).sort().join(',');
+      const existing = cart.find(c => c.item.id === itemId && c.note === note && (c.extras || []).map(e => e.name).sort().join(',') === extrasKey);
       if (existing) existing.qty += qty;
-      else cart.push({ item, qty, note });
+      else cart.push({ item, qty, note, extras });
       renderCart();
     }
 
@@ -823,7 +899,7 @@
 
     function renderCart() {
       const count = cart.reduce((s, c) => s + c.qty, 0);
-      const subtotal = cart.reduce((s, c) => s + c.item.price * c.qty, 0);
+      const subtotal = cart.reduce((s, c) => s + cartEntryPrice(c) * c.qty, 0);
       const fee = cart.length ? deliveryFee() : 0;
       const total = subtotal + fee;
 
@@ -839,7 +915,7 @@
           <div style="display:flex;align-items:center;justify-content:space-between">
             <div>
               <div class="cart-item-name">${c.item.name}</div>
-              <div class="cart-item-price">${money(c.item.price)} each${c.note ? ` · <em style="color:var(--muted)">${c.note}</em>` : ''}</div>
+              <div class="cart-item-price">${money(cartEntryPrice(c))} each${c.extras?.length ? ` · <span style="color:var(--muted);font-size:0.78rem">${c.extras.map(e=>e.name).join(', ')}</span>` : ''}${c.note ? ` · <em style="color:var(--muted)">${c.note}</em>` : ''}</div>
             </div>
             <div class="qty-stepper">
               <button data-dec="${idx}" title="${c.qty === 1 ? 'Remove' : 'Decrease'}">
@@ -888,14 +964,14 @@
       if (!cart.length) { errorEl.textContent = 'Your cart is empty.'; return; }
       if (!address) { errorEl.textContent = 'Please enter a delivery address.'; return; }
 
-      const subtotal = cart.reduce((s, c) => s + c.item.price * c.qty, 0);
+      const subtotal = cart.reduce((s, c) => s + cartEntryPrice(c) * c.qty, 0);
       const fee = deliveryFee();
       const total = subtotal + fee;
 
       const orderNote = (document.getElementById('order-note')?.value || '').trim();
       const { data: order, error } = await sb.from('orders').insert({
         customer_id: profile.id, restaurant_id: currentRestaurant.id,
-        items: cart.map(c => ({ id: c.item.id, name: c.item.name, price: c.item.price, qty: c.qty, note: c.note || '' })),
+        items: cart.map(c => ({ id: c.item.id, name: c.item.name, price: cartEntryPrice(c), qty: c.qty, note: c.note || '', extras: c.extras || [] })),
         subtotal, delivery_fee: fee, total, delivery_address: address,
         delivery_lat: currentAddress?.lat, delivery_lng: currentAddress?.lng,
         note: orderNote || null,
