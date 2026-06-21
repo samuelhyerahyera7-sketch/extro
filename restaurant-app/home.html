@@ -11,13 +11,119 @@
 </head>
 <body>
   <div class="app-shell">
-    <div id="setup-view" style="display:none;padding:32px 20px">
-      <h2 class="section-title" style="margin-top:0">Set up your restaurant</h2>
-      <div class="form-group"><label>Restaurant name</label><input id="setup-name" placeholder="Mama's Kitchen"></div>
-      <div class="form-group"><label>Category</label><input id="setup-category" placeholder="Burgers, Pizza, Groceries..."></div>
-      <div class="form-group"><label>Address</label><input id="setup-address" placeholder="12 Oak St, Pretoria"></div>
-      <button class="btn btn-primary btn-block" id="setup-submit">Create restaurant</button>
-      <p class="error-msg" id="setup-error"></p>
+    <!-- ── Restaurant Onboarding Wizard ────────────────────── -->
+    <div id="setup-view" style="display:none">
+      <style>
+        .onboard-wrap{padding:28px 22px 40px;max-width:480px;margin:0 auto}
+        .onboard-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:32px}
+        .onboard-logo{font-size:1.35rem;font-weight:900;letter-spacing:-0.03em}
+        .onboard-logo span{color:#ff5a3c}
+        .onboard-badge{background:#f0fdf4;color:#16a34a;font-size:0.72rem;font-weight:700;padding:5px 11px;border-radius:100px;letter-spacing:0.02em}
+        .wizard-bar{background:var(--border);border-radius:100px;height:4px;margin-bottom:22px}
+        .wizard-fill{height:4px;border-radius:100px;transition:width 0.35s cubic-bezier(.4,0,.2,1)}
+        .wizard-label{font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin:0 0 10px}
+        .wizard-h{font-size:1.5rem;font-weight:900;margin:0 0 4px}
+        .wizard-sub{color:var(--muted);font-size:0.86rem;margin:0 0 26px}
+        .prep-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+        .prep-chip{padding:8px 16px;border:1.5px solid var(--border);border-radius:100px;background:#fff;font-size:0.83rem;font-weight:600;cursor:pointer;color:var(--ink);transition:all 0.15s}
+        .prep-chip.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+        .days-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+        .day-btn{width:40px;height:40px;border-radius:50%;border:1.5px solid var(--border);background:#fff;font-size:0.72rem;font-weight:700;cursor:pointer;color:var(--muted);transition:all 0.15s}
+        .day-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+        .hours-pair{display:flex;gap:12px;margin-top:8px}
+        .hours-field{flex:1}
+        .hours-field label{font-size:0.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:5px}
+        .hours-field input[type=time]{width:100%;padding:11px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:0.9rem;font-family:inherit}
+        select.form-select{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:0.9rem;background:#fff;color:var(--ink);appearance:none;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6 9l6 6 6-6' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;background-size:16px;cursor:pointer;font-family:inherit}
+      </style>
+
+      <div class="onboard-wrap">
+        <div class="onboard-header">
+          <span class="onboard-logo">Extro<span>.</span></span>
+          <span class="onboard-badge">⏱ Under 5 min setup</span>
+        </div>
+
+        <!-- Step 1: Info -->
+        <div id="wizard-step-1">
+          <div class="wizard-bar"><div class="wizard-fill" style="width:33%;background:var(--primary)"></div></div>
+          <p class="wizard-label">Step 1 of 3</p>
+          <h2 class="wizard-h">Your restaurant</h2>
+          <p class="wizard-sub">We'll get you taking orders fast.</p>
+          <div class="form-group"><label>Restaurant name *</label><input id="setup-name" placeholder="e.g. Mama's Kitchen"></div>
+          <div class="form-group">
+            <label>Category *</label>
+            <select id="setup-category" class="form-select">
+              <option value="">Choose a category…</option>
+              <option>Home-style</option><option>Burgers</option><option>Pizza</option>
+              <option>Chicken</option><option>Sushi</option><option>Healthy</option>
+              <option>Groceries</option><option>Street Food</option><option>Seafood</option>
+              <option>Vegan</option><option>Bakery</option><option>Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Average prep time</label>
+            <div class="prep-chips" id="setup-prep-chips">
+              <button class="prep-chip" data-min="15">15 min</button>
+              <button class="prep-chip active" data-min="25">25 min</button>
+              <button class="prep-chip" data-min="30">30 min</button>
+              <button class="prep-chip" data-min="40">40 min</button>
+              <button class="prep-chip" data-min="45">45 min</button>
+              <button class="prep-chip" data-min="60">60 min</button>
+            </div>
+          </div>
+          <button class="btn btn-primary btn-block" id="wizard-next-1" style="border-radius:100px;height:52px;font-size:1rem;margin-top:16px">Continue →</button>
+          <p class="error-msg" id="wizard-err-1"></p>
+        </div>
+
+        <!-- Step 2: Location & Hours -->
+        <div id="wizard-step-2" style="display:none">
+          <div class="wizard-bar"><div class="wizard-fill" style="width:66%;background:var(--primary)"></div></div>
+          <p class="wizard-label">Step 2 of 3</p>
+          <h2 class="wizard-h">Location &amp; hours</h2>
+          <p class="wizard-sub">So customers know where to find you.</p>
+          <div class="form-group"><label>Street address *</label><input id="setup-address" placeholder="12 Oak St, Pretoria"></div>
+          <div class="form-group"><label>Phone number (optional)</label><input id="setup-phone" type="tel" placeholder="+27 81 234 5678"></div>
+          <div class="form-group">
+            <label>Opening hours</label>
+            <div class="hours-pair">
+              <div class="hours-field"><label>Opens</label><input type="time" id="setup-opens" value="09:00"></div>
+              <div class="hours-field"><label>Closes</label><input type="time" id="setup-closes" value="21:00"></div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Trading days</label>
+            <div class="days-row" id="setup-days">
+              <button class="day-btn active" data-day="Mon">Mon</button>
+              <button class="day-btn active" data-day="Tue">Tue</button>
+              <button class="day-btn active" data-day="Wed">Wed</button>
+              <button class="day-btn active" data-day="Thu">Thu</button>
+              <button class="day-btn active" data-day="Fri">Fri</button>
+              <button class="day-btn active" data-day="Sat">Sat</button>
+              <button class="day-btn" data-day="Sun">Sun</button>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:16px">
+            <button class="btn btn-outline" id="wizard-back-2" style="flex:1;border-radius:100px;height:52px">← Back</button>
+            <button class="btn btn-primary" id="wizard-next-2" style="flex:2;border-radius:100px;height:52px">Continue →</button>
+          </div>
+          <p class="error-msg" id="wizard-err-2"></p>
+        </div>
+
+        <!-- Step 3: First Dish -->
+        <div id="wizard-step-3" style="display:none">
+          <div class="wizard-bar"><div class="wizard-fill" style="width:100%;background:#16a34a"></div></div>
+          <p class="wizard-label" style="color:#16a34a">Step 3 of 3 — almost there!</p>
+          <h2 class="wizard-h">Your first dish</h2>
+          <p class="wizard-sub">Add one item to get started. You can add more from the dashboard.</p>
+          <div class="form-group"><label>Dish name *</label><input id="first-item-name" placeholder="e.g. Chicken Burger"></div>
+          <div class="form-group"><label>Description (optional)</label><textarea id="first-item-desc" rows="2" placeholder="What makes it special?" style="width:100%;padding:12px;border:1.5px solid var(--border);border-radius:10px;font-size:0.88rem;resize:vertical;font-family:inherit"></textarea></div>
+          <div class="form-group"><label>Price (R) *</label><input id="first-item-price" type="number" step="0.01" placeholder="95.00"></div>
+          <button class="btn btn-primary btn-block" id="wizard-finish" style="border-radius:100px;height:52px;font-size:1rem;margin-top:8px">🚀 Go live!</button>
+          <button class="btn btn-outline btn-block" id="wizard-skip" style="border-radius:100px;height:48px;font-size:0.88rem;margin-top:10px">Skip — add dishes later</button>
+          <button class="btn btn-block" id="wizard-back-3" style="background:none;border:none;color:var(--muted);font-size:0.85rem;margin-top:4px;cursor:pointer">← Back</button>
+          <p class="error-msg" id="wizard-err-3"></p>
+        </div>
+      </div>
     </div>
 
     <div id="main-view" style="display:none">
@@ -36,13 +142,19 @@
             </button>
           </div>
         </div>
-        <label class="switch-row">
-          <span>Open for orders</span>
-          <span class="switch">
-            <input type="checkbox" id="open-toggle">
-            <span class="switch-track"><span class="switch-thumb"></span></span>
-          </span>
-        </label>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px">
+          <label class="switch-row" style="margin:0">
+            <span>Open for orders</span>
+            <span class="switch">
+              <input type="checkbox" id="open-toggle">
+              <span class="switch-track"><span class="switch-thumb"></span></span>
+            </span>
+          </label>
+          <button id="prep-time-btn" style="background:var(--bg);border:1.5px solid var(--border);border-radius:100px;padding:6px 14px;font-size:0.78rem;font-weight:700;cursor:pointer;color:var(--ink);display:flex;align-items:center;gap:5px">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span id="prep-time-label">25 min</span>
+          </button>
+        </div>
       </div>
 
       <h2 class="section-title" style="margin:20px 20px 12px">Incoming orders</h2>
@@ -73,6 +185,31 @@
     </div>
   </div>
 
+  <!-- Prep-time sheet -->
+  <div id="prep-sheet" style="display:none;position:fixed;inset:0;z-index:70">
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,0.4)" id="prep-backdrop"></div>
+    <div style="position:absolute;bottom:0;left:0;right:0;background:#fff;border-radius:20px 20px 0 0;padding:24px 22px 40px">
+      <div style="width:40px;height:4px;background:var(--border);border-radius:100px;margin:0 auto 24px"></div>
+      <h3 style="margin:0 0 6px;font-size:1.05rem;font-weight:800">Set average prep time</h3>
+      <p style="color:var(--muted);font-size:0.82rem;margin:0 0 20px">How long does a typical order take to prepare?</p>
+      <div style="display:flex;flex-wrap:wrap;gap:10px" id="prep-sheet-chips">
+        <button class="prep-sheet-chip" data-min="10">10 min</button>
+        <button class="prep-sheet-chip" data-min="15">15 min</button>
+        <button class="prep-sheet-chip" data-min="20">20 min</button>
+        <button class="prep-sheet-chip" data-min="25">25 min</button>
+        <button class="prep-sheet-chip" data-min="30">30 min</button>
+        <button class="prep-sheet-chip" data-min="35">35 min</button>
+        <button class="prep-sheet-chip" data-min="40">40 min</button>
+        <button class="prep-sheet-chip" data-min="45">45 min</button>
+        <button class="prep-sheet-chip" data-min="60">60 min</button>
+      </div>
+      <style>
+        .prep-sheet-chip{padding:11px 20px;border:1.5px solid var(--border);border-radius:100px;background:#fff;font-size:0.85rem;font-weight:600;cursor:pointer;color:var(--ink);transition:all 0.15s}
+        .prep-sheet-chip.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+      </style>
+    </div>
+  </div>
+
   <script src="js/demo-mock.js"></script>
   <script src="js/supabase-client.js"></script>
   <script src="js/auth.js"></script>
@@ -80,6 +217,9 @@
     let profile = null;
     let restaurant = null;
     let editingItemId = null;
+    let setupPrepTime = 25;
+    let restaurantPrepTime = 25;
+    const PLATFORM_COMMISSION = 0.15;
 
     const ICON_RECEIPT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2V2z"/><line x1="9" y1="7" x2="15" y2="7"/><line x1="9" y1="11" x2="15" y2="11"/></svg>';
     const ICON_EDIT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>';
@@ -89,24 +229,102 @@
 
     document.getElementById('logout-btn').addEventListener('click', async () => { await signOut(); window.location.href = 'index.html'; });
 
-    document.getElementById('setup-submit').addEventListener('click', async () => {
+    // ── Wizard: prep-time chip selection ──────────────────────────
+    document.getElementById('setup-prep-chips').addEventListener('click', e => {
+      const chip = e.target.closest('[data-min]');
+      if (!chip) return;
+      document.querySelectorAll('#setup-prep-chips .prep-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      setupPrepTime = parseInt(chip.dataset.min);
+    });
+
+    // ── Wizard: day-btn toggle ────────────────────────────────────
+    document.getElementById('setup-days').addEventListener('click', e => {
+      const btn = e.target.closest('.day-btn');
+      if (btn) btn.classList.toggle('active');
+    });
+
+    // ── Wizard Step 1 ─────────────────────────────────────────────
+    document.getElementById('wizard-next-1').addEventListener('click', () => {
       const name = document.getElementById('setup-name').value.trim();
-      const category = document.getElementById('setup-category').value.trim();
+      const category = document.getElementById('setup-category').value;
+      const err = document.getElementById('wizard-err-1');
+      if (!name) { err.textContent = 'Restaurant name is required.'; return; }
+      if (!category) { err.textContent = 'Please choose a category.'; return; }
+      err.textContent = '';
+      document.getElementById('wizard-step-1').style.display = 'none';
+      document.getElementById('wizard-step-2').style.display = 'block';
+    });
+
+    // ── Wizard Step 2 ─────────────────────────────────────────────
+    document.getElementById('wizard-back-2').addEventListener('click', () => {
+      document.getElementById('wizard-step-2').style.display = 'none';
+      document.getElementById('wizard-step-1').style.display = 'block';
+    });
+    document.getElementById('wizard-next-2').addEventListener('click', () => {
       const address = document.getElementById('setup-address').value.trim();
-      const errorEl = document.getElementById('setup-error');
-      if (!name) { errorEl.textContent = 'Please enter a restaurant name.'; return; }
+      const err = document.getElementById('wizard-err-2');
+      if (!address) { err.textContent = 'Street address is required.'; return; }
+      err.textContent = '';
+      document.getElementById('wizard-step-2').style.display = 'none';
+      document.getElementById('wizard-step-3').style.display = 'block';
+    });
+
+    // ── Wizard Step 3 ─────────────────────────────────────────────
+    document.getElementById('wizard-back-3').addEventListener('click', () => {
+      document.getElementById('wizard-step-3').style.display = 'none';
+      document.getElementById('wizard-step-2').style.display = 'block';
+    });
+    document.getElementById('wizard-skip').addEventListener('click', () => finishSetup(false));
+    document.getElementById('wizard-finish').addEventListener('click', () => finishSetup(true));
+
+    async function finishSetup(addFirstItem) {
+      const err = document.getElementById('wizard-err-3');
+      const name = document.getElementById('setup-name').value.trim();
+      const category = document.getElementById('setup-category').value;
+      const address = document.getElementById('setup-address').value.trim();
+      const phone = document.getElementById('setup-phone').value.trim();
+      const opens = document.getElementById('setup-opens').value;
+      const closes = document.getElementById('setup-closes').value;
+      const activeDays = [...document.querySelectorAll('#setup-days .day-btn.active')].map(b => b.dataset.day);
+      const business_hours = { opens, closes, days: activeDays };
+
+      if (addFirstItem) {
+        const itemName = document.getElementById('first-item-name').value.trim();
+        const itemPrice = parseFloat(document.getElementById('first-item-price').value);
+        if (!itemName || isNaN(itemPrice)) { err.textContent = 'Dish name and price are required, or click Skip.'; return; }
+      }
+
+      const btn = document.getElementById('wizard-finish');
+      btn.disabled = true; btn.textContent = 'Setting up…';
+
       let lat = null, lng = null;
       try {
         const geo = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1&countrycodes=za`);
         const geoData = await geo.json();
         if (geoData[0]) { lat = parseFloat(geoData[0].lat); lng = parseFloat(geoData[0].lon); }
       } catch (_) {}
-      const { data, error } = await sb.from('restaurants').insert({ owner_id: profile.id, name, category, address, lat, lng }).select().single();
-      if (error) { errorEl.textContent = error.message; return; }
-      restaurant = data;
-      showMain();
-    });
 
+      const { data, error } = await sb.from('restaurants').insert({
+        owner_id: profile.id, name, category, address, lat, lng,
+        phone: phone || null, prep_time_minutes: setupPrepTime,
+        business_hours, commission_rate: PLATFORM_COMMISSION,
+      }).select().single();
+
+      if (error) { err.textContent = error.message; btn.disabled = false; btn.textContent = '🚀 Go live!'; return; }
+      restaurant = data;
+
+      if (addFirstItem) {
+        const itemName = document.getElementById('first-item-name').value.trim();
+        const itemDesc = document.getElementById('first-item-desc').value.trim();
+        const itemPrice = parseFloat(document.getElementById('first-item-price').value);
+        await sb.from('menu_items').insert({ restaurant_id: restaurant.id, name: itemName, description: itemDesc, price: itemPrice });
+      }
+
+      showMain();
+    }
+
+    // ── Open toggle ───────────────────────────────────────────────
     document.getElementById('open-toggle').addEventListener('change', async (e) => {
       await sb.from('restaurants').update({ is_open: e.target.checked }).eq('id', restaurant.id);
       setStatusUI(e.target.checked);
@@ -117,12 +335,37 @@
       document.getElementById('status-sub').textContent = isOpen ? 'Open for orders' : 'Closed for orders';
     }
 
+    // ── Prep-time sheet ───────────────────────────────────────────
+    document.getElementById('prep-time-btn').addEventListener('click', openPrepSheet);
+    document.getElementById('prep-backdrop').addEventListener('click', closePrepSheet);
+
+    function openPrepSheet() {
+      document.querySelectorAll('.prep-sheet-chip').forEach(c => {
+        c.classList.toggle('active', parseInt(c.dataset.min) === restaurantPrepTime);
+      });
+      document.getElementById('prep-sheet').style.display = 'block';
+    }
+    function closePrepSheet() { document.getElementById('prep-sheet').style.display = 'none'; }
+
+    document.getElementById('prep-sheet-chips').addEventListener('click', async e => {
+      const chip = e.target.closest('[data-min]');
+      if (!chip) return;
+      restaurantPrepTime = parseInt(chip.dataset.min);
+      document.querySelectorAll('.prep-sheet-chip').forEach(c => c.classList.toggle('active', c === chip));
+      document.getElementById('prep-time-label').textContent = `${restaurantPrepTime} min`;
+      await sb.from('restaurants').update({ prep_time_minutes: restaurantPrepTime }).eq('id', restaurant.id);
+      closePrepSheet();
+    });
+
+    // ── Main view ─────────────────────────────────────────────────
     function showMain() {
       document.getElementById('setup-view').style.display = 'none';
       document.getElementById('main-view').style.display = 'block';
       document.getElementById('restaurant-name-label').textContent = restaurant.name;
       document.getElementById('open-toggle').checked = restaurant.is_open;
       setStatusUI(restaurant.is_open);
+      restaurantPrepTime = restaurant.prep_time_minutes || 25;
+      document.getElementById('prep-time-label').textContent = `${restaurantPrepTime} min`;
       loadOrders(); loadMenu(); subscribeOrders();
     }
 
@@ -133,32 +376,48 @@
     }
 
     const NEXT_STATUS = { pending: 'accepted', accepted: 'preparing', preparing: 'ready' };
-    const NEXT_LABEL = { pending: 'Accept', accepted: 'Start preparing', preparing: 'Mark ready' };
+    const NEXT_LABEL  = { pending: 'Accept order', accepted: 'Start preparing', preparing: 'Mark ready' };
 
     function renderOrders(orders) {
       const list = document.getElementById('orders-list');
-      list.innerHTML = orders.map(o => `
+      list.innerHTML = orders.map(o => {
+        const subtotal = o.subtotal || (o.total - (o.delivery_fee || 0));
+        const platformFee = Math.round(subtotal * PLATFORM_COMMISSION * 100) / 100;
+        const restaurantNet = subtotal - platformFee;
+        return `
         <div class="delivery-card">
           <div class="delivery-card-top">
             <span class="delivery-icon">${ICON_RECEIPT}</span>
-            <div class="delivery-card-info"><strong>Order #${o.id.slice(0, 8)}</strong></div>
+            <div class="delivery-card-info">
+              <strong>Order #${o.id.slice(0, 8)}</strong>
+              <div style="font-size:0.75rem;color:var(--muted);margin-top:1px">${new Date(o.created_at).toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' })}</div>
+            </div>
             <span class="badge badge-${o.status}">${o.status.replace('_', ' ')}</span>
           </div>
           <ul class="order-items">
-            ${o.items.map(it => `<li>${it.qty} × ${it.name}</li>`).join('')}
+            ${(Array.isArray(o.items) ? o.items : []).map(it => `<li>${it.qty} × ${it.name}</li>`).join('')}
           </ul>
-          <div class="row-between" style="margin-bottom:14px">
-            <span class="muted">Total</span><strong>${money(o.total)}</strong>
+          <div style="background:var(--bg);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:0.78rem">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--muted)">Order total</span><strong>${money(o.total)}</strong></div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--muted)">Extro commission (${(PLATFORM_COMMISSION * 100).toFixed(0)}%)</span><span style="color:var(--danger)">−${money(platformFee)}</span></div>
+            <div style="display:flex;justify-content:space-between;border-top:1px solid var(--border);padding-top:6px;margin-top:4px"><span style="font-weight:700">Your earnings</span><strong style="color:var(--success)">${money(restaurantNet)}</strong></div>
+          </div>
+          <div style="font-size:0.76rem;color:var(--muted);margin-bottom:10px">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="11" height="11" style="vertical-align:-1px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Ready in ~${restaurantPrepTime} min
           </div>
           ${NEXT_STATUS[o.status]
             ? `<button class="btn btn-primary btn-block" data-advance="${o.id}" data-next="${NEXT_STATUS[o.status]}">${NEXT_LABEL[o.status]}</button>`
-            : `<p class="muted" style="margin:0;text-align:center;font-size:0.85rem">Waiting for a driver to pick up</p>`}
-        </div>
-      `).join('') || `<div class="empty-state">No active orders right now.</div>`;
+            : `<p class="muted" style="margin:0;text-align:center;font-size:0.85rem">Waiting for a driver to pick up…</p>`}
+        </div>`;
+      }).join('') || `<div class="empty-state">No active orders right now.</div>`;
 
       list.querySelectorAll('[data-advance]').forEach(btn => {
         btn.addEventListener('click', async () => {
-          await sb.from('orders').update({ status: btn.dataset.next, updated_at: new Date().toISOString() }).eq('id', btn.dataset.advance);
+          await sb.from('orders').update({
+            status: btn.dataset.next, updated_at: new Date().toISOString(),
+            prep_time_minutes: restaurantPrepTime,
+          }).eq('id', btn.dataset.advance);
           sb.functions.invoke('order-notify', { body: { order_id: btn.dataset.advance } }).catch(() => {});
           loadOrders();
         });

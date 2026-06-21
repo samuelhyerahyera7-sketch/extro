@@ -19,7 +19,7 @@
   function seed() {
     return {
       restaurants: [
-        { id: 'r1', owner_id: 'demo-restaurant', name: "Mama's Kitchen", category: 'Home-style', address: '12 Oak St, Pretoria', lat: -25.746, lng: 28.188, is_open: true, created_at: new Date().toISOString() },
+        { id: 'r1', owner_id: 'demo-restaurant', name: "Mama's Kitchen", category: 'Home-style', address: '12 Oak St, Pretoria', lat: -25.746, lng: 28.188, is_open: true, prep_time_minutes: 25, phone: '+27712345678', commission_rate: 0.15, business_hours: { opens: '09:00', closes: '21:00', days: ['Mon','Tue','Wed','Thu','Fri','Sat'] }, created_at: new Date().toISOString() },
       ],
       menu_items: [
         { id: 'm1', restaurant_id: 'r1', name: 'Beef Burger & Chips', description: 'Flame-grilled beef patty, cheddar, chips', price: 89, available: true, created_at: new Date().toISOString() },

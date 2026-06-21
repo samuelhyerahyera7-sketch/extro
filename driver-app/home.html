@@ -11,6 +11,106 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
+<style>
+  .onboard-header { padding:18px 20px 0; display:flex; align-items:center; justify-content:space-between; }
+  .onboard-inner  { padding:24px 20px 40px; max-width:440px; margin:0 auto; }
+  .onboard-inner h2 { font-size:1.35rem; font-weight:800; margin:0 0 6px; }
+  .onboard-inner .muted { margin:0 0 20px; font-size:0.88rem; }
+  .ob-step-label { font-size:0.78rem; color:var(--muted); margin:10px 0 22px; }
+  .upload-zone { border:2px dashed var(--border); border-radius:14px; padding:24px 16px; text-align:center; cursor:pointer; transition:border-color .2s; }
+  .upload-zone:hover { border-color:var(--primary); }
+  .upload-zone p { margin:6px 0 0; font-size:0.87rem; color:var(--muted); }
+  .upload-icon { font-size:2rem; }
+  .vehicle-chips { display:flex; gap:10px; flex-wrap:wrap; margin-top:8px; }
+  .vehicle-chip { padding:8px 16px; border:2px solid var(--border); border-radius:50px; background:var(--bg); cursor:pointer; font-size:0.88rem; font-weight:600; transition:.15s; }
+  .vehicle-chip.active { border-color:var(--primary); background:var(--primary); color:#fff; }
+  .ob-error { color:var(--danger); font-size:0.82rem; margin:8px 0 0; min-height:1em; }
+</style>
+
+<!-- ── Driver onboarding ──────────────────────────────────────── -->
+<div id="view-onboarding" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:200;overflow-y:auto;padding-bottom:40px">
+  <div class="onboard-header">
+    <div class="dh-brand" style="font-size:1.3rem;font-weight:900;letter-spacing:-0.5px">Extro<span style="color:var(--primary)">.</span><span style="font-weight:500;font-size:0.9rem;color:var(--muted);margin-left:3px">Driver</span></div>
+  </div>
+  <div class="onboard-inner">
+    <div class="wizard-bar" style="height:5px;background:var(--border);border-radius:99px;margin-bottom:8px">
+      <div class="wizard-fill" id="ob-fill" style="height:100%;width:33%;background:var(--primary);border-radius:99px;transition:width .4s"></div>
+    </div>
+    <p class="ob-step-label" id="ob-step-label">Step 1 of 3</p>
+
+    <!-- Step 1 -->
+    <div id="ob-step-1">
+      <h2>Welcome! Let's set you up.</h2>
+      <p class="muted">This takes under 3 minutes and you only do it once.</p>
+      <div class="upload-zone" id="selfie-zone">
+        <div class="upload-icon">📷</div>
+        <p>Tap to add a profile photo <span style="color:var(--muted)">(optional)</span></p>
+        <input type="file" accept="image/*" capture="user" hidden id="selfie-input">
+        <img id="selfie-preview" style="display:none;width:72px;height:72px;border-radius:50%;object-fit:cover;margin-top:10px">
+      </div>
+      <div class="form-group" style="margin-top:20px">
+        <label>Vehicle type</label>
+        <div class="vehicle-chips" id="vehicle-chips">
+          <button class="vehicle-chip active" data-v="bicycle">🚲 Bicycle</button>
+          <button class="vehicle-chip" data-v="motorbike">🛵 Motorbike</button>
+          <button class="vehicle-chip" data-v="car">🚗 Car</button>
+        </div>
+      </div>
+      <p class="ob-error" id="ob-err-1"></p>
+      <button class="btn btn-primary btn-block" id="ob-next-1" style="margin-top:28px">Continue →</button>
+    </div>
+
+    <!-- Step 2 -->
+    <div id="ob-step-2" style="display:none">
+      <h2>Verify your identity</h2>
+      <p class="muted">Required by law for gig worker registration. Your data is encrypted and stored securely.</p>
+      <div class="form-group">
+        <label>SA ID number</label>
+        <input type="text" id="ob-id-number" placeholder="13-digit ID number" maxlength="13" inputmode="numeric">
+      </div>
+      <div class="upload-zone" id="id-zone" style="margin-top:12px">
+        <div class="upload-icon">🪪</div>
+        <p>Photo of your SA ID or passport</p>
+        <input type="file" accept="image/*,application/pdf" hidden id="id-input">
+        <div id="id-preview-wrap" style="display:none;margin-top:8px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" width="30" height="30"><path d="M20 6L9 17l-5-5"/></svg>
+          <p style="color:var(--success);margin:4px 0 0;font-size:0.82rem" id="id-filename"></p>
+        </div>
+      </div>
+      <p class="ob-error" id="ob-err-2"></p>
+      <div style="display:flex;gap:10px;margin-top:24px">
+        <button class="btn btn-outline" id="ob-back-2">← Back</button>
+        <button class="btn btn-primary" id="ob-next-2" style="flex:1">Continue →</button>
+      </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div id="ob-step-3" style="display:none">
+      <h2>Vehicle details</h2>
+      <div id="ob-bike-note" style="display:none;background:var(--bg-2,#f8fafc);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:16px;font-size:0.88rem;color:var(--muted)">
+        No registration needed for bicycles — you're almost done! ✅
+      </div>
+      <div id="ob-vehicle-upload">
+        <p class="muted" style="margin-bottom:12px">Upload a photo of your vehicle's registration document or disk.</p>
+        <div class="upload-zone" id="vehicle-zone">
+          <div class="upload-icon">📄</div>
+          <p>Vehicle registration</p>
+          <input type="file" accept="image/*,application/pdf" hidden id="vehicle-input">
+          <div id="vehicle-preview-wrap" style="display:none;margin-top:8px">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" width="30" height="30"><path d="M20 6L9 17l-5-5"/></svg>
+            <p style="color:var(--success);margin:4px 0 0;font-size:0.82rem" id="vehicle-filename"></p>
+          </div>
+        </div>
+      </div>
+      <p class="ob-error" id="ob-err-3"></p>
+      <div style="display:flex;gap:10px;margin-top:24px">
+        <button class="btn btn-outline" id="ob-back-3">← Back</button>
+        <button class="btn btn-primary" id="ob-finish" style="flex:1">🚀 Start earning</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <body>
 <div class="app-shell">
 
@@ -106,6 +206,15 @@
         <span class="wallet-stat-label">Total trips</span>
       </div>
     </div>
+
+    <div style="margin:0 20px 16px;background:var(--bg-2,#f0f9ff);border:1px solid #bfdbfe;border-radius:12px;padding:12px 14px;font-size:0.8rem;color:#1e40af;line-height:1.5">
+      <strong>How earnings work:</strong> You keep <strong>100% of the delivery fee</strong> on every trip. Extro charges restaurants 15% of food subtotal — that never comes out of your pay.
+    </div>
+
+    <div style="padding:4px 20px 10px">
+      <p class="wallet-section-title">Trip history</p>
+    </div>
+    <div id="trip-history" class="delivery-list" style="gap:8px;padding:0 20px"></div>
 
     <div style="padding:20px 20px 10px">
       <p class="wallet-section-title">Withdrawal history</p>
@@ -205,6 +314,11 @@
   let todayEarnings = 0;
   let todayCount = 0;
   let availableBalance = 0;
+  let obStep = 1;
+  let obVehicleType = 'bicycle';
+  let selfieFile = null;
+  let idFile = null;
+  let vehicleFile = null;
 
   const ICON_BAG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M16 7V5a4 4 0 0 0-8 0v2"/><rect x="3" y="7" width="18" height="14" rx="2"/></svg>`;
 
@@ -265,7 +379,7 @@
   // ── Wallet tab ─────────────────────────────────────────────────
   async function loadWallet() {
     const [ordersRes, wdRes] = await Promise.all([
-      sb.from('orders').select('delivery_fee,created_at').eq('driver_id', profile.id).eq('status', 'delivered'),
+      sb.from('orders').select('delivery_fee,subtotal,total,created_at,delivery_address,restaurants(name)').eq('driver_id', profile.id).eq('status', 'delivered').order('created_at', { ascending: false }),
       sb.from('withdrawals').select('*').eq('driver_id', profile.id).order('created_at', { ascending: false }),
     ]);
 
@@ -290,7 +404,31 @@
       pendingNote.style.display = 'none';
     }
 
+    renderTrips(orders.slice(0, 15));
     renderWithdrawals(withdrawals);
+  }
+
+  function renderTrips(orders) {
+    const el = document.getElementById('trip-history');
+    if (!orders.length) { el.innerHTML = `<div class="empty-state" style="padding:20px">No trips yet.</div>`; return; }
+    el.innerHTML = orders.map(o => {
+      const fee = Number(o.delivery_fee) || 0;
+      const date = new Date(o.created_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' });
+      const time = new Date(o.created_at).toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' });
+      const restaurant = o.restaurants?.name || 'Restaurant';
+      return `
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+          <div style="width:36px;height:36px;border-radius:50%;background:#dcfce7;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1rem">🛵</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:600;font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${restaurant}</div>
+            <div style="font-size:0.76rem;color:var(--muted)">${date} · ${time}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div style="font-weight:700;color:var(--success);font-size:0.95rem">+R${fee.toFixed(0)}</div>
+            <div style="font-size:0.7rem;color:var(--muted)">delivery fee</div>
+          </div>
+        </div>`;
+    }).join('');
   }
 
   function renderWithdrawals(list) {
@@ -376,6 +514,130 @@
     const el = document.getElementById('wd-error');
     el.textContent = msg; el.style.display = 'block';
   }
+
+  // ── Onboarding ─────────────────────────────────────────────────
+  function showOnboarding() {
+    document.getElementById('view-onboarding').style.display = 'block';
+    setObStep(1);
+  }
+
+  function setObStep(n) {
+    obStep = n;
+    [1, 2, 3].forEach(i => document.getElementById(`ob-step-${i}`).style.display = i === n ? 'block' : 'none');
+    document.getElementById('ob-fill').style.width = `${Math.round(n / 3 * 100)}%`;
+    document.getElementById('ob-step-label').textContent = `Step ${n} of 3`;
+    if (n === 3) {
+      const isBike = obVehicleType === 'bicycle';
+      document.getElementById('ob-bike-note').style.display = isBike ? 'block' : 'none';
+      document.getElementById('ob-vehicle-upload').style.display = isBike ? 'none' : 'block';
+    }
+  }
+
+  // Vehicle type chips
+  document.getElementById('vehicle-chips').addEventListener('click', e => {
+    const chip = e.target.closest('[data-v]');
+    if (!chip) return;
+    obVehicleType = chip.dataset.v;
+    document.querySelectorAll('.vehicle-chip').forEach(c => c.classList.toggle('active', c === chip));
+  });
+
+  // Selfie
+  document.getElementById('selfie-zone').addEventListener('click', () => document.getElementById('selfie-input').click());
+  document.getElementById('selfie-input').addEventListener('change', e => {
+    selfieFile = e.target.files[0];
+    if (!selfieFile) return;
+    const preview = document.getElementById('selfie-preview');
+    preview.src = URL.createObjectURL(selfieFile);
+    preview.style.display = 'block';
+    document.querySelector('#selfie-zone .upload-icon').style.display = 'none';
+    document.querySelector('#selfie-zone p').style.display = 'none';
+  });
+
+  // ID doc
+  document.getElementById('id-zone').addEventListener('click', () => document.getElementById('id-input').click());
+  document.getElementById('id-input').addEventListener('change', e => {
+    idFile = e.target.files[0];
+    if (!idFile) return;
+    document.getElementById('id-filename').textContent = idFile.name;
+    document.getElementById('id-preview-wrap').style.display = 'block';
+    document.querySelector('#id-zone .upload-icon').style.display = 'none';
+    document.querySelector('#id-zone > p').style.display = 'none';
+  });
+
+  // Vehicle doc
+  document.getElementById('vehicle-zone').addEventListener('click', () => document.getElementById('vehicle-input').click());
+  document.getElementById('vehicle-input').addEventListener('change', e => {
+    vehicleFile = e.target.files[0];
+    if (!vehicleFile) return;
+    document.getElementById('vehicle-filename').textContent = vehicleFile.name;
+    document.getElementById('vehicle-preview-wrap').style.display = 'block';
+    document.querySelector('#vehicle-zone .upload-icon').style.display = 'none';
+    document.querySelector('#vehicle-zone > p').style.display = 'none';
+  });
+
+  // Step navigation
+  document.getElementById('ob-next-1').addEventListener('click', () => {
+    document.getElementById('ob-err-1').textContent = '';
+    setObStep(2);
+  });
+  document.getElementById('ob-back-2').addEventListener('click', () => setObStep(1));
+  document.getElementById('ob-next-2').addEventListener('click', () => {
+    const idNum = document.getElementById('ob-id-number').value.trim();
+    const err = document.getElementById('ob-err-2');
+    if (!idNum || idNum.length < 13) { err.textContent = 'Please enter your 13-digit SA ID number.'; return; }
+    if (!idFile && !window.DEMO_MODE) { err.textContent = 'Please upload a photo of your ID document.'; return; }
+    err.textContent = '';
+    setObStep(3);
+  });
+  document.getElementById('ob-back-3').addEventListener('click', () => setObStep(2));
+
+  document.getElementById('ob-finish').addEventListener('click', async () => {
+    const isBike = obVehicleType === 'bicycle';
+    const err = document.getElementById('ob-err-3');
+    if (!isBike && !vehicleFile && !window.DEMO_MODE) { err.textContent = 'Please upload your vehicle registration.'; return; }
+
+    const btn = document.getElementById('ob-finish');
+    btn.disabled = true; btn.textContent = 'Saving…';
+
+    const idNumber = document.getElementById('ob-id-number').value.trim();
+    let idDocUrl = null, vehicleDocUrl = null, avatarUrl = null;
+
+    if (window.DEMO_MODE) {
+      idDocUrl = 'demo://id-doc';
+      vehicleDocUrl = isBike ? null : 'demo://vehicle-doc';
+      avatarUrl = selfieFile ? URL.createObjectURL(selfieFile) : null;
+    } else {
+      const uid = profile.id;
+      if (selfieFile) {
+        const { data: av } = await sb.storage.from('driver-docs').upload(`${uid}/avatar.${selfieFile.name.split('.').pop()}`, selfieFile, { upsert: true });
+        if (av) { const { data: { publicUrl } } = sb.storage.from('driver-docs').getPublicUrl(av.path); avatarUrl = publicUrl; }
+      }
+      if (idFile) {
+        const { data: idD } = await sb.storage.from('driver-docs').upload(`${uid}/id-doc.${idFile.name.split('.').pop()}`, idFile, { upsert: true });
+        if (idD) { const { data: { publicUrl } } = sb.storage.from('driver-docs').getPublicUrl(idD.path); idDocUrl = publicUrl; }
+      }
+      if (!isBike && vehicleFile) {
+        const { data: vD } = await sb.storage.from('driver-docs').upload(`${uid}/vehicle-doc.${vehicleFile.name.split('.').pop()}`, vehicleFile, { upsert: true });
+        if (vD) { const { data: { publicUrl } } = sb.storage.from('driver-docs').getPublicUrl(vD.path); vehicleDocUrl = publicUrl; }
+      }
+    }
+
+    await sb.from('drivers').upsert({
+      id: profile.id,
+      vehicle_type: obVehicleType,
+      id_number: idNumber,
+      id_document_url: idDocUrl || 'pending',
+      vehicle_document_url: vehicleDocUrl,
+      avatar_url: avatarUrl,
+      id_verified: false,
+      onboarded_at: new Date().toISOString(),
+    });
+
+    btn.disabled = false;
+    document.getElementById('view-onboarding').style.display = 'none';
+    // proceed to main app
+    await initMainApp();
+  });
 
   // ── Status UI ──────────────────────────────────────────────────
   function setStatusUI(isOnline) {
@@ -630,10 +892,7 @@
   });
 
   // ── Init ───────────────────────────────────────────────────────
-  (async () => {
-    if (!profile) profile = await requireRole('driver');
-    if (!profile) return;
-
+  async function initMainApp() {
     const { data: driverRow } = await sb.from('drivers').select('*').eq('id', profile.id).maybeSingle();
     const isOnline = driverRow?.is_online || false;
     document.getElementById('online-toggle').checked = isOnline;
@@ -646,6 +905,19 @@
       activeOrder = existing; startLocationSharing(); showActiveOrder();
     } else if (isOnline) {
       startLocationSharing(); subscribePool(); loadPool();
+    }
+  }
+
+  (async () => {
+    if (!profile) profile = await requireRole('driver');
+    if (!profile) return;
+
+    const { data: driverRow } = await sb.from('drivers').select('*').eq('id', profile.id).maybeSingle();
+
+    if (!driverRow?.onboarded_at) {
+      showOnboarding();
+    } else {
+      await initMainApp();
     }
   })();
 </script>

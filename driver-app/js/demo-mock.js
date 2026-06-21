@@ -28,7 +28,7 @@
       ],
       menu_items: [],
       drivers: [
-        { id: 'demo-driver', vehicle_type: 'bicycle', is_online: false, current_lat: -25.75, current_lng: 28.19, updated_at: new Date().toISOString() },
+        { id: 'demo-driver', vehicle_type: 'bicycle', is_online: false, current_lat: -25.75, current_lng: 28.19, onboarded_at: new Date().toISOString(), id_verified: true, updated_at: new Date().toISOString() },
       ],
       orders: [
         { id: 'o1', customer_id: 'demo-customer', restaurant_id: 'r1', driver_id: null, status: 'ready', payment_status: 'paid', items: [{ id: 'm1', name: 'Beef Burger & Chips', price: 89, qty: 2 }], subtotal: 178, delivery_fee: 25, total: 203, delivery_address: '11 Flora Rd, Valhalla', delivery_lat: -25.7512, delivery_lng: 28.1884, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
@@ -90,6 +90,7 @@
     maybeSingle() { this.singleMode = 'maybe'; return this; }
     update(obj) { this.type = 'update'; this.data = obj; return this; }
     insert(obj) { this.type = 'insert'; this.data = obj; return this; }
+    upsert(obj) { this.type = 'upsert'; this.data = obj; return this; }
     delete() { this.type = 'delete'; return this; }
     then(resolve) { resolve(this._exec()); }
     _exec() {
@@ -119,6 +120,16 @@
         const result = matched.map(r => attachRelations(this.table, r, store));
         if (this.singleMode) return { data: result[0] || null, error: result[0] ? null : { message: 'No match' } };
         return { data: result, error: null };
+      }
+      if (this.type === 'upsert') {
+        const items = Array.isArray(this.data) ? this.data : [this.data];
+        items.forEach(item => {
+          const existing = rows.find(r => r.id === item.id);
+          if (existing) Object.assign(existing, item);
+          else rows.push({ created_at: new Date().toISOString(), ...item });
+        });
+        saveStore(store);
+        return { data: null, error: null };
       }
       if (this.type === 'delete') {
         const toRemove = rows.filter(r => matches(r, this.filters));
@@ -167,6 +178,14 @@
       async invoke(name) {
         if (name === 'order-notify') return { data: { sent: true }, error: null };
         return { data: {}, error: null };
+      },
+    },
+    storage: {
+      from() {
+        return {
+          async upload(path, file, opts) { return { data: { path }, error: null }; },
+          getPublicUrl(path) { return { data: { publicUrl: `demo://storage/${path}` } }; },
+        };
       },
     },
   };
