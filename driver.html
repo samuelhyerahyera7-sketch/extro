@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en-ZA">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zoom for Drivers</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <div class="driver-header">
+      <div class="status-row">
+        <div>
+          <div class="status-dot-row">
+            <span class="status-dot" id="status-dot"></span>
+            <strong id="status-text">You're offline</strong>
+          </div>
+          <p class="muted" id="status-sub" style="margin:2px 0 0;font-size:0.8rem">Go online to start receiving delivery requests</p>
+        </div>
+        <div class="header-icons">
+          <button class="icon-btn" id="logout-btn" title="Log out">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          </button>
+        </div>
+      </div>
+      <label class="switch-row">
+        <span>Online</span>
+        <span class="switch">
+          <input type="checkbox" id="online-toggle">
+          <span class="switch-track"><span class="switch-thumb"></span></span>
+        </span>
+      </label>
+    </div>
+
+    <div id="active-order-view" style="display:none">
+      <h2 class="section-title" style="margin:20px 20px 12px">Current delivery</h2>
+      <div id="active-order-card"></div>
+      <div id="active-map" style="height:240px;border-radius:16px;margin:0 20px 20px"></div>
+    </div>
+
+    <div id="pool-view">
+      <h2 class="section-title" style="margin:20px 20px 12px">Available orders</h2>
+      <p class="muted" id="offline-msg" style="display:none;padding:0 20px 20px">Go online to see available orders.</p>
+      <div id="pool-list" class="delivery-list"></div>
+    </div>
+  </div>
+
+  <script src="js/demo-mock.js"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    let profile = null;
+    let activeOrder = null;
+    let locationInterval = null;
+    let activeMap = null;
+    let activeMarker = null;
+
+    const ICON_BAG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M16 7V5a4 4 0 0 0-8 0v2"/><rect x="3" y="7" width="18" height="14" rx="2"/></svg>';
+    const ICON_ARROW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>';
+
+    function money(n) { return `R${Number(n).toFixed(2)}`; }
+
+    function routeLine(pickup, dropoff) {
+      return `
+        <div class="route-line">
+          <div class="route-row"><span class="route-dot pickup"></span><span>${pickup || ''}</span></div>
+          <div class="route-connector"></div>
+          <div class="route-row"><span class="route-dot dropoff"></span><span>${dropoff || ''}</span></div>
+        </div>
+      `;
+    }
+
+    document.getElementById('logout-btn').addEventListener('click', async () => {
+      stopLocationSharing();
+      await signOut();
+      window.location.href = 'index.html';
+    });
+
+    document.getElementById('online-toggle').addEventListener('change', async (e) => {
+      await sb.from('drivers').update({ is_online: e.target.checked }).eq('id', profile.id);
+      setStatusUI(e.target.checked);
+      if (e.target.checked) { startLocationSharing(); loadPool(); }
+      else { stopLocationSharing(); document.getElementById('pool-list').innerHTML = ''; }
+    });
+
+    function setStatusUI(isOnline) {
+      document.getElementById('status-dot').classList.toggle('online', isOnline);
+      document.getElementById('status-text').textContent = isOnline ? "You're online" : "You're offline";
+      document.getElementById('status-sub').textContent = isOnline ? 'Looking for delivery requests near you' : 'Go online to start receiving delivery requests';
+      document.getElementById('offline-msg').style.display = isOnline ? 'none' : 'block';
+    }
+
+    function startLocationSharing() {
+      if (locationInterval) return;
+      const update = () => {
+        if (!navigator.geolocation) return;
+        navigator.geolocation.getCurrentPosition(async pos => {
+          await sb.from('drivers').update({
+            current_lat: pos.coords.latitude,
+            current_lng: pos.coords.longitude,
+            updated_at: new Date().toISOString(),
+          }).eq('id', profile.id);
+        });
+      };
+      update();
+      locationInterval = setInterval(update, 10000);
+    }
+    function stopLocationSharing() {
+      if (locationInterval) clearInterval(locationInterval);
+      locationInterval = null;
+    }
+
+    async function loadPool() {
+      const { data, error } = await sb.from('orders').select('*, restaurants(name, address, lat, lng)').eq('status', 'ready').is('driver_id', null);
+      if (error) { console.error(error); return; }
+      const list = document.getElementById('pool-list');
+      list.innerHTML = data.map(o => `
+        <div class="delivery-card">
+          <div class="delivery-card-top">
+            <span class="delivery-icon">${ICON_BAG}</span>
+            <div class="delivery-card-info">
+              <strong>${o.restaurants?.name || 'Restaurant'}</strong>
+            </div>
+            <span class="fee-badge">${money(o.delivery_fee)}</span>
+          </div>
+          ${routeLine(o.restaurants?.address, o.delivery_address)}
+          <button class="btn btn-primary btn-block" data-accept="${o.id}">Accept delivery</button>
+        </div>
+      `).join('') || `<div class="empty-state">No orders ready for pickup right now.</div>`;
+
+      list.querySelectorAll('[data-accept]').forEach(btn => {
+        btn.addEventListener('click', () => acceptOrder(btn.dataset.accept));
+      });
+    }
+
+    async function acceptOrder(orderId) {
+      const { data, error } = await sb.from('orders')
+        .update({ driver_id: profile.id })
+        .eq('id', orderId)
+        .is('driver_id', null)
+        .select('*, restaurants(name, address, lat, lng)')
+        .single();
+      if (error || !data) { alert('Sorry, this order was just taken by another driver.'); loadPool(); return; }
+      activeOrder = data;
+      showActiveOrder();
+    }
+
+    function showActiveOrder() {
+      document.getElementById('pool-view').style.display = 'none';
+      document.getElementById('active-order-view').style.display = 'block';
+      renderActiveOrder();
+    }
+
+    const NEXT_STATUS = { ready: 'picked_up', picked_up: 'delivered' };
+    const NEXT_LABEL = { ready: 'Mark picked up', picked_up: 'Mark delivered' };
+
+    function renderActiveOrder() {
+      const o = activeOrder;
+      document.getElementById('active-order-card').innerHTML = `
+        <div class="delivery-card" style="margin:0 20px 16px">
+          <div class="delivery-card-top">
+            <span class="delivery-icon">${ICON_BAG}</span>
+            <div class="delivery-card-info"><strong>${o.restaurants?.name || 'Restaurant'}</strong></div>
+            <span class="badge badge-${o.status}">${o.status.replace('_', ' ')}</span>
+          </div>
+          ${routeLine(o.restaurants?.address, o.delivery_address)}
+          ${NEXT_STATUS[o.status] ? `<button class="btn btn-primary btn-block" id="advance-btn">${NEXT_LABEL[o.status]}</button>` : `<p class="success-msg" style="margin:0">Delivered. Nice work!</p>`}
+        </div>
+      `;
+      const btn = document.getElementById('advance-btn');
+      if (btn) btn.addEventListener('click', advanceOrder);
+      initActiveMap(o);
+    }
+
+    async function advanceOrder() {
+      const next = NEXT_STATUS[activeOrder.status];
+      await sb.from('orders').update({ status: next, updated_at: new Date().toISOString() }).eq('id', activeOrder.id);
+      sb.functions.invoke('order-notify', { body: { order_id: activeOrder.id } }).catch(() => {});
+      activeOrder.status = next;
+      if (next === 'delivered') {
+        renderActiveOrder();
+        setTimeout(() => {
+          activeOrder = null;
+          document.getElementById('active-order-view').style.display = 'none';
+          document.getElementById('pool-view').style.display = 'block';
+          loadPool();
+        }, 2000);
+      } else {
+        renderActiveOrder();
+      }
+    }
+
+    function initActiveMap(o) {
+      const lat = o.restaurants?.lat || -25.7;
+      const lng = o.restaurants?.lng || 28.2;
+      if (!activeMap) {
+        activeMap = L.map('active-map').setView([lat, lng], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(activeMap);
+      }
+      if (o.delivery_lat && o.delivery_lng) {
+        L.marker([o.delivery_lat, o.delivery_lng]).addTo(activeMap).bindPopup('Drop-off');
+      }
+    }
+
+    (async () => {
+      profile = await requireRole('driver');
+      if (!profile) return;
+      const { data: driverRow } = await sb.from('drivers').select('*').eq('id', profile.id).maybeSingle();
+      const isOnline = driverRow?.is_online || false;
+      document.getElementById('online-toggle').checked = isOnline;
+      setStatusUI(isOnline);
+
+      const { data: existing } = await sb.from('orders').select('*, restaurants(name, address, lat, lng)').eq('driver_id', profile.id).in('status', ['picked_up']).maybeSingle();
+      if (existing) { activeOrder = existing; showActiveOrder(); }
+      else if (isOnline) { startLocationSharing(); loadPool(); }
+    })();
+  </script>
+</body>
+</html>

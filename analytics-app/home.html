@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en-ZA">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Extro Analytics</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="topbar-logo">Extro<span>.</span> <span style="font-weight:500;font-size:0.95rem;color:var(--muted);margin-left:2px">Analytics</span></div>
+    <div class="topbar-right">
+      <div class="range-tabs" id="range-tabs">
+        <button class="range-tab active" data-days="7">7 days</button>
+        <button class="range-tab" data-days="30">30 days</button>
+        <button class="range-tab" data-days="90">90 days</button>
+      </div>
+      <span class="restaurant-name" id="restaurant-name"></span>
+      <button class="icon-btn" id="logout-btn" title="Log out">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+          <polyline points="16 17 21 12 16 7"/>
+          <line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="dashboard">
+
+    <!-- KPI Cards -->
+    <div class="kpi-grid" id="kpi-grid">
+      <div class="kpi-card">
+        <p class="kpi-label">Revenue</p>
+        <p class="kpi-value" id="kpi-revenue">—</p>
+        <p class="kpi-sub" id="kpi-revenue-sub"></p>
+      </div>
+      <div class="kpi-card">
+        <p class="kpi-label">Orders</p>
+        <p class="kpi-value" id="kpi-orders">—</p>
+        <p class="kpi-sub" id="kpi-orders-sub"></p>
+      </div>
+      <div class="kpi-card">
+        <p class="kpi-label">Avg Order Value</p>
+        <p class="kpi-value" id="kpi-aov">—</p>
+        <p class="kpi-sub" id="kpi-aov-sub"></p>
+      </div>
+      <div class="kpi-card">
+        <p class="kpi-label">Top Item</p>
+        <p class="kpi-value" id="kpi-top-item" style="font-size:1.1rem;line-height:1.3">—</p>
+        <p class="kpi-sub" id="kpi-top-item-sub"></p>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-row">
+      <div class="chart-card">
+        <p class="chart-title">Revenue over time</p>
+        <canvas id="revenue-chart" height="220"></canvas>
+      </div>
+      <div class="chart-card">
+        <p class="chart-title">Orders by status</p>
+        <canvas id="status-chart" height="220"></canvas>
+      </div>
+    </div>
+
+    <!-- Top Items -->
+    <div class="table-card">
+      <div class="table-header">Top menu items</div>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Item</th>
+            <th>Orders</th>
+            <th>Revenue</th>
+            <th>Avg/order</th>
+          </tr>
+        </thead>
+        <tbody id="items-table"></tbody>
+      </table>
+    </div>
+
+    <!-- Recent Orders -->
+    <div class="table-card">
+      <div class="table-header">Recent orders</div>
+      <div class="orders-list" id="recent-orders"></div>
+    </div>
+
+  </div>
+
+  <script src="js/demo-mock.js"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    let profile = null;
+    let restaurantId = null;
+    let allOrders = [];
+    let rangeDays = 7;
+    let revenueChart = null;
+    let statusChart = null;
+
+    function money(n) { return 'R' + Number(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+    function pct(a, b) {
+      if (!b) return '';
+      const d = ((a - b) / b * 100).toFixed(1);
+      return d >= 0
+        ? `<span class="kpi-up">▲ ${d}%</span> vs prev period`
+        : `<span class="kpi-down">▼ ${Math.abs(d)}%</span> vs prev period`;
+    }
+
+    function filterByDays(orders, days, offset = 0) {
+      const end = new Date(); end.setDate(end.getDate() - offset * days);
+      const start = new Date(end); start.setDate(end.getDate() - days);
+      return orders.filter(o => {
+        const d = new Date(o.created_at);
+        return d >= start && d <= end && o.status === 'delivered';
+      });
+    }
+
+    function parseItems(order) {
+      try { return JSON.parse(order.items || '[]'); } catch { return []; }
+    }
+
+    function buildItemStats(orders) {
+      const map = {};
+      orders.forEach(o => {
+        parseItems(o).forEach(it => {
+          if (!map[it.name]) map[it.name] = { name: it.name, orders: 0, revenue: 0, price: it.price };
+          map[it.name].orders += it.qty || 1;
+          map[it.name].revenue += it.price * (it.qty || 1);
+        });
+      });
+      return Object.values(map).sort((a, b) => b.revenue - a.revenue);
+    }
+
+    function render() {
+      const current = filterByDays(allOrders, rangeDays, 0);
+      const prev = filterByDays(allOrders, rangeDays, 1);
+
+      const revenue = current.reduce((s, o) => s + (o.total_amount - o.delivery_fee), 0);
+      const prevRevenue = prev.reduce((s, o) => s + (o.total_amount - o.delivery_fee), 0);
+
+      const orders = current.length;
+      const prevOrders = prev.length;
+      const aov = orders ? revenue / orders : 0;
+      const prevAov = prevOrders ? prevRevenue / prevOrders : 0;
+
+      const itemStats = buildItemStats(current);
+      const topItem = itemStats[0];
+
+      document.getElementById('kpi-revenue').textContent = money(revenue);
+      document.getElementById('kpi-revenue-sub').innerHTML = pct(revenue, prevRevenue);
+      document.getElementById('kpi-orders').textContent = orders.toLocaleString();
+      document.getElementById('kpi-orders-sub').innerHTML = pct(orders, prevOrders);
+      document.getElementById('kpi-aov').textContent = money(aov);
+      document.getElementById('kpi-aov-sub').innerHTML = pct(aov, prevAov);
+      document.getElementById('kpi-top-item').textContent = topItem?.name || '—';
+      document.getElementById('kpi-top-item-sub').textContent = topItem ? `${topItem.orders} sold · ${money(topItem.revenue)}` : '';
+
+      renderRevenueChart(current);
+      renderStatusChart(allOrders.filter(o => {
+        const d = new Date(o.created_at);
+        const start = new Date(); start.setDate(start.getDate() - rangeDays);
+        return d >= start;
+      }));
+      renderItemsTable(itemStats);
+      renderRecentOrders(allOrders.slice().sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 10));
+    }
+
+    function getDayLabels(days) {
+      const labels = [];
+      for (let i = days - 1; i >= 0; i--) {
+        const d = new Date(); d.setDate(d.getDate() - i);
+        labels.push(d.toLocaleDateString('en-ZA', { month: 'short', day: 'numeric' }));
+      }
+      return labels;
+    }
+
+    function renderRevenueChart(orders) {
+      const labels = getDayLabels(rangeDays);
+      const revenueByDay = {};
+      labels.forEach(l => revenueByDay[l] = 0);
+      orders.forEach(o => {
+        const label = new Date(o.created_at).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric' });
+        if (revenueByDay[label] !== undefined) revenueByDay[label] += o.total_amount - o.delivery_fee;
+      });
+      const data = labels.map(l => revenueByDay[l]);
+
+      if (revenueChart) revenueChart.destroy();
+      revenueChart = new Chart(document.getElementById('revenue-chart'), {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Revenue (R)',
+            data,
+            borderColor: '#2563eb',
+            backgroundColor: 'rgba(37,99,235,0.08)',
+            borderWidth: 2.5,
+            pointRadius: 3,
+            pointBackgroundColor: '#2563eb',
+            fill: true,
+            tension: 0.35,
+          }],
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { display: false }, ticks: { font: { size: 11 }, maxTicksLimit: 7 } },
+            y: {
+              grid: { color: '#f1f5f9' },
+              ticks: { font: { size: 11 }, callback: v => 'R' + v.toLocaleString() },
+            },
+          },
+        },
+      });
+    }
+
+    function renderStatusChart(orders) {
+      const counts = {};
+      orders.forEach(o => { counts[o.status] = (counts[o.status] || 0) + 1; });
+      const labels = Object.keys(counts);
+      const data = labels.map(l => counts[l]);
+      const colors = {
+        delivered: '#16a34a', pending: '#d97706',
+        picked_up: '#2563eb', accepted: '#7c3aed',
+        preparing: '#0891b2', cancelled: '#dc2626', ready: '#ea580c',
+      };
+
+      if (statusChart) statusChart.destroy();
+      statusChart = new Chart(document.getElementById('status-chart'), {
+        type: 'doughnut',
+        data: {
+          labels: labels.map(l => l.replace('_', ' ')),
+          datasets: [{
+            data,
+            backgroundColor: labels.map(l => colors[l] || '#94a3b8'),
+            borderWidth: 0,
+            hoverOffset: 6,
+          }],
+        },
+        options: {
+          responsive: true,
+          cutout: '68%',
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { font: { size: 11 }, padding: 12, boxWidth: 12, boxHeight: 12 },
+            },
+          },
+        },
+      });
+    }
+
+    function renderItemsTable(items) {
+      const tbody = document.getElementById('items-table');
+      if (!items.length) { tbody.innerHTML = '<tr><td colspan="5" style="color:var(--muted);text-align:center">No data</td></tr>'; return; }
+      tbody.innerHTML = items.slice(0, 8).map((it, i) => `
+        <tr>
+          <td class="item-rank">${i + 1}</td>
+          <td class="item-name">${it.name}</td>
+          <td>${it.orders}</td>
+          <td>${money(it.revenue)}</td>
+          <td>${money(it.revenue / it.orders)}</td>
+        </tr>`).join('');
+    }
+
+    function renderRecentOrders(orders) {
+      const el = document.getElementById('recent-orders');
+      if (!orders.length) { el.innerHTML = '<p style="padding:16px 22px;color:var(--muted)">No recent orders.</p>'; return; }
+      el.innerHTML = orders.map(o => {
+        const items = parseItems(o);
+        const time = new Date(o.created_at).toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' });
+        const date = new Date(o.created_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' });
+        const summary = items.map(it => `${it.qty > 1 ? it.qty + '× ' : ''}${it.name}`).join(', ') || 'Order';
+        return `
+          <div class="order-row">
+            <span class="order-time">${date}<br>${time}</span>
+            <div class="order-info">
+              <div style="font-weight:600;font-size:0.85rem">${summary}</div>
+              <div style="color:var(--muted);font-size:0.78rem;margin-top:2px">${o.delivery_address || ''}</div>
+            </div>
+            <span class="badge badge-${o.status}">${o.status.replace('_', ' ')}</span>
+            <span class="order-amount">${money(o.total_amount)}</span>
+          </div>`;
+      }).join('');
+    }
+
+    document.getElementById('logout-btn').addEventListener('click', async () => {
+      await signOut();
+      window.location.href = 'index.html';
+    });
+
+    document.getElementById('range-tabs').addEventListener('click', e => {
+      const tab = e.target.closest('[data-days]');
+      if (!tab) return;
+      rangeDays = parseInt(tab.dataset.days);
+      document.querySelectorAll('.range-tab').forEach(t => t.classList.toggle('active', t === tab));
+      render();
+    });
+
+    (async () => {
+      profile = await requireRole('restaurant');
+      if (!profile) return;
+
+      const { data: restaurant } = await sb.from('restaurants').select('id,name').eq('owner_id', profile.id).maybeSingle();
+      if (restaurant) {
+        restaurantId = restaurant.id;
+        document.getElementById('restaurant-name').textContent = restaurant.name;
+      }
+
+      const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 90);
+      const { data: orders } = await sb.from('orders')
+        .select('*')
+        .eq('restaurant_id', restaurantId || 'r1')
+        .gte('created_at', cutoff.toISOString())
+        .order('created_at', { ascending: false });
+
+      allOrders = orders || [];
+      render();
+    })();
+  </script>
+</body>
+</html>

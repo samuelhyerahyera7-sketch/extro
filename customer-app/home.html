@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="en-ZA">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Extro — Order food & groceries</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+
+    <!-- ── View: Profile completion ─────────────────────────── -->
+    <div id="view-profile-complete" style="display:none">
+      <div class="profile-setup-wrap">
+        <h2 style="font-size:1.2rem;font-weight:800;text-transform:uppercase;margin:0 0 28px">Please complete the form</h2>
+
+        <div class="avatar-upload" id="avatar-upload-wrap">
+          <div class="avatar-circle" id="avatar-preview">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="40" height="40">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+            </svg>
+          </div>
+          <input type="file" id="avatar-input" accept="image/*" style="display:none">
+          <button class="avatar-edit-btn" id="avatar-edit-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+              <circle cx="12" cy="13" r="4"/>
+            </svg>
+          </button>
+        </div>
+        <p style="text-align:center;color:var(--muted);font-size:0.82rem;margin:10px 0 28px">Add the profile image</p>
+
+        <div class="form-group"><label>First name</label><input id="p-first-name" placeholder="Sam"></div>
+        <div class="form-group"><label>Last name</label><input id="p-last-name" placeholder="Hyera"></div>
+        <div class="form-group"><label>Email</label><input id="p-email" type="email" placeholder="you@example.com"></div>
+
+        <button class="btn btn-primary btn-block" id="profile-save-btn" style="border-radius:100px;height:52px;font-size:1rem;margin-top:8px">Complete</button>
+        <p class="error-msg" id="profile-error"></p>
+      </div>
+    </div>
+
+    <!-- ── View: Address setup ───────────────────────────────── -->
+    <div id="view-address-setup" style="display:none">
+      <div class="sticky-subheader">
+        <button class="icon-btn" id="addr-back-btn" style="display:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+        <h2>Address info</h2>
+      </div>
+
+      <!-- Address search -->
+      <div style="padding:10px 20px;background:var(--card);border-bottom:1px solid var(--border);position:relative">
+        <div class="search-bar" style="margin-bottom:0">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="addr-search" placeholder="Search for your address…" autocomplete="off">
+        </div>
+        <div id="addr-suggestions" style="position:absolute;left:20px;right:20px;background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:1100;overflow:hidden;display:none"></div>
+      </div>
+
+      <div class="addr-map-wrap">
+        <div id="addr-map"></div>
+        <div class="addr-center-pin">
+          <svg viewBox="0 0 32 42" width="32" height="42" xmlns="http://www.w3.org/2000/svg">
+            <path d="M16 0C7.163 0 0 7.163 0 16c0 8.837 16 26 16 26s16-17.163 16-26C32 7.163 24.837 0 16 0z" fill="#1a1d29"/>
+            <circle cx="16" cy="16" r="6" fill="white"/>
+          </svg>
+        </div>
+      </div>
+
+      <div class="addr-detail-section">
+        <h3 class="addr-street-line" id="addr-street">Detecting location…</h3>
+        <p class="addr-city-line" id="addr-city"></p>
+
+        <div class="addr-type-row" id="addr-type-row">
+          <div class="addr-type-item active" data-type="house">
+            <div class="addr-type-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" width="24" height="24">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+              </svg>
+            </div>
+            <span>House</span>
+          </div>
+          <div class="addr-type-item" data-type="flat">
+            <div class="addr-type-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" width="24" height="24">
+                <rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 6h2M9 10h2M13 6h2M13 10h2M9 14h2M13 14h2"/>
+              </svg>
+            </div>
+            <span>Flat/<br>Apartment</span>
+          </div>
+          <div class="addr-type-item" data-type="townhouse">
+            <div class="addr-type-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" width="24" height="24">
+                <path d="M2 6l6-4 6 4v14H2V6z"/><path d="M14 10l6-4 2 1.5V20h-8V10z"/><path d="M8 20v-4h4v4"/>
+              </svg>
+            </div>
+            <span>Townhouse/<br>Complex</span>
+          </div>
+          <div class="addr-type-item" data-type="office">
+            <div class="addr-type-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" width="24" height="24">
+                <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+              </svg>
+            </div>
+            <span>Office</span>
+          </div>
+          <div class="addr-type-item" data-type="hotel">
+            <div class="addr-type-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" width="24" height="24">
+                <path d="M3 3h18v13H3z"/><path d="M8 21V16"/><path d="M16 21V16"/><path d="M8 16h8"/><path d="M3 16h18"/>
+              </svg>
+            </div>
+            <span>Hotel/<br>B&amp;B</span>
+          </div>
+        </div>
+
+        <div class="floating-input-group">
+          <label>House Number (Required)</label>
+          <input id="addr-house-num" placeholder="11">
+          <button class="floating-clear" id="addr-num-clear">×</button>
+        </div>
+
+        <div class="floating-input-group">
+          <label>Add a label e.g "Home" (Optional)</label>
+          <input id="addr-label" placeholder="Home" value="Home">
+          <button class="floating-clear" id="addr-label-clear">×</button>
+        </div>
+
+        <h3 style="font-size:1rem;font-weight:700;margin:20px 0 10px">Delivery Instructions</h3>
+        <textarea id="addr-instructions" class="addr-instructions-box" rows="3" placeholder="Best entrance, house description, etc."></textarea>
+
+        <button class="btn btn-primary btn-block" id="addr-save-btn" style="border-radius:100px;height:52px;font-size:1rem;margin-top:16px">Save</button>
+      </div>
+    </div>
+
+    <!-- ── View: Restaurant list ─────────────────────────────── -->
+    <div id="view-restaurants" style="display:none">
+      <div class="home-header">
+        <div class="location-row">
+          <div style="flex:1;min-width:0">
+            <div class="location-label">DELIVER TO</div>
+            <div class="location-value" id="location-value" style="cursor:pointer">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M12 22s7-7.58 7-12a7 7 0 1 0-14 0c0 4.42 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg>
+              <span id="location-text" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Set your delivery address</span>
+              <svg class="icon chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+          </div>
+          <div class="mode-toggle-wrap">
+            <button class="mode-tab active" id="dtab-delivery">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
+              Delivery
+            </button>
+            <button class="mode-tab" id="dtab-pickup">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+              Pickup
+            </button>
+          </div>
+        </div>
+        <div class="search-bar">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="search-input" placeholder="Search restaurants or food">
+        </div>
+        <div class="chip-row" id="category-chips">
+          <button class="chip active" data-category="">All</button>
+          <button class="chip" data-category="burger">Burgers</button>
+          <button class="chip" data-category="pizza">Pizza</button>
+          <button class="chip" data-category="home">Home-style</button>
+          <button class="chip" data-category="healthy">Healthy</button>
+          <button class="chip" data-category="grocer">Groceries</button>
+        </div>
+      </div>
+
+      <div class="home-scroll-body">
+
+        <div class="home-section">
+          <div class="section-header">
+            <h2 class="section-title" style="margin:0">Picked for you</h2>
+          </div>
+          <div class="h-scroll" id="restaurant-grid"></div>
+        </div>
+
+        <div class="home-section" id="dishes-section">
+          <div class="section-header">
+            <h2 class="section-title" style="margin:0">Popular dishes</h2>
+          </div>
+          <div class="h-scroll" id="dishes-grid"></div>
+        </div>
+
+        <div style="height:80px"></div>
+      </div>
+    </div>
+
+    <!-- ── View: Menu ────────────────────────────────────────── -->
+    <div id="view-menu" style="display:none">
+      <div class="sticky-subheader">
+        <button class="icon-btn" id="back-to-restaurants">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        </button>
+        <h2 id="menu-restaurant-name"></h2>
+      </div>
+      <div id="menu-list"></div>
+    </div>
+
+    <!-- ── View: Order tracking ──────────────────────────────── -->
+    <div id="view-orders" style="display:none">
+      <div class="sticky-subheader">
+        <button class="icon-btn" id="back-to-restaurants-2">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        </button>
+        <h2>My Orders</h2>
+      </div>
+      <div id="orders-list" style="padding:0 20px"></div>
+    </div>
+
+    <!-- Bottom navigation -->
+    <nav class="bottom-nav" id="bottom-nav">
+      <button class="nav-tab active" data-tab="home">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <span>Home</span>
+      </button>
+      <button class="nav-tab" data-tab="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <span>Search</span>
+      </button>
+      <button class="nav-tab" data-tab="orders">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2V2z"/><line x1="9" y1="7" x2="15" y2="7"/><line x1="9" y1="11" x2="15" y2="11"/></svg>
+        <span>Orders</span>
+      </button>
+      <button class="nav-tab" data-tab="account">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span>Account</span>
+      </button>
+    </nav>
+
+    <div class="cart-bar" id="cart-bar" style="display:none">
+      <span id="cart-bar-text">0 items</span>
+      <button class="btn btn-primary btn-sm" id="cart-btn">
+        View cart
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Cart bottom sheet -->
+  <div class="sheet-backdrop" id="sheet-backdrop" style="display:none"></div>
+  <div class="cart-panel" id="cart-panel" style="display:none">
+    <div class="sheet-handle"></div>
+    <div class="cart-header">
+      <strong>Shopping cart</strong>
+      <button class="icon-btn" id="close-cart">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div style="padding:8px 18px 0;display:flex;align-items:center;justify-content:space-between">
+      <span style="font-weight:700;font-size:0.88rem">Summary</span>
+      <strong id="cart-total-summary" style="font-size:0.9rem">R0.00</strong>
+    </div>
+    <div style="display:flex;align-items:center;gap:5px;padding:2px 18px 12px;color:var(--success);font-size:0.8rem;font-weight:600;border-bottom:1px solid var(--border)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Delivery in ~30 minutes
+    </div>
+    <div class="cart-body" id="cart-body"></div>
+    <div class="cart-footer">
+      <div class="form-group">
+        <label>Delivery address</label>
+        <input type="text" id="delivery-address" placeholder="e.g. 12 Oak St, Pretoria">
+      </div>
+      <div class="row-between" style="margin-bottom:8px">
+        <span class="muted">Subtotal</span><strong id="cart-subtotal">R0.00</strong>
+      </div>
+      <div class="row-between" style="margin-bottom:16px">
+        <span class="muted">Delivery fee</span><strong id="cart-fee">R25.00</strong>
+      </div>
+      <button class="btn btn-primary btn-block" id="checkout-btn" style="border-radius:100px;height:52px;font-size:1rem">Go to checkout</button>
+      <p class="error-msg" id="checkout-error"></p>
+    </div>
+  </div>
+
+  <script src="js/demo-mock.js"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    const DELIVERY_FEE = 25;
+    let profile = window.DEMO_MODE ? window.DEMO_PROFILE : null;
+    let restaurants = [];
+    let currentRestaurant = null;
+    let menuItems = [];
+    let cart = [];
+    let trackingMap = null;
+    let trackingMarker = null;
+    let routeLine = null;
+    let trackedOrder = null;
+    let driverChannel = null;
+    let activeCategory = '';
+    let searchText = '';
+    let currentAddress = null;
+    let addrMap = null;
+    let addrLat = -25.7461;
+    let addrLng = 28.1881;
+    let selectedAddrType = 'house';
+
+    const ICON_DISH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="32" height="32"><path d="M12 3a9 9 0 0 1 9 9H3a9 9 0 0 1 9-9z"/><line x1="2" y1="15" x2="22" y2="15"/><line x1="12" y1="15" x2="12" y2="19"/><line x1="8" y1="19" x2="16" y2="19"/></svg>';
+    const ICON_STAR = '<svg viewBox="0 0 24 24" fill="currentColor" width="10" height="10"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
+    const ICON_TRASH_SM = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
+
+    function money(n) { return `R${Number(n).toFixed(2)}`; }
+    function deliveryFee() { return DELIVERY_FEE; }
+
+    function seedNum(id, min, max) {
+      let hash = 0;
+      for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
+      return min + (hash % (max - min + 1));
+    }
+
+    const ALL_VIEWS = ['view-profile-complete', 'view-address-setup', 'view-restaurants', 'view-menu', 'view-orders'];
+    function showView(id) {
+      ALL_VIEWS.forEach(v => { document.getElementById(v).style.display = v === id ? 'block' : 'none'; });
+      if (id === 'view-address-setup' && addrMap) setTimeout(() => addrMap.invalidateSize(), 80);
+    }
+
+    document.getElementById('avatar-edit-btn').addEventListener('click', () => document.getElementById('avatar-input').click());
+    document.getElementById('avatar-input').addEventListener('change', async e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const url = URL.createObjectURL(file);
+      document.getElementById('avatar-preview').innerHTML = `<img src="${url}" alt="avatar">`;
+      if (!window.DEMO_MODE) {
+        const { data, error } = await sb.storage.from('avatars').upload(`${profile.id}/avatar`, file, { upsert: true });
+        if (!error) {
+          const { data: { publicUrl } } = sb.storage.from('avatars').getPublicUrl(data.path);
+          await sb.from('profiles').update({ avatar_url: publicUrl }).eq('id', profile.id);
+          profile.avatar_url = publicUrl;
+        }
+      }
+    });
+
+    document.getElementById('profile-save-btn').addEventListener('click', async () => {
+      const firstName = document.getElementById('p-first-name').value.trim();
+      const lastName = document.getElementById('p-last-name').value.trim();
+      const errorEl = document.getElementById('profile-error');
+      if (!firstName) { errorEl.textContent = 'First name is required.'; return; }
+      errorEl.textContent = '';
+      const { error } = await sb.from('profiles').update({
+        first_name: firstName, last_name: lastName, full_name: `${firstName} ${lastName}`.trim(),
+      }).eq('id', profile.id);
+      if (error) { errorEl.textContent = error.message; return; }
+      profile.first_name = firstName; profile.last_name = lastName;
+      await ensureDeliveryAddress();
+    });
+
+    document.getElementById('addr-type-row').addEventListener('click', e => {
+      const item = e.target.closest('.addr-type-item');
+      if (!item) return;
+      document.querySelectorAll('.addr-type-item').forEach(i => i.classList.remove('active'));
+      item.classList.add('active');
+      selectedAddrType = item.dataset.type;
+    });
+
+    document.getElementById('addr-num-clear').addEventListener('click', () => { document.getElementById('addr-house-num').value = ''; });
+    document.getElementById('addr-label-clear').addEventListener('click', () => { document.getElementById('addr-label').value = ''; });
+
+    document.getElementById('addr-back-btn').addEventListener('click', () => {
+      if (currentAddress) showView('view-restaurants');
+    });
+
+    document.getElementById('location-value').addEventListener('click', () => {
+      showView('view-address-setup');
+      document.getElementById('addr-back-btn').style.display = 'flex';
+      if (!addrMap) initAddressMap();
+    });
+
+    document.getElementById('addr-save-btn').addEventListener('click', async () => {
+      const houseNum = document.getElementById('addr-house-num').value.trim();
+      const label = document.getElementById('addr-label').value.trim() || 'Home';
+      const instructions = document.getElementById('addr-instructions').value.trim();
+      const streetRaw = document.getElementById('addr-street').textContent.replace('Detecting location…', '').trim();
+      const street = houseNum ? houseNum + ' ' + streetRaw.replace(/^\d+\s*/, '') : streetRaw;
+
+      const { data, error } = await sb.from('addresses').insert({
+        customer_id: profile.id, label, address_type: selectedAddrType,
+        street_address: street || streetRaw, house_number: houseNum,
+        delivery_instructions: instructions, lat: addrLat, lng: addrLng, is_default: true,
+      }).select().single();
+
+      if (error) { console.error(error); return; }
+      currentAddress = data;
+      updateLocationBar();
+      document.getElementById('delivery-address').value = currentAddress.street_address || '';
+      await loadRestaurants();
+      showView('view-restaurants');
+    });
+
+    async function initAddressMap() {
+      addrMap = L.map('addr-map', { zoomControl: true }).setView([addrLat, addrLng], 16);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { attribution: '© OpenStreetMap © CARTO', maxZoom: 19 }).addTo(addrMap);
+
+      if (window.DEMO_MODE) {
+        addrLat = -25.7512; addrLng = 28.1884;
+        addrMap.setView([addrLat, addrLng], 16);
+        document.getElementById('addr-street').textContent = '11 Flora Rd';
+        document.getElementById('addr-city').textContent = 'Valhalla, Centurion, 0185, South Africa';
+        document.getElementById('addr-house-num').value = '11';
+      } else if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(async pos => {
+          addrLat = pos.coords.latitude; addrLng = pos.coords.longitude;
+          addrMap.setView([addrLat, addrLng], 16);
+          await reverseGeocode(addrLat, addrLng);
+        }, () => reverseGeocode(addrLat, addrLng));
+      } else {
+        await reverseGeocode(addrLat, addrLng);
+      }
+
+      addrMap.on('moveend', async () => {
+        const c = addrMap.getCenter();
+        addrLat = c.lat; addrLng = c.lng;
+        if (!window.DEMO_MODE) await reverseGeocode(addrLat, addrLng);
+      });
+    }
+
+    async function reverseGeocode(lat, lng) {
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`);
+        const d = await res.json();
+        const road = d.address?.road || d.address?.pedestrian || '';
+        const house = d.address?.house_number || '';
+        const city = d.address?.city || d.address?.town || d.address?.suburb || '';
+        const state = d.address?.state || '';
+        const postcode = d.address?.postcode || '';
+        const country = d.address?.country || '';
+        document.getElementById('addr-street').textContent = `${house} ${road}`.trim() || 'Unknown road';
+        document.getElementById('addr-city').textContent = [city, state, postcode, country].filter(Boolean).join(', ');
+        if (house) document.getElementById('addr-house-num').value = house;
+      } catch {
+        document.getElementById('addr-street').textContent = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+      }
+    }
+
+    // ── Address search (forward geocoding) ────────────────────
+    let searchTimeout = null;
+    document.getElementById('addr-search').addEventListener('input', e => {
+      const q = e.target.value.trim();
+      const box = document.getElementById('addr-suggestions');
+      clearTimeout(searchTimeout);
+      if (q.length < 3) { box.style.display = 'none'; box.innerHTML = ''; return; }
+      searchTimeout = setTimeout(() => geocodeSearch(q), 400);
+    });
+
+    async function geocodeSearch(q) {
+      const box = document.getElementById('addr-suggestions');
+      box.style.display = 'block';
+      box.innerHTML = '<div style="padding:12px 14px;color:var(--muted);font-size:0.85rem">Searching…</div>';
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&addressdetails=1&limit=5&countrycodes=za`);
+        const results = await res.json();
+        if (!results.length) {
+          box.innerHTML = '<div style="padding:12px 14px;color:var(--muted);font-size:0.85rem">No results found.</div>';
+          return;
+        }
+        box.innerHTML = results.map((r, i) => `
+          <div data-idx="${i}" style="padding:11px 14px;border-bottom:1px solid var(--border);cursor:pointer;font-size:0.85rem;line-height:1.4">
+            <strong style="font-size:0.88rem">${r.address?.road || r.address?.pedestrian || r.name || ''}</strong>
+            ${r.address?.suburb || r.address?.city || r.address?.town ? `<br><span style="color:var(--muted)">${[r.address?.suburb, r.address?.city || r.address?.town, r.address?.postcode].filter(Boolean).join(', ')}</span>` : ''}
+          </div>`).join('');
+        box.querySelectorAll('[data-idx]').forEach(el => {
+          el.addEventListener('mouseenter', () => el.style.background = '#f9fafb');
+          el.addEventListener('mouseleave', () => el.style.background = '');
+          el.addEventListener('click', () => {
+            const r = results[parseInt(el.dataset.idx)];
+            addrLat = parseFloat(r.lat);
+            addrLng = parseFloat(r.lon);
+            addrMap.setView([addrLat, addrLng], 17);
+            reverseGeocode(addrLat, addrLng);
+            document.getElementById('addr-search').value = '';
+            box.style.display = 'none';
+            box.innerHTML = '';
+          });
+        });
+      } catch {
+        box.innerHTML = '<div style="padding:12px 14px;color:var(--muted);font-size:0.85rem">Search unavailable.</div>';
+      }
+    }
+
+    document.addEventListener('click', e => {
+      if (!e.target.closest('#addr-search') && !e.target.closest('#addr-suggestions')) {
+        document.getElementById('addr-suggestions').style.display = 'none';
+      }
+    });
+
+    function updateLocationBar() {
+      if (!currentAddress) return;
+      document.getElementById('location-text').textContent = currentAddress.street_address || currentAddress.label;
+    }
+
+    async function loadRestaurants() {
+      const { data, error } = await sb.from('restaurants').select('*').order('name');
+      if (error) { console.error(error); return; }
+      restaurants = data;
+      renderRestaurants();
+      const { data: allItems } = await sb.from('menu_items').select('*').eq('available', true);
+      if (allItems) { menuItems = allItems; renderDishes(); }
+    }
+
+    function cardGradient(cat) {
+      const c = (cat || '').toLowerCase();
+      if (c.includes('home') || c.includes('south') || c.includes('street')) return 'linear-gradient(145deg,#ff8a65,#d84315)';
+      if (c.includes('burger')) return 'linear-gradient(145deg,#ffa726,#e64a19)';
+      if (c.includes('pizza')) return 'linear-gradient(145deg,#f06292,#ad1457)';
+      if (c.includes('health')) return 'linear-gradient(145deg,#66bb6a,#2e7d32)';
+      if (c.includes('grocer')) return 'linear-gradient(145deg,#4fc3f7,#0277bd)';
+      if (c.includes('sushi') || c.includes('asia')) return 'linear-gradient(145deg,#ba68c8,#6a1b9a)';
+      if (c.includes('chicken')) return 'linear-gradient(145deg,#ffca28,#f57f17)';
+      return 'linear-gradient(145deg,#ffcc80,#e65100)';
+    }
+
+    function catEmoji(cat) {
+      const c = (cat || '').toLowerCase();
+      if (c.includes('burger')) return '🍔';
+      if (c.includes('pizza')) return '🍕';
+      if (c.includes('sushi') || c.includes('asia')) return '🍣';
+      if (c.includes('health')) return '🥗';
+      if (c.includes('grocer')) return '🛒';
+      if (c.includes('chicken')) return '🍗';
+      if (c.includes('street') || c.includes('kota')) return '🥪';
+      return '🍽️';
+    }
+
+    function renderRestaurants() {
+      const grid = document.getElementById('restaurant-grid');
+      const filtered = restaurants.filter(r => {
+        const cat = (r.category || '').toLowerCase();
+        const matchesCat = !activeCategory || cat.includes(activeCategory);
+        const matchesSearch = !searchText || r.name.toLowerCase().includes(searchText) || cat.includes(searchText);
+        return matchesCat && matchesSearch;
+      });
+
+      grid.innerHTML = filtered.map(r => {
+        const rating = r.rating ?? (seedNum(r.id, 38, 49) / 10);
+        const time = r.delivery_time || `${seedNum(r.id, 20, 40)}–${seedNum(r.id, 35, 55)} min`;
+        const dist = r.distance != null ? r.distance.toFixed(1) : (seedNum(r.id, 8, 35) / 10).toFixed(1);
+        const bg = cardGradient(r.category);
+        const closed = !r.is_open;
+        return `
+        <div class="rc ${closed ? 'rc-closed' : ''}" data-id="${r.id}">
+          <div class="rc-img" style="background:${bg}">
+            ${r.photo_url ? `<img src="${r.photo_url}" alt="${r.name}" loading="lazy">` : `<span class="rc-emoji">${catEmoji(r.category)}</span>`}
+            <div class="rc-img-badges">
+              <span class="rc-badge-rating">★ ${Number(rating).toFixed(1)}</span>
+              ${closed ? '<span class="rc-badge-time" style="bottom:8px;right:8px;background:rgba(0,0,0,0.55);color:#fff">Closed</span>' : `<span class="rc-badge-time">${time}</span>`}
+            </div>
+            <button class="rc-heart" onclick="event.stopPropagation()">♡</button>
+          </div>
+          <div class="rc-body">
+            <p class="rc-name">${r.name}</p>
+            <p class="rc-meta">${r.category || 'Restaurant'} · ${dist} km</p>
+          </div>
+        </div>`;
+      }).join('') || `<div class="empty-state" style="padding:20px">No restaurants match.</div>`;
+
+      grid.querySelectorAll('.rc').forEach(card => {
+        card.addEventListener('click', () => openRestaurant(card.dataset.id));
+      });
+    }
+
+    function renderDishes() {
+      const grid = document.getElementById('dishes-grid');
+      if (!menuItems || !menuItems.length) { document.getElementById('dishes-section').style.display = 'none'; return; }
+      document.getElementById('dishes-section').style.display = 'block';
+      const emojiMap = {
+        'smash burger':'🍔', burger:'🍔', bbq:'🥩', fries:'🍟',
+        wrap:'🌯', roll:'🥪', kota:'🥪', bunny:'🍞',
+        'pap':'🍚', 'wors':'🌭', 'stew':'🍲', vetkoek:'🥟', samp:'🫘',
+        pizza:'🍕', margherita:'🍕',
+        tuna:'🐟', salmon:'🍣', prawn:'🦐', sushi:'🍣', nigiri:'🍣',
+        açaí:'🫐', grain:'🌾', bowl:'🥗', salad:'🥗',
+        chicken:'🍗',
+      };
+      function dishEmoji(name) {
+        const n = name.toLowerCase();
+        return Object.entries(emojiMap).find(([k]) => n.includes(k))?.[1] || '🍽️';
+      }
+      const DISH_GRADS = [
+        'linear-gradient(145deg,#ffa726,#e64a19)',
+        'linear-gradient(145deg,#66bb6a,#2e7d32)',
+        'linear-gradient(145deg,#ba68c8,#6a1b9a)',
+        'linear-gradient(145deg,#42a5f5,#1565c0)',
+        'linear-gradient(145deg,#ef5350,#b71c1c)',
+        'linear-gradient(145deg,#26c6da,#00838f)',
+        'linear-gradient(145deg,#ffca28,#f57f17)',
+        'linear-gradient(145deg,#8d6e63,#4e342e)',
+      ];
+      const sample = menuItems.slice(0, 10);
+      grid.innerHTML = sample.map((item, i) => `
+        <div class="dc" data-rid="${item.restaurant_id}">
+          <div class="dc-img" style="background:${DISH_GRADS[i % DISH_GRADS.length]}">
+            ${item.photo_url ? `<img src="${item.photo_url}" alt="${item.name}" loading="lazy">` : `<span class="dc-emoji">${dishEmoji(item.name)}</span>`}
+          </div>
+          <div class="dc-body">
+            <p class="dc-name">${item.name}</p>
+            <p class="dc-desc">${item.description || ''}</p>
+            <p class="dc-price">R${Number(item.price).toFixed(2)}</p>
+          </div>
+        </div>`).join('');
+      grid.querySelectorAll('.dc').forEach(card => {
+        card.addEventListener('click', () => openRestaurant(card.dataset.rid));
+      });
+    }
+
+    document.getElementById('search-input').addEventListener('input', e => {
+      searchText = e.target.value.trim().toLowerCase();
+      renderRestaurants();
+    });
+
+    document.getElementById('dtab-delivery').addEventListener('click', () => {
+      document.getElementById('dtab-delivery').classList.add('active');
+      document.getElementById('dtab-pickup').classList.remove('active');
+    });
+    document.getElementById('dtab-pickup').addEventListener('click', () => {
+      document.getElementById('dtab-pickup').classList.add('active');
+      document.getElementById('dtab-delivery').classList.remove('active');
+    });
+
+    document.getElementById('category-chips').addEventListener('click', e => {
+      const chip = e.target.closest('.chip');
+      if (!chip) return;
+      document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      activeCategory = chip.dataset.category;
+      renderRestaurants();
+    });
+
+    async function openRestaurant(id) {
+      currentRestaurant = restaurants.find(r => r.id === id);
+      if (!currentRestaurant?.is_open) return;
+      document.getElementById('menu-restaurant-name').textContent = currentRestaurant.name;
+      const { data, error } = await sb.from('menu_items').select('*').eq('restaurant_id', id).eq('available', true);
+      if (error) { console.error(error); return; }
+      menuItems = data;
+      const list = document.getElementById('menu-list');
+      list.innerHTML = `<div class="card" style="margin:0 20px 20px">` +
+        menuItems.map(item => `
+          <div class="menu-item-row">
+            <div class="menu-item-info">
+              <h4>${item.name}</h4>
+              <p>${item.description || ''}</p>
+              <div class="price">${money(item.price)}</div>
+            </div>
+            <button class="btn btn-primary btn-sm" data-add="${item.id}">Add</button>
+          </div>`).join('') + `</div>`
+        || `<div class="empty-state">No items on this menu yet.</div>`;
+
+      list.querySelectorAll('[data-add]').forEach(btn => {
+        btn.addEventListener('click', () => addToCart(btn.dataset.add));
+      });
+      showView('view-menu');
+    }
+
+    function addToCart(itemId) {
+      const item = menuItems.find(i => i.id === itemId);
+      const existing = cart.find(c => c.item.id === itemId);
+      if (existing) existing.qty++;
+      else cart.push({ item, qty: 1 });
+      renderCart();
+    }
+
+    function changeQty(itemId, delta) {
+      const row = cart.find(c => c.item.id === itemId);
+      if (!row) return;
+      row.qty += delta;
+      if (row.qty <= 0) cart = cart.filter(c => c.item.id !== itemId);
+      renderCart();
+    }
+
+    function renderCart() {
+      const count = cart.reduce((s, c) => s + c.qty, 0);
+      const subtotal = cart.reduce((s, c) => s + c.item.price * c.qty, 0);
+      const fee = cart.length ? deliveryFee() : 0;
+      const total = subtotal + fee;
+
+      document.getElementById('cart-bar').style.display = count ? 'flex' : 'none';
+      document.getElementById('cart-bar-text').textContent = `${count} item${count === 1 ? '' : 's'} · ${money(subtotal)}`;
+      document.getElementById('cart-total-summary').textContent = money(total);
+      document.getElementById('cart-subtotal').textContent = money(subtotal);
+      document.getElementById('cart-fee').textContent = zoomPass && cart.length ? '<span style="text-decoration:line-through;color:var(--muted);font-weight:400">R25.00</span> Free' : money(fee);
+
+      const body = document.getElementById('cart-body');
+      body.innerHTML = cart.map(c => `
+        <div class="cart-row">
+          <div>
+            <div class="cart-item-name">${c.item.name}</div>
+            <div class="cart-item-price">${money(c.item.price)} each</div>
+          </div>
+          <div class="qty-stepper">
+            <button data-dec="${c.item.id}" title="${c.qty === 1 ? 'Remove' : 'Decrease'}">
+              ${c.qty === 1 ? ICON_TRASH_SM : '−'}
+            </button>
+            <span>${c.qty}</span>
+            <button data-inc="${c.item.id}">+</button>
+          </div>
+        </div>`).join('') || `<p class="muted" style="padding:16px 0">Your cart is empty.</p>`;
+
+      body.querySelectorAll('[data-inc]').forEach(b => b.addEventListener('click', () => changeQty(b.dataset.inc, 1)));
+      body.querySelectorAll('[data-dec]').forEach(b => b.addEventListener('click', () => changeQty(b.dataset.dec, -1)));
+    }
+
+    function openCart() {
+      document.getElementById('cart-panel').style.display = 'block';
+      document.getElementById('sheet-backdrop').style.display = 'block';
+    }
+    function closeCart() {
+      document.getElementById('cart-panel').style.display = 'none';
+      document.getElementById('sheet-backdrop').style.display = 'none';
+    }
+
+    document.getElementById('cart-btn').addEventListener('click', openCart);
+    document.getElementById('close-cart').addEventListener('click', closeCart);
+    document.getElementById('sheet-backdrop').addEventListener('click', closeCart);
+    document.getElementById('back-to-restaurants').addEventListener('click', () => showView('view-restaurants'));
+    document.getElementById('back-to-restaurants-2').addEventListener('click', () => showView('view-restaurants'));
+
+    function submitPayfastForm(url, fields) {
+      const form = document.createElement('form');
+      form.method = 'POST'; form.action = url;
+      Object.entries(fields).forEach(([key, value]) => {
+        const input = document.createElement('input');
+        input.type = 'hidden'; input.name = key; input.value = value;
+        form.appendChild(input);
+      });
+      document.body.appendChild(form); form.submit();
+    }
+
+    document.getElementById('checkout-btn').addEventListener('click', async () => {
+      const errorEl = document.getElementById('checkout-error');
+      errorEl.textContent = '';
+      const address = document.getElementById('delivery-address').value.trim();
+      if (!cart.length) { errorEl.textContent = 'Your cart is empty.'; return; }
+      if (!address) { errorEl.textContent = 'Please enter a delivery address.'; return; }
+
+      const subtotal = cart.reduce((s, c) => s + c.item.price * c.qty, 0);
+      const fee = deliveryFee();
+      const total = subtotal + fee;
+
+      const { data: order, error } = await sb.from('orders').insert({
+        customer_id: profile.id, restaurant_id: currentRestaurant.id,
+        items: cart.map(c => ({ id: c.item.id, name: c.item.name, price: c.item.price, qty: c.qty })),
+        subtotal, delivery_fee: fee, total, delivery_address: address,
+        delivery_lat: currentAddress?.lat, delivery_lng: currentAddress?.lng,
+      }).select().single();
+
+      if (error) { errorEl.textContent = error.message; return; }
+
+      try {
+        const { data: payment } = await sb.functions.invoke('create-payfast-payment', {
+          body: { order_id: order.id, amount: total, item_name: `Extro order #${order.id.slice(0, 8)}` },
+        });
+        if (payment?.url && payment?.fields) { submitPayfastForm(payment.url, payment.fields); return; }
+      } catch (e) {
+        console.warn('Payment function not available, continuing without redirect.', e);
+      }
+
+      cart = []; renderCart(); closeCart();
+      openOrderTracking(order.id);
+    });
+
+    document.getElementById('bottom-nav').addEventListener('click', e => {
+      const tab = e.target.closest('[data-tab]');
+      if (!tab) return;
+      document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t === tab));
+      const t = tab.dataset.tab;
+      if (t === 'home') { showView('view-restaurants'); }
+      else if (t === 'search') { showView('view-restaurants'); setTimeout(() => document.getElementById('search-input').focus(), 100); }
+      else if (t === 'orders') { loadOrders(); }
+      else if (t === 'account') {
+        if (confirm('Log out of Extro?')) { signOut().then(() => { window.location.href = 'index.html'; }); }
+        document.querySelectorAll('.nav-tab')[0].classList.add('active');
+        tab.classList.remove('active');
+      }
+    });
+
+    async function loadOrders() {
+      const { data, error } = await sb.from('orders').select('*, restaurants(name)').eq('customer_id', profile.id).order('created_at', { ascending: false });
+      if (error) { console.error(error); return; }
+      const list = document.getElementById('orders-list');
+      list.innerHTML = data.map(o => `
+        <div class="card mt-16" data-order="${o.id}" style="cursor:pointer">
+          <div class="row-between">
+            <strong>${o.restaurants?.name || 'Order'}</strong>
+            <span class="badge badge-${o.status}">${o.status.replace('_', ' ')}</span>
+          </div>
+          <p class="muted" style="margin:6px 0 0">${money(o.total)} · ${new Date(o.created_at).toLocaleString('en-ZA')}</p>
+        </div>`).join('') || `<div class="empty-state">No orders yet.</div>`;
+
+      list.querySelectorAll('[data-order]').forEach(el => {
+        el.addEventListener('click', () => openOrderTracking(el.dataset.order));
+      });
+      showView('view-orders');
+    }
+
+    async function openOrderTracking(orderId) {
+      showView('view-orders');
+      const { data: order } = await sb.from('orders').select('*, restaurants(name)').eq('id', orderId).single();
+      renderTracking(order);
+
+      sb.channel(`order-${orderId}`)
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${orderId}` }, payload => {
+          renderTracking({ ...order, ...payload.new });
+          if (payload.new.driver_id) subscribeDriverLocation(payload.new.driver_id);
+        })
+        .subscribe();
+
+      if (order.driver_id) subscribeDriverLocation(order.driver_id);
+    }
+
+    function renderTracking(order) {
+      const steps = ['pending', 'accepted', 'preparing', 'ready', 'picked_up', 'delivered'];
+      const idx = steps.indexOf(order.status);
+      const list = document.getElementById('orders-list');
+      list.innerHTML = `
+        <div class="card">
+          <div class="row-between">
+            <strong>${order.restaurants?.name || 'Order'}</strong>
+            <span class="badge badge-${order.status}">${order.status.replace('_', ' ')}</span>
+          </div>
+          <div class="status-track">
+            ${steps.map((s, i) => `<div class="status-step ${i <= idx ? 'active' : ''}">${s.replace('_', ' ')}</div>`).join('')}
+          </div>
+          ${order.driver_id ? `
+          <div id="driver-status-label" style="display:flex;align-items:center;gap:8px;margin-top:14px;padding:10px 14px;background:var(--bg);border-radius:10px;font-size:0.82rem;font-weight:600;color:var(--ink)">
+            <span id="driver-status-icon" style="font-size:1.1rem">🚗</span>
+            <span id="driver-status-text">Driver is on the way</span>
+          </div>
+          <div id="tracking-map" style="height:260px;border-radius:12px;margin-top:8px;overflow:hidden"></div>` : ''}
+        </div>`;
+      if (order.driver_id) initTrackingMap(order);
+    }
+
+    function makeDriverIcon(type) {
+      const configs = {
+        car:  { bg: '#ff5722', svg: '<path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>' },
+        bike: { bg: '#1565c0', svg: '<circle cx="5.5" cy="17.5" r="3"/><circle cx="18.5" cy="17.5" r="3"/><path d="M5.5 17.5l4-7h5l2 4.5M14 5h2m-4 0l2 5.5" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/><path fill="white" d="M14 5a1 1 0 1 0 2 0 1 1 0 0 0-2 0z"/>' },
+        walk: { bg: '#2e7d32', svg: '<circle cx="12" cy="4.5" r="1.5" fill="white"/><path stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none" d="M12 7l-2.5 5.5 2 1.5M12 7l2 1 1.5 3.5M9.5 12.5l-1.5 5M14.5 8l1 5.5"/>' },
+      };
+      const { bg, svg } = configs[type] || configs.car;
+      return L.divIcon({
+        html: `<div style="background:${bg};width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(0,0,0,0.35);border:3px solid #fff"><svg viewBox="0 0 24 24" width="18" height="18">${svg}</svg></div>`,
+        className: '',
+        iconSize: [36, 36],
+        iconAnchor: [18, 18],
+      });
+    }
+    const CAR_ICON  = makeDriverIcon('car');
+    const BIKE_ICON = makeDriverIcon('bike');
+    const WALK_ICON = makeDriverIcon('walk');
+
+    async function initTrackingMap(order) {
+      trackedOrder = order;
+      if (trackingMap) { trackingMap.remove(); trackingMap = null; trackingMarker = null; routeLine = null; }
+      trackingMap = L.map('tracking-map').setView([order.delivery_lat || -25.7, order.delivery_lng || 28.2], 14);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { attribution: '© OpenStreetMap © CARTO', maxZoom: 19 }).addTo(trackingMap);
+
+      const dropIcon = L.divIcon({
+        html: `<div style="background:#222;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.3);border:3px solid #fff"><svg viewBox="0 0 24 24" fill="white" width="15" height="15"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></div>`,
+        className: '',
+        iconSize: [32, 32],
+        iconAnchor: [16, 32],
+      });
+      if (order.delivery_lat && order.delivery_lng) {
+        L.marker([order.delivery_lat, order.delivery_lng], { icon: dropIcon }).addTo(trackingMap).bindPopup('Your address');
+      }
+
+      // Load driver's current position immediately
+      const { data: driverRow } = await sb.from('drivers').select('current_lat,current_lng').eq('id', order.driver_id).maybeSingle();
+      if (driverRow?.current_lat) {
+        placeDriverOnMap(driverRow.current_lat, driverRow.current_lng, order);
+      }
+
+      if (window.DEMO_MODE) startDemoDriverSimulation(order);
+    }
+
+    function placeDriverOnMap(lat, lng, order, icon) {
+      const latlng = [lat, lng];
+      if (!trackingMarker) {
+        trackingMarker = L.marker(latlng, { icon: icon || CAR_ICON, zIndexOffset: 1000 }).addTo(trackingMap).bindPopup('Your driver');
+      } else {
+        trackingMarker.setLatLng(latlng);
+        if (icon) trackingMarker.setIcon(icon);
+      }
+      const dest = order?.delivery_lat ? [[lat, lng], [order.delivery_lat, order.delivery_lng]] : null;
+      if (dest) {
+        if (!routeLine) {
+          routeLine = L.polyline(dest, { color: '#ff5722', weight: 3, dashArray: '8 6', opacity: 0.8 }).addTo(trackingMap);
+        } else {
+          routeLine.setLatLngs(dest);
+        }
+        trackingMap.fitBounds(dest, { padding: [50, 50] });
+      } else {
+        trackingMap.panTo(latlng);
+      }
+    }
+
+    function setDriverStatusLabel(icon, text) {
+      const iconEl = document.getElementById('driver-status-icon');
+      const textEl = document.getElementById('driver-status-text');
+      if (iconEl) iconEl.textContent = icon;
+      if (textEl) textEl.textContent = text;
+    }
+
+    function startDemoDriverSimulation(order) {
+      const driverRow = JSON.parse(localStorage.getItem('zoom_demo_store_v1') || '{}').drivers?.[0];
+      const restaurantLat = driverRow?.current_lat ?? -25.75;
+      const restaurantLng = driverRow?.current_lng ?? 28.19;
+      const endLat = order.delivery_lat || -25.7512;
+      const endLng = order.delivery_lng || 28.1884;
+      // Midpoint slightly offset — where driver parks before walking to door
+      const parkLat = endLat + 0.0008;
+      const parkLng = endLng + 0.0006;
+
+      // Phase config: [steps, intervalMs, icon, label emoji, label text, fromLat, fromLng, toLat, toLng]
+      const phases = [
+        { steps: 4,  ms: 1800, icon: WALK_ICON, emoji: '🚶', text: 'Driver is walking to their bike',    fromLat: restaurantLat, fromLng: restaurantLng, toLat: restaurantLat - 0.003, toLng: restaurantLng + 0.002 },
+        { steps: 14, ms: 2200, icon: BIKE_ICON, emoji: '🚲', text: 'Driver is on their way to you',       fromLat: restaurantLat - 0.003, fromLng: restaurantLng + 0.002, toLat: parkLat, toLng: parkLng },
+        { steps: 5,  ms: 1600, icon: WALK_ICON, emoji: '🚶', text: 'Driver is almost at your door',       fromLat: parkLat, fromLng: parkLng, toLat: endLat, toLng: endLng },
+      ];
+
+      let phaseIdx = 0;
+      let step = 0;
+      let sim = null;
+
+      function tick() {
+        const ph = phases[phaseIdx];
+        step++;
+        const t = Math.min(step / ph.steps, 1);
+        const lat = ph.fromLat + (ph.toLat - ph.fromLat) * t;
+        const lng = ph.fromLng + (ph.toLng - ph.fromLng) * t;
+
+        const store = JSON.parse(localStorage.getItem('zoom_demo_store_v1') || '{}');
+        const d = (store.drivers || []).find(d => d.id === 'demo-driver');
+        if (d) { d.current_lat = lat; d.current_lng = lng; d.updated_at = new Date().toISOString(); }
+        localStorage.setItem('zoom_demo_store_v1', JSON.stringify(store));
+
+        placeDriverOnMap(lat, lng, order, ph.icon);
+        setDriverStatusLabel(ph.emoji, ph.text);
+
+        if (step >= ph.steps) {
+          clearInterval(sim);
+          phaseIdx++;
+          if (phaseIdx < phases.length) {
+            step = 0;
+            sim = setInterval(tick, phases[phaseIdx].ms);
+            setDriverStatusLabel(phases[phaseIdx].emoji, phases[phaseIdx].text);
+          } else {
+            setDriverStatusLabel('✅', 'Order delivered!');
+          }
+        }
+      }
+
+      setDriverStatusLabel(phases[0].emoji, phases[0].text);
+      sim = setInterval(tick, phases[0].ms);
+    }
+
+    function subscribeDriverLocation(driverId) {
+      if (driverChannel) sb.removeChannel(driverChannel);
+      driverChannel = sb.channel(`driver-${driverId}`)
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'drivers', filter: `id=eq.${driverId}` }, payload => {
+          const { current_lat, current_lng } = payload.new;
+          if (!trackingMap || current_lat == null) return;
+          placeDriverOnMap(current_lat, current_lng, trackedOrder);
+        })
+        .subscribe();
+    }
+
+    async function ensureDeliveryAddress() {
+      const { data: addrs } = await sb.from('addresses').select('*').eq('customer_id', profile.id).order('created_at');
+      if (!addrs || addrs.length === 0) {
+        if (window.DEMO_MODE) {
+          const { data: newAddr } = await sb.from('addresses').insert({
+            customer_id: profile.id, street_address: '11 Flora Rd, Valhalla, Centurion',
+            lat: -25.7512, lng: 28.1884, is_default: true, type: 'home', label: 'Home',
+          }).select().single();
+          currentAddress = newAddr;
+          updateLocationBar();
+          await loadRestaurants();
+          showView('view-restaurants');
+          return;
+        }
+        showView('view-address-setup');
+        await initAddressMap();
+        return;
+      }
+      currentAddress = addrs.find(a => a.is_default) || addrs[0];
+      updateLocationBar();
+      await loadRestaurants();
+      showView('view-restaurants');
+    }
+
+    (async () => {
+      try {
+        console.log('[init] step 1 start');
+        profile = await requireRole('customer');
+        window._p = profile;
+        console.log('[init] step 2 profile:', profile?.id);
+        if (!profile) return;
+        if (!profile.first_name && !window.DEMO_MODE) {
+          showView('view-profile-complete');
+          return;
+        }
+        console.log('[init] step 3 ensureDeliveryAddress');
+        await ensureDeliveryAddress();
+        console.log('[init] step 5 done');
+      } catch(e) {
+        console.error('INIT ERROR:', e.message, e.stack);
+      }
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en-ZA">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Extro — Restaurant Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <div id="setup-view" style="display:none;padding:32px 20px">
+      <h2 class="section-title" style="margin-top:0">Set up your restaurant</h2>
+      <div class="form-group"><label>Restaurant name</label><input id="setup-name" placeholder="Mama's Kitchen"></div>
+      <div class="form-group"><label>Category</label><input id="setup-category" placeholder="Burgers, Pizza, Groceries..."></div>
+      <div class="form-group"><label>Address</label><input id="setup-address" placeholder="12 Oak St, Pretoria"></div>
+      <button class="btn btn-primary btn-block" id="setup-submit">Create restaurant</button>
+      <p class="error-msg" id="setup-error"></p>
+    </div>
+
+    <div id="main-view" style="display:none">
+      <div class="driver-header">
+        <div class="status-row">
+          <div>
+            <div class="status-dot-row">
+              <span class="status-dot" id="status-dot"></span>
+              <strong id="restaurant-name-label">Restaurant</strong>
+            </div>
+            <p class="muted" id="status-sub" style="margin:2px 0 0;font-size:0.8rem">Closed for orders</p>
+          </div>
+          <div class="header-icons">
+            <button class="icon-btn" id="logout-btn" title="Log out">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            </button>
+          </div>
+        </div>
+        <label class="switch-row">
+          <span>Open for orders</span>
+          <span class="switch">
+            <input type="checkbox" id="open-toggle">
+            <span class="switch-track"><span class="switch-thumb"></span></span>
+          </span>
+        </label>
+      </div>
+
+      <h2 class="section-title" style="margin:20px 20px 12px">Incoming orders</h2>
+      <div id="orders-list" class="delivery-list"></div>
+
+      <div class="row-between" style="margin:28px 20px 12px">
+        <h2 class="section-title" style="margin:0">Menu</h2>
+        <button class="btn btn-primary btn-sm" id="add-item-btn">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add item
+        </button>
+      </div>
+      <div id="menu-list" style="padding:0 20px 32px"></div>
+    </div>
+  </div>
+
+  <!-- Add/edit menu item modal -->
+  <div id="item-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:60;align-items:center;justify-content:center;display:none">
+    <div class="card" style="max-width:420px;width:100%;margin:20px">
+      <h3 style="margin-top:0">Menu item</h3>
+      <div class="form-group"><label>Name</label><input id="item-name"></div>
+      <div class="form-group"><label>Description</label><textarea id="item-desc" rows="2"></textarea></div>
+      <div class="form-group"><label>Price (R)</label><input id="item-price" type="number" step="0.01"></div>
+      <div class="row" style="justify-content:flex-end;gap:10px">
+        <button class="btn btn-outline" id="item-cancel">Cancel</button>
+        <button class="btn btn-primary" id="item-save">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/demo-mock.js"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    let profile = null;
+    let restaurant = null;
+    let editingItemId = null;
+
+    const ICON_RECEIPT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2V2z"/><line x1="9" y1="7" x2="15" y2="7"/><line x1="9" y1="11" x2="15" y2="11"/></svg>';
+    const ICON_EDIT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>';
+    const ICON_TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>';
+
+    function money(n) { return `R${Number(n).toFixed(2)}`; }
+
+    document.getElementById('logout-btn').addEventListener('click', async () => { await signOut(); window.location.href = 'index.html'; });
+
+    document.getElementById('setup-submit').addEventListener('click', async () => {
+      const name = document.getElementById('setup-name').value.trim();
+      const category = document.getElementById('setup-category').value.trim();
+      const address = document.getElementById('setup-address').value.trim();
+      const errorEl = document.getElementById('setup-error');
+      if (!name) { errorEl.textContent = 'Please enter a restaurant name.'; return; }
+      const { data, error } = await sb.from('restaurants').insert({ owner_id: profile.id, name, category, address }).select().single();
+      if (error) { errorEl.textContent = error.message; return; }
+      restaurant = data;
+      showMain();
+    });
+
+    document.getElementById('open-toggle').addEventListener('change', async (e) => {
+      await sb.from('restaurants').update({ is_open: e.target.checked }).eq('id', restaurant.id);
+      setStatusUI(e.target.checked);
+    });
+
+    function setStatusUI(isOpen) {
+      document.getElementById('status-dot').classList.toggle('online', isOpen);
+      document.getElementById('status-sub').textContent = isOpen ? 'Open for orders' : 'Closed for orders';
+    }
+
+    function showMain() {
+      document.getElementById('setup-view').style.display = 'none';
+      document.getElementById('main-view').style.display = 'block';
+      document.getElementById('restaurant-name-label').textContent = restaurant.name;
+      document.getElementById('open-toggle').checked = restaurant.is_open;
+      setStatusUI(restaurant.is_open);
+      loadOrders(); loadMenu(); subscribeOrders();
+    }
+
+    async function loadOrders() {
+      const { data, error } = await sb.from('orders').select('*').eq('restaurant_id', restaurant.id).eq('payment_status', 'paid').in('status', ['pending', 'accepted', 'preparing', 'ready']).order('created_at', { ascending: false });
+      if (error) { console.error(error); return; }
+      renderOrders(data);
+    }
+
+    const NEXT_STATUS = { pending: 'accepted', accepted: 'preparing', preparing: 'ready' };
+    const NEXT_LABEL = { pending: 'Accept', accepted: 'Start preparing', preparing: 'Mark ready' };
+
+    function renderOrders(orders) {
+      const list = document.getElementById('orders-list');
+      list.innerHTML = orders.map(o => `
+        <div class="delivery-card">
+          <div class="delivery-card-top">
+            <span class="delivery-icon">${ICON_RECEIPT}</span>
+            <div class="delivery-card-info"><strong>Order #${o.id.slice(0, 8)}</strong></div>
+            <span class="badge badge-${o.status}">${o.status.replace('_', ' ')}</span>
+          </div>
+          <ul class="order-items">
+            ${o.items.map(it => `<li>${it.qty} × ${it.name}</li>`).join('')}
+          </ul>
+          <div class="row-between" style="margin-bottom:14px">
+            <span class="muted">Total</span><strong>${money(o.total)}</strong>
+          </div>
+          ${NEXT_STATUS[o.status]
+            ? `<button class="btn btn-primary btn-block" data-advance="${o.id}" data-next="${NEXT_STATUS[o.status]}">${NEXT_LABEL[o.status]}</button>`
+            : `<p class="muted" style="margin:0;text-align:center;font-size:0.85rem">Waiting for a driver to pick up</p>`}
+        </div>
+      `).join('') || `<div class="empty-state">No active orders right now.</div>`;
+
+      list.querySelectorAll('[data-advance]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          await sb.from('orders').update({ status: btn.dataset.next, updated_at: new Date().toISOString() }).eq('id', btn.dataset.advance);
+          sb.functions.invoke('order-notify', { body: { order_id: btn.dataset.advance } }).catch(() => {});
+          loadOrders();
+        });
+      });
+    }
+
+    function subscribeOrders() {
+      sb.channel(`restaurant-orders-${restaurant.id}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `restaurant_id=eq.${restaurant.id}` }, () => loadOrders())
+        .subscribe();
+    }
+
+    async function loadMenu() {
+      const { data, error } = await sb.from('menu_items').select('*').eq('restaurant_id', restaurant.id).order('created_at');
+      if (error) { console.error(error); return; }
+      const list = document.getElementById('menu-list');
+      list.innerHTML = data.map(item => `
+        <div class="menu-card">
+          <div class="menu-card-top">
+            <div class="menu-item-info">
+              <h4>${item.name}</h4>
+              <p>${item.description || ''}</p>
+              <div class="price">${money(item.price)}</div>
+            </div>
+            <span class="switch sm">
+              <input type="checkbox" data-avail="${item.id}" ${item.available ? 'checked' : ''}>
+              <span class="switch-track"><span class="switch-thumb"></span></span>
+            </span>
+          </div>
+          <div class="menu-card-actions">
+            <button class="icon-btn sm" data-edit="${item.id}">${ICON_EDIT}</button>
+            <button class="icon-btn sm" data-delete="${item.id}">${ICON_TRASH}</button>
+          </div>
+        </div>
+      `).join('') || `<div class="empty-state">No menu items yet. Add your first one.</div>`;
+
+      list.querySelectorAll('[data-avail]').forEach(cb => {
+        cb.addEventListener('change', async () => {
+          await sb.from('menu_items').update({ available: cb.checked }).eq('id', cb.dataset.avail);
+        });
+      });
+      list.querySelectorAll('[data-edit]').forEach(btn => {
+        btn.addEventListener('click', () => openItemModal(data.find(i => i.id === btn.dataset.edit)));
+      });
+      list.querySelectorAll('[data-delete]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('Delete this item?')) return;
+          await sb.from('menu_items').delete().eq('id', btn.dataset.delete);
+          loadMenu();
+        });
+      });
+    }
+
+    function openItemModal(item) {
+      editingItemId = item?.id || null;
+      document.getElementById('item-name').value = item?.name || '';
+      document.getElementById('item-desc').value = item?.description || '';
+      document.getElementById('item-price').value = item?.price || '';
+      document.getElementById('item-modal').style.display = 'flex';
+    }
+    document.getElementById('add-item-btn').addEventListener('click', () => openItemModal(null));
+    document.getElementById('item-cancel').addEventListener('click', () => document.getElementById('item-modal').style.display = 'none');
+    document.getElementById('item-save').addEventListener('click', async () => {
+      const name = document.getElementById('item-name').value.trim();
+      const description = document.getElementById('item-desc').value.trim();
+      const price = parseFloat(document.getElementById('item-price').value);
+      if (!name || isNaN(price)) return;
+      if (editingItemId) {
+        await sb.from('menu_items').update({ name, description, price }).eq('id', editingItemId);
+      } else {
+        await sb.from('menu_items').insert({ restaurant_id: restaurant.id, name, description, price });
+      }
+      document.getElementById('item-modal').style.display = 'none';
+      loadMenu();
+    });
+
+    (async () => {
+      profile = await requireRole('restaurant');
+      if (!profile) return;
+      const { data } = await sb.from('restaurants').select('*').eq('owner_id', profile.id).maybeSingle();
+      if (!data) {
+        document.getElementById('setup-view').style.display = 'block';
+      } else {
+        restaurant = data;
+        showMain();
+      }
+    })();
+  </script>
+</body>
+</html>

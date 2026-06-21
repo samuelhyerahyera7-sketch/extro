@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en-ZA">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zoom — Order food & groceries</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+
+    <!-- ── View: Profile completion ─────────────────────────── -->
+    <div id="view-profile-complete" style="display:none">
+      <div class="profile-setup-wrap">
+        <h2 style="font-size:1.2rem;font-weight:800;text-transform:uppercase;margin:0 0 28px">Please complete the form</h2>
+
+        <div class="avatar-upload" id="avatar-upload-wrap">
+          <div class="avatar-circle" id="avatar-preview">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="40" height="40">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+            </svg>
+          </div>
+          <input type="file" id="avatar-input" accept="image/*" style="display:none">
+          <button class="avatar-edit-btn" id="avatar-edit-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+              <circle cx="12" cy="13" r="4"/>
+            </svg>
+          </button>
+        </div>
+        <p style="text-align:center;color:var(--muted);font-size:0.82rem;margin:10px 0 28px">Add the profile image</p>
+
+        <div class="form-group"><label>First name</label><input id="p-first-name" placeholder="Sam"></div>
+        <div class="form-group"><label>Last name</label><input id="p-last-name" placeholder="Hyera"></div>
+        <div class="form-group"><label>Email</label><input id="p-email" type="email" placeholder="you@example.com"></div>
+
+        <button class="btn btn-primary btn-block" id="profile-save-btn" style="border-radius:100px;height:52px;font-size:1rem;margin-top:8px">Complete</button>
+        <p class="error-msg" id="profile-error"></p>
+      </div>
+    </div>
+
+    <!-- ── View: Address setup ───────────────────────────────── -->
+    <div id="view-address-setup" style="display:none">
+      <div class="sticky-subheader">
+        <button class="icon-btn" id="addr-back-btn" style="display:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+        <h2>Address info</h2>
+      </div>
+
+      <!-- Map with fixed center pin -->
+      <div class="addr-map-wrap">
+        <div id="addr-map"></div>
+        <div class="addr-center-pin">
+          <svg viewBox="0 0 32 42" width="32" height="42" xmlns="http://www.w3.org/2000/svg">
+            <path d="M16 0C7.163 0 0 7.163 0 16c0 8.837 16 26 16 26s16-17.163 16-26C32 7.163 24.837 0 16 0z" fill="#1a1d29"/>
+            <circle cx="16" cy="16" r="6" fill="white"/>
+          </svg>
+        </div>
+      </div>
+
+      <div class="addr-detail-section">
+        <h3 class="addr-street-line" id="addr-street">Detecting location…</h3>
+        <p class="addr-city-line" id="addr-city"></p>
+
+        <!-- Address type selector -->
+        <div class="addr-type-row" id="addr-type-row">
+          <div class="addr-type-item active" data-type="house">
+            <div class="addr-type-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" width="24" height="24">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+              </svg>
+            </div>
+            <span>House</span>
+          </div>
+          <div class="addr-type-item" data-type="flat">
+            <div class="addr-type-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" width="24" height="24">
+                <rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 6h2M9 10h2M13 6h2M13 10h2M9 14h2M13 14h2"/>
+              </svg>
+            </div>
+            <span>Flat/<br>Apartment</span>
+          </div>
+          <div class="addr-type-item" data-type="townhouse">
+            <div class="addr-type-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" width="24" height="24">
+                <path d="M2 6l6-4 6 4v14H2V6z"/><path d="M14 10l6-4 2 1.5V20h-8V10z"/><path d="M8 20v-4h4v4"/>
+              </svg>
+            </div>
+            <span>Townhouse/<br>Complex</span>
+          </div>
+          <div class="addr-type-item" data-type="office">
+            <div class="addr-type-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" width="24" height="24">
+                <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+              </svg>
+            </div>
+            <span>Office</span>
+          </div>
+          <div class="addr-type-item" data-type="hotel">
+            <div class="addr-type-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" width="24" height="24">
+                <path d="M3 3h18v13H3z"/><path d="M8 21V16"/><path d="M16 21V16"/><path d="M8 16h8"/><path d="M3 16h18"/>
+              </svg>
+            </div>
+            <span>Hotel/<br>B&amp;B</span>
+          </div>
+        </div>
+
+        <div class="floating-input-group">
+          <label>House Number (Required)</label>
+          <input id="addr-house-num" placeholder="11">
+          <button class="floating-clear" id="addr-num-clear">×</button>
+        </div>
+
+        <div class="floating-input-group">
+          <label>Add a label e.g "Home" (Optional)</label>
+          <input id="addr-label" placeholder="Home" value="Home">
+          <button class="floating-clear" id="addr-label-clear">×</button>
+        </div>
+
+        <h3 style="font-size:1rem;font-weight:700;margin:20px 0 10px">Delivery Instructions</h3>
+        <textarea id="addr-instructions" class="addr-instructions-box" rows="3" placeholder="Best entrance, house description, etc."></textarea>
+
+        <button class="btn btn-primary btn-block" id="addr-save-btn" style="border-radius:100px;height:52px;font-size:1rem;margin-top:16px">Save</button>
+      </div>
+    </div>
+
+    <!-- ── View: Restaurant list ─────────────────────────────── -->
+    <div id="view-restaurants" style="display:none">
+      <div class="home-header">
+        <div class="location-row">
+          <div style="flex:1;min-width:0">
+            <div class="location-label">Deliver to</div>
+            <div class="location-value" id="location-value" style="cursor:pointer">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M12 22s7-7.58 7-12a7 7 0 1 0-14 0c0 4.42 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg>
+              <span id="location-text" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Set your delivery address</span>
+              <svg class="icon chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+          </div>
+          <div class="header-icons">
+            <button class="icon-btn" id="orders-btn" title="My orders">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2V2z"/><line x1="9" y1="7" x2="15" y2="7"/><line x1="9" y1="11" x2="15" y2="11"/></svg>
+            </button>
+            <button class="icon-btn" id="logout-btn" title="Log out">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="search-bar">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="search-input" placeholder="Search restaurants or food">
+        </div>
+        <div class="chip-row" id="category-chips">
+          <button class="chip active" data-category="">All</button>
+          <button class="chip" data-category="burger">Burgers</button>
+          <button class="chip" data-category="pizza">Pizza</button>
+          <button class="chip" data-category="home">Home-style</button>
+          <button class="chip" data-category="healthy">Healthy</button>
+          <button class="chip" data-category="grocer">Groceries</button>
+        </div>
+      </div>
+
+      <div class="promo-banner">
+        <div>
+          <strong>20% off your first order</strong>
+          <p>Use code <b>ZOOM20</b> at checkout</p>
+        </div>
+        <svg class="promo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="30" height="30"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 1 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 1 0 0-5C13 2 12 7 12 7z"/></svg>
+      </div>
+
+      <h2 class="section-title">Restaurants near you</h2>
+      <div id="restaurant-grid" class="restaurant-list"></div>
+    </div>
+
+    <!-- ── View: Menu ────────────────────────────────────────── -->
+    <div id="view-menu" style="display:none">
+      <div class="sticky-subheader">
+        <button class="icon-btn" id="back-to-restaurants">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        </button>
+        <h2 id="menu-restaurant-name"></h2>
+      </div>
+      <div id="menu-list"></div>
+    </div>
+
+    <!-- ── View: Order tracking ──────────────────────────────── -->
+    <div id="view-orders" style="display:none">
+      <div class="sticky-subheader">
+        <button class="icon-btn" id="back-to-restaurants-2">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        </button>
+        <h2>My Orders</h2>
+      </div>
+      <div id="orders-list" style="padding:0 20px"></div>
+    </div>
+
+    <!-- Sticky mini cart bar -->
+    <div class="cart-bar" id="cart-bar" style="display:none">
+      <span id="cart-bar-text">0 items</span>
+      <button class="btn btn-primary btn-sm" id="cart-btn">
+        View cart
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Cart bottom sheet -->
+  <div class="sheet-backdrop" id="sheet-backdrop" style="display:none"></div>
+  <div class="cart-panel" id="cart-panel" style="display:none">
+    <div class="sheet-handle"></div>
+    <div class="cart-header">
+      <strong>Shopping cart</strong>
+      <button class="icon-btn" id="close-cart">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <!-- Summary line -->
+    <div style="padding:8px 18px 0;display:flex;align-items:center;justify-content:space-between">
+      <span style="font-weight:700;font-size:0.88rem">Summary</span>
+      <strong id="cart-total-summary" style="font-size:0.9rem">R0.00</strong>
+    </div>
+    <div style="display:flex;align-items:center;gap:5px;padding:2px 18px 12px;color:var(--success);font-size:0.8rem;font-weight:600;border-bottom:1px solid var(--border)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Delivery in ~30 minutes
+    </div>
+    <div class="cart-body" id="cart-body"></div>
+    <div class="cart-footer">
+      <div class="form-group">
+        <label>Delivery address</label>
+        <input type="text" id="delivery-address" placeholder="e.g. 12 Oak St, Pretoria">
+      </div>
+      <div class="row-between" style="margin-bottom:8px">
+        <span class="muted">Subtotal</span><strong id="cart-subtotal">R0.00</strong>
+      </div>
+      <div class="row-between" style="margin-bottom:16px">
+        <span class="muted">Delivery fee</span><strong id="cart-fee">R25.00</strong>
+      </div>
+      <button class="btn btn-primary btn-block" id="checkout-btn" style="border-radius:100px;height:52px;font-size:1rem">Go to checkout</button>
+      <p class="error-msg" id="checkout-error"></p>
+    </div>
+  </div>
+
+  <script src="js/demo-mock.js"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    const DELIVERY_FEE = 25;
+    let profile = null;
+    let restaurants = [];
+    let currentRestaurant = null;
+    let menuItems = [];
+    let cart = [];
+    let trackingMap = null;
+    let trackingMarker = null;
+    let driverChannel = null;
+    let activeCategory = '';
+    let searchText = '';
+    let currentAddress = null;
+    let addrMap = null;
+    let addrLat = -25.7461;
+    let addrLng = 28.1881;
+    let selectedAddrType = 'house';
+
+    const ICON_DISH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="32" height="32"><path d="M12 3a9 9 0 0 1 9 9H3a9 9 0 0 1 9-9z"/><line x1="2" y1="15" x2="22" y2="15"/><line x1="12" y1="15" x2="12" y2="19"/><line x1="8" y1="19" x2="16" y2="19"/></svg>';
+    const ICON_STAR = '<svg viewBox="0 0 24 24" fill="currentColor" width="10" height="10"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
+    const ICON_TRASH_SM = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
+
+    function money(n) { return `R${Number(n).toFixed(2)}`; }
+
+    function seedNum(id, min, max) {
+      let hash = 0;
+      for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
+      return min + (hash % (max - min + 1));
+    }
+
+    // ── Views ──────────────────────────────────────────────────
+    const ALL_VIEWS = ['view-profile-complete', 'view-address-setup', 'view-restaurants', 'view-menu', 'view-orders'];
+    function showView(id) {
+      ALL_VIEWS.forEach(v => { document.getElementById(v).style.display = v === id ? 'block' : 'none'; });
+      if (id === 'view-address-setup' && addrMap) setTimeout(() => addrMap.invalidateSize(), 80);
+    }
+
+    // ── Profile completion ─────────────────────────────────────
+    document.getElementById('avatar-edit-btn').addEventListener('click', () => document.getElementById('avatar-input').click());
+    document.getElementById('avatar-input').addEventListener('change', async e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const url = URL.createObjectURL(file);
+      document.getElementById('avatar-preview').innerHTML = `<img src="${url}" alt="avatar">`;
+      if (!window.DEMO_MODE) {
+        const { data, error } = await sb.storage.from('avatars').upload(`${profile.id}/avatar`, file, { upsert: true });
+        if (!error) {
+          const { data: { publicUrl } } = sb.storage.from('avatars').getPublicUrl(data.path);
+          await sb.from('profiles').update({ avatar_url: publicUrl }).eq('id', profile.id);
+          profile.avatar_url = publicUrl;
+        }
+      }
+    });
+
+    document.getElementById('profile-save-btn').addEventListener('click', async () => {
+      const firstName = document.getElementById('p-first-name').value.trim();
+      const lastName = document.getElementById('p-last-name').value.trim();
+      const errorEl = document.getElementById('profile-error');
+      if (!firstName) { errorEl.textContent = 'First name is required.'; return; }
+      errorEl.textContent = '';
+
+      const { error } = await sb.from('profiles').update({
+        first_name: firstName,
+        last_name: lastName,
+        full_name: `${firstName} ${lastName}`.trim(),
+      }).eq('id', profile.id);
+
+      if (error) { errorEl.textContent = error.message; return; }
+      profile.first_name = firstName;
+      profile.last_name = lastName;
+      await ensureDeliveryAddress();
+    });
+
+    // ── Address setup ──────────────────────────────────────────
+    document.getElementById('addr-type-row').addEventListener('click', e => {
+      const item = e.target.closest('.addr-type-item');
+      if (!item) return;
+      document.querySelectorAll('.addr-type-item').forEach(i => i.classList.remove('active'));
+      item.classList.add('active');
+      selectedAddrType = item.dataset.type;
+    });
+
+    document.getElementById('addr-num-clear').addEventListener('click', () => { document.getElementById('addr-house-num').value = ''; });
+    document.getElementById('addr-label-clear').addEventListener('click', () => { document.getElementById('addr-label').value = ''; });
+
+    document.getElementById('addr-back-btn').addEventListener('click', () => {
+      if (currentAddress) showView('view-restaurants');
+    });
+
+    document.getElementById('location-value').addEventListener('click', () => {
+      showView('view-address-setup');
+      document.getElementById('addr-back-btn').style.display = 'flex';
+      if (!addrMap) initAddressMap();
+    });
+
+    document.getElementById('addr-save-btn').addEventListener('click', async () => {
+      const houseNum = document.getElementById('addr-house-num').value.trim();
+      const label = document.getElementById('addr-label').value.trim() || 'Home';
+      const instructions = document.getElementById('addr-instructions').value.trim();
+      const streetRaw = document.getElementById('addr-street').textContent.replace('Detecting location…', '').trim();
+      const street = houseNum
+        ? houseNum + ' ' + streetRaw.replace(/^\d+\s*/, '')
+        : streetRaw;
+
+      const { data, error } = await sb.from('addresses').insert({
+        customer_id: profile.id,
+        label,
+        address_type: selectedAddrType,
+        street_address: street || streetRaw,
+        house_number: houseNum,
+        delivery_instructions: instructions,
+        lat: addrLat,
+        lng: addrLng,
+        is_default: true,
+      }).select().single();
+
+      if (error) { console.error(error); return; }
+      currentAddress = data;
+      updateLocationBar();
+      document.getElementById('delivery-address').value = currentAddress.street_address || '';
+      await loadRestaurants();
+      showView('view-restaurants');
+    });
+
+    async function initAddressMap() {
+      addrMap = L.map('addr-map', { zoomControl: true }).setView([addrLat, addrLng], 16);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(addrMap);
+
+      if (window.DEMO_MODE) {
+        addrLat = -25.7512;
+        addrLng = 28.1884;
+        addrMap.setView([addrLat, addrLng], 16);
+        document.getElementById('addr-street').textContent = '11 Flora Rd';
+        document.getElementById('addr-city').textContent = 'Valhalla, Centurion, 0185, South Africa';
+        document.getElementById('addr-house-num').value = '11';
+      } else if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(async pos => {
+          addrLat = pos.coords.latitude;
+          addrLng = pos.coords.longitude;
+          addrMap.setView([addrLat, addrLng], 16);
+          await reverseGeocode(addrLat, addrLng);
+        }, () => reverseGeocode(addrLat, addrLng));
+      } else {
+        await reverseGeocode(addrLat, addrLng);
+      }
+
+      addrMap.on('moveend', async () => {
+        const c = addrMap.getCenter();
+        addrLat = c.lat; addrLng = c.lng;
+        if (!window.DEMO_MODE) await reverseGeocode(addrLat, addrLng);
+      });
+    }
+
+    async function reverseGeocode(lat, lng) {
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`);
+        const d = await res.json();
+        const road = d.address?.road || d.address?.pedestrian || '';
+        const house = d.address?.house_number || '';
+        const city = d.address?.city || d.address?.town || d.address?.suburb || '';
+        const state = d.address?.state || '';
+        const postcode = d.address?.postcode || '';
+        const country = d.address?.country || '';
+        document.getElementById('addr-street').textContent = `${house} ${road}`.trim() || 'Unknown road';
+        document.getElementById('addr-city').textContent = [city, state, postcode, country].filter(Boolean).join(', ');
+        if (house) document.getElementById('addr-house-num').value = house;
+      } catch {
+        document.getElementById('addr-street').textContent = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+      }
+    }
+
+    function updateLocationBar() {
+      if (!currentAddress) return;
+      document.getElementById('location-text').textContent = currentAddress.street_address || currentAddress.label;
+    }
+
+    // ── Restaurants ────────────────────────────────────────────
+    async function loadRestaurants() {
+      const { data, error } = await sb.from('restaurants').select('*').order('name');
+      if (error) { console.error(error); return; }
+      restaurants = data;
+      renderRestaurants();
+    }
+
+    function renderRestaurants() {
+      const grid = document.getElementById('restaurant-grid');
+      const filtered = restaurants.filter(r => {
+        const cat = (r.category || '').toLowerCase();
+        const matchesCat = !activeCategory || cat.includes(activeCategory);
+        const matchesSearch = !searchText || r.name.toLowerCase().includes(searchText) || cat.includes(searchText);
+        return matchesCat && matchesSearch;
+      });
+
+      grid.innerHTML = filtered.map(r => {
+        const rating = (seedNum(r.id, 38, 49) / 10).toFixed(1);
+        const time = seedNum(r.id, 20, 45);
+        const distance = (seedNum(r.id, 8, 35) / 10).toFixed(1);
+        return `
+        <div class="restaurant-card ${r.is_open ? '' : 'closed'}" data-id="${r.id}">
+          <div class="restaurant-hero">
+            <span class="restaurant-hero-icon">${ICON_DISH}</span>
+            <span class="hero-badge hero-badge-rating">${ICON_STAR} ${rating}</span>
+            <span class="hero-badge hero-badge-time">${r.is_open ? `${time}–${time + 15} min` : 'Closed'}</span>
+          </div>
+          <div class="restaurant-meta">
+            <h3>${r.name}</h3>
+            <p>${r.category || 'Restaurant'} · ${distance} km away</p>
+          </div>
+        </div>`;
+      }).join('') || `<div class="empty-state">No restaurants match.</div>`;
+
+      grid.querySelectorAll('.restaurant-card').forEach(card => {
+        card.addEventListener('click', () => openRestaurant(card.dataset.id));
+      });
+    }
+
+    document.getElementById('search-input').addEventListener('input', e => {
+      searchText = e.target.value.trim().toLowerCase();
+      renderRestaurants();
+    });
+
+    document.getElementById('category-chips').addEventListener('click', e => {
+      const chip = e.target.closest('.chip');
+      if (!chip) return;
+      document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      activeCategory = chip.dataset.category;
+      renderRestaurants();
+    });
+
+    // ── Menu ───────────────────────────────────────────────────
+    async function openRestaurant(id) {
+      currentRestaurant = restaurants.find(r => r.id === id);
+      if (!currentRestaurant?.is_open) return;
+      document.getElementById('menu-restaurant-name').textContent = currentRestaurant.name;
+      const { data, error } = await sb.from('menu_items').select('*').eq('restaurant_id', id).eq('available', true);
+      if (error) { console.error(error); return; }
+      menuItems = data;
+      const list = document.getElementById('menu-list');
+      list.innerHTML = `<div class="card" style="margin:0 20px 20px">` +
+        menuItems.map(item => `
+          <div class="menu-item-row">
+            <div class="menu-item-info">
+              <h4>${item.name}</h4>
+              <p>${item.description || ''}</p>
+              <div class="price">${money(item.price)}</div>
+            </div>
+            <button class="btn btn-primary btn-sm" data-add="${item.id}">Add</button>
+          </div>`).join('') + `</div>`
+        || `<div class="empty-state">No items on this menu yet.</div>`;
+
+      list.querySelectorAll('[data-add]').forEach(btn => {
+        btn.addEventListener('click', () => addToCart(btn.dataset.add));
+      });
+      showView('view-menu');
+    }
+
+    // ── Cart ───────────────────────────────────────────────────
+    function addToCart(itemId) {
+      const item = menuItems.find(i => i.id === itemId);
+      const existing = cart.find(c => c.item.id === itemId);
+      if (existing) existing.qty++;
+      else cart.push({ item, qty: 1 });
+      renderCart();
+    }
+
+    function changeQty(itemId, delta) {
+      const row = cart.find(c => c.item.id === itemId);
+      if (!row) return;
+      row.qty += delta;
+      if (row.qty <= 0) cart = cart.filter(c => c.item.id !== itemId);
+      renderCart();
+    }
+
+    function renderCart() {
+      const count = cart.reduce((s, c) => s + c.qty, 0);
+      const subtotal = cart.reduce((s, c) => s + c.item.price * c.qty, 0);
+      const total = subtotal + (cart.length ? DELIVERY_FEE : 0);
+
+      document.getElementById('cart-bar').style.display = count ? 'flex' : 'none';
+      document.getElementById('cart-bar-text').textContent = `${count} item${count === 1 ? '' : 's'} · ${money(subtotal)}`;
+      document.getElementById('cart-total-summary').textContent = money(total);
+      document.getElementById('cart-subtotal').textContent = money(subtotal);
+      document.getElementById('cart-fee').textContent = money(cart.length ? DELIVERY_FEE : 0);
+
+      const body = document.getElementById('cart-body');
+      body.innerHTML = cart.map(c => `
+        <div class="cart-row">
+          <div>
+            <div class="cart-item-name">${c.item.name}</div>
+            <div class="cart-item-price">${money(c.item.price)} each</div>
+          </div>
+          <div class="qty-stepper">
+            <button data-dec="${c.item.id}" title="${c.qty === 1 ? 'Remove' : 'Decrease'}">
+              ${c.qty === 1 ? ICON_TRASH_SM : '−'}
+            </button>
+            <span>${c.qty}</span>
+            <button data-inc="${c.item.id}">+</button>
+          </div>
+        </div>`).join('') || `<p class="muted" style="padding:16px 0">Your cart is empty.</p>`;
+
+      body.querySelectorAll('[data-inc]').forEach(b => b.addEventListener('click', () => changeQty(b.dataset.inc, 1)));
+      body.querySelectorAll('[data-dec]').forEach(b => b.addEventListener('click', () => changeQty(b.dataset.dec, -1)));
+    }
+
+    function openCart() {
+      document.getElementById('cart-panel').style.display = 'block';
+      document.getElementById('sheet-backdrop').style.display = 'block';
+    }
+    function closeCart() {
+      document.getElementById('cart-panel').style.display = 'none';
+      document.getElementById('sheet-backdrop').style.display = 'none';
+    }
+
+    document.getElementById('cart-btn').addEventListener('click', openCart);
+    document.getElementById('close-cart').addEventListener('click', closeCart);
+    document.getElementById('sheet-backdrop').addEventListener('click', closeCart);
+    document.getElementById('back-to-restaurants').addEventListener('click', () => showView('view-restaurants'));
+    document.getElementById('back-to-restaurants-2').addEventListener('click', () => showView('view-restaurants'));
+    document.getElementById('logout-btn').addEventListener('click', async () => { await signOut(); window.location.href = 'index.html'; });
+
+    // ── Checkout ───────────────────────────────────────────────
+    function submitPayfastForm(url, fields) {
+      const form = document.createElement('form');
+      form.method = 'POST'; form.action = url;
+      Object.entries(fields).forEach(([key, value]) => {
+        const input = document.createElement('input');
+        input.type = 'hidden'; input.name = key; input.value = value;
+        form.appendChild(input);
+      });
+      document.body.appendChild(form); form.submit();
+    }
+
+    document.getElementById('checkout-btn').addEventListener('click', async () => {
+      const errorEl = document.getElementById('checkout-error');
+      errorEl.textContent = '';
+      const address = document.getElementById('delivery-address').value.trim();
+      if (!cart.length) { errorEl.textContent = 'Your cart is empty.'; return; }
+      if (!address) { errorEl.textContent = 'Please enter a delivery address.'; return; }
+
+      const subtotal = cart.reduce((s, c) => s + c.item.price * c.qty, 0);
+      const total = subtotal + DELIVERY_FEE;
+
+      const { data: order, error } = await sb.from('orders').insert({
+        customer_id: profile.id,
+        restaurant_id: currentRestaurant.id,
+        items: cart.map(c => ({ id: c.item.id, name: c.item.name, price: c.item.price, qty: c.qty })),
+        subtotal,
+        delivery_fee: DELIVERY_FEE,
+        total,
+        delivery_address: address,
+        delivery_lat: currentAddress?.lat,
+        delivery_lng: currentAddress?.lng,
+      }).select().single();
+
+      if (error) { errorEl.textContent = error.message; return; }
+
+      try {
+        const { data: payment } = await sb.functions.invoke('create-payfast-payment', {
+          body: { order_id: order.id, amount: total, item_name: `Zoom order #${order.id.slice(0, 8)}` },
+        });
+        if (payment?.url && payment?.fields) { submitPayfastForm(payment.url, payment.fields); return; }
+      } catch (e) {
+        console.warn('Payment function not available, continuing without redirect.', e);
+      }
+
+      cart = [];
+      renderCart();
+      closeCart();
+      openOrderTracking(order.id);
+    });
+
+    // ── Orders & tracking ──────────────────────────────────────
+    document.getElementById('orders-btn').addEventListener('click', loadOrders);
+
+    async function loadOrders() {
+      const { data, error } = await sb.from('orders').select('*, restaurants(name)').eq('customer_id', profile.id).order('created_at', { ascending: false });
+      if (error) { console.error(error); return; }
+      const list = document.getElementById('orders-list');
+      list.innerHTML = data.map(o => `
+        <div class="card mt-16" data-order="${o.id}" style="cursor:pointer">
+          <div class="row-between">
+            <strong>${o.restaurants?.name || 'Order'}</strong>
+            <span class="badge badge-${o.status}">${o.status.replace('_', ' ')}</span>
+          </div>
+          <p class="muted" style="margin:6px 0 0">${money(o.total)} · ${new Date(o.created_at).toLocaleString('en-ZA')}</p>
+        </div>`).join('') || `<div class="empty-state">No orders yet.</div>`;
+
+      list.querySelectorAll('[data-order]').forEach(el => {
+        el.addEventListener('click', () => openOrderTracking(el.dataset.order));
+      });
+      showView('view-orders');
+    }
+
+    async function openOrderTracking(orderId) {
+      showView('view-orders');
+      const { data: order } = await sb.from('orders').select('*, restaurants(name)').eq('id', orderId).single();
+      renderTracking(order);
+
+      sb.channel(`order-${orderId}`)
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${orderId}` }, payload => {
+          renderTracking({ ...order, ...payload.new });
+          if (payload.new.driver_id) subscribeDriverLocation(payload.new.driver_id);
+        })
+        .subscribe();
+
+      if (order.driver_id) subscribeDriverLocation(order.driver_id);
+    }
+
+    function renderTracking(order) {
+      const steps = ['pending', 'accepted', 'preparing', 'ready', 'picked_up', 'delivered'];
+      const idx = steps.indexOf(order.status);
+      const list = document.getElementById('orders-list');
+      list.innerHTML = `
+        <div class="card">
+          <div class="row-between">
+            <strong>${order.restaurants?.name || 'Order'}</strong>
+            <span class="badge badge-${order.status}">${order.status.replace('_', ' ')}</span>
+          </div>
+          <div class="status-track">
+            ${steps.map((s, i) => `<div class="status-step ${i <= idx ? 'active' : ''}">${s.replace('_', ' ')}</div>`).join('')}
+          </div>
+          <div id="tracking-map" style="display:${order.driver_id ? 'block' : 'none'}"></div>
+        </div>`;
+      if (order.driver_id) initTrackingMap(order);
+    }
+
+    function initTrackingMap(order) {
+      if (trackingMap) { trackingMap.remove(); trackingMap = null; }
+      trackingMap = L.map('tracking-map').setView([order.delivery_lat || -25.7, order.delivery_lng || 28.2], 13);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(trackingMap);
+      if (order.delivery_lat && order.delivery_lng) {
+        L.marker([order.delivery_lat, order.delivery_lng]).addTo(trackingMap).bindPopup('Delivery address');
+      }
+    }
+
+    function subscribeDriverLocation(driverId) {
+      if (driverChannel) sb.removeChannel(driverChannel);
+      driverChannel = sb.channel(`driver-${driverId}`)
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'drivers', filter: `id=eq.${driverId}` }, payload => {
+          const { current_lat, current_lng } = payload.new;
+          if (!trackingMap || current_lat == null) return;
+          if (!trackingMarker) {
+            trackingMarker = L.marker([current_lat, current_lng], { title: 'Driver' }).addTo(trackingMap);
+          } else {
+            trackingMarker.setLatLng([current_lat, current_lng]);
+          }
+        })
+        .subscribe();
+    }
+
+    // ── Initialisation ─────────────────────────────────────────
+    async function ensureDeliveryAddress() {
+      const { data: addrs } = await sb.from('addresses').select('*').eq('customer_id', profile.id).order('created_at');
+      if (!addrs || addrs.length === 0) {
+        showView('view-address-setup');
+        await initAddressMap();
+        return;
+      }
+      currentAddress = addrs.find(a => a.is_default) || addrs[0];
+      updateLocationBar();
+      document.getElementById('delivery-address').value = currentAddress.street_address || '';
+      await loadRestaurants();
+      showView('view-restaurants');
+    }
+
+    (async () => {
+      profile = await requireRole('customer');
+      if (!profile) return;
+      if (!profile.first_name && !window.DEMO_MODE) {
+        showView('view-profile-complete');
+        return;
+      }
+      await ensureDeliveryAddress();
+    })();
+  </script>
+</body>
+</html>

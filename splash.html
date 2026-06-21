@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en-ZA">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zoom</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@900&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #ff5a3c;
+      font-family: 'Inter', Arial, sans-serif;
+      cursor: pointer;
+      overflow: hidden;
+    }
+
+    .splash {
+      max-width: 480px;
+      width: 100%;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 80px 32px 48px;
+      background: #ff5a3c;
+    }
+
+    .promo-text {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: center;
+      width: 100%;
+      padding-top: 20px;
+    }
+
+    .big-word {
+      font-size: clamp(86px, 24vw, 110px);
+      font-weight: 900;
+      color: #fff;
+      line-height: 0.88;
+      letter-spacing: -0.03em;
+      text-transform: uppercase;
+      text-shadow:
+        4px 4px 0 #7a1f00,
+        8px 8px 0 #5c1600,
+        12px 12px 0 rgba(80, 20, 0, 0.3);
+      display: block;
+    }
+
+    .sub-line {
+      margin-top: 28px;
+      font-size: clamp(18px, 5vw, 22px);
+      font-weight: 900;
+      color: #fff;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      line-height: 1.2;
+    }
+
+    .brand-btn {
+      width: 100%;
+      background: #fff;
+      border: none;
+      border-radius: 20px;
+      padding: 22px 32px;
+      font-size: clamp(28px, 8vw, 36px);
+      font-weight: 900;
+      color: #ff5a3c;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: transform 0.1s ease, opacity 0.1s ease;
+    }
+    .brand-btn:active { transform: scale(0.97); opacity: 0.92; }
+
+    .skip-hint {
+      text-align: center;
+      color: rgba(255,255,255,0.55);
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-top: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="splash" id="splash">
+    <div class="promo-text">
+      <span class="big-word">FREE</span>
+      <span class="big-word">DELIVERY</span>
+      <p class="sub-line">On your first order</p>
+    </div>
+
+    <div style="width:100%">
+      <button class="brand-btn" id="go-btn">ZOOM.</button>
+      <p class="skip-hint">Tap to get started</p>
+    </div>
+  </div>
+
+  <script src="js/demo-mock.js"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    function proceed() {
+      if (window.DEMO_MODE) {
+        window.location.href = 'index.html' + window.location.search;
+      } else {
+        window.location.href = 'index.html';
+      }
+    }
+
+    document.getElementById('go-btn').addEventListener('click', proceed);
+    document.getElementById('splash').addEventListener('click', proceed);
+
+    // Auto-advance after 4s if user doesn't tap
+    setTimeout(proceed, 4000);
+
+    // Skip splash if already signed in
+    (async () => {
+      if (window.DEMO_MODE) return;
+      const profile = await getCurrentProfile();
+      if (profile) window.location.href = `${profile.role}.html`;
+    })();
+  </script>
+</body>
+</html>

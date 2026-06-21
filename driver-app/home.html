@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en-ZA">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Extro — Driver</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=3">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+<div class="app-shell">
+
+  <!-- ── Header ───────────────────────────────────────────────── -->
+  <div class="driver-header">
+    <div class="dh-top">
+      <div class="dh-brand">Extro<span class="dh-dot">.</span><span class="dh-role">Driver</span></div>
+      <div class="header-icons">
+        <button class="icon-btn" id="notif-btn" title="Enable notifications">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        </button>
+        <button class="icon-btn" id="logout-btn" title="Log out">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="dh-status-row">
+      <div>
+        <div class="status-dot-row">
+          <span class="status-dot" id="status-dot"></span>
+          <strong id="status-text">You're offline</strong>
+        </div>
+        <p class="muted" id="status-sub" style="margin:3px 0 0;font-size:0.8rem">Go online to start receiving deliveries</p>
+      </div>
+      <label class="switch" style="margin-left:12px;flex-shrink:0">
+        <input type="checkbox" id="online-toggle">
+        <span class="switch-track"><span class="switch-thumb"></span></span>
+      </label>
+    </div>
+
+    <div class="earnings-bar">
+      <div class="earn-item">
+        <span class="earn-label">Today</span>
+        <span class="earn-value" id="earn-today">R0</span>
+      </div>
+      <div class="earn-div"></div>
+      <div class="earn-item">
+        <span class="earn-label">Trips</span>
+        <span class="earn-value" id="earn-count">0</span>
+      </div>
+      <div class="earn-div"></div>
+      <div class="earn-item">
+        <span class="earn-label">Rating</span>
+        <span class="earn-value">⭐ 4.9</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Deliveries tab ────────────────────────────────────────── -->
+  <div id="view-deliveries">
+    <div id="active-order-view" style="display:none">
+      <div class="pool-header">
+        <h2 class="section-title" style="margin:0">Current delivery</h2>
+      </div>
+      <div id="active-order-card"></div>
+      <div id="active-map" class="active-map"></div>
+    </div>
+
+    <div id="pool-view">
+      <div class="pool-header">
+        <h2 class="section-title" style="margin:0">Available deliveries</h2>
+        <span class="pool-count-badge" id="pool-badge" style="display:none">0</span>
+      </div>
+      <p id="offline-msg" style="display:block;padding:0 20px 20px;color:var(--muted);font-size:0.88rem">Go online to see available deliveries.</p>
+      <div id="pool-list" class="delivery-list"></div>
+    </div>
+  </div>
+
+  <!-- ── Wallet tab ────────────────────────────────────────────── -->
+  <div id="view-wallet" style="display:none;padding-bottom:100px">
+
+    <div class="wallet-balance-card">
+      <p class="wallet-label">Available balance</p>
+      <p class="wallet-amount" id="wallet-balance">R—</p>
+      <p class="wallet-sub" id="wallet-pending-note" style="display:none"></p>
+      <button class="btn btn-primary wallet-wd-btn" id="open-withdraw-btn">Withdraw funds</button>
+    </div>
+
+    <div class="wallet-stats-row">
+      <div class="wallet-stat">
+        <span class="wallet-stat-val" id="wstat-earned">R—</span>
+        <span class="wallet-stat-label">Total earned</span>
+      </div>
+      <div class="wallet-stat-div"></div>
+      <div class="wallet-stat">
+        <span class="wallet-stat-val" id="wstat-withdrawn">R—</span>
+        <span class="wallet-stat-label">Withdrawn</span>
+      </div>
+      <div class="wallet-stat-div"></div>
+      <div class="wallet-stat">
+        <span class="wallet-stat-val" id="wstat-trips">—</span>
+        <span class="wallet-stat-label">Total trips</span>
+      </div>
+    </div>
+
+    <div style="padding:20px 20px 10px">
+      <p class="wallet-section-title">Withdrawal history</p>
+    </div>
+    <div id="withdrawal-history" class="delivery-list" style="gap:10px"></div>
+  </div>
+
+  <!-- ── Bottom nav ────────────────────────────────────────────── -->
+  <div class="bottom-nav">
+    <button class="nav-tab active" data-tab="deliveries">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M16 7V5a4 4 0 0 0-8 0v2"/><rect x="3" y="7" width="18" height="14" rx="2"/></svg>
+      <span>Deliveries</span>
+    </button>
+    <button class="nav-tab" data-tab="wallet">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+      <span>Wallet</span>
+    </button>
+  </div>
+
+</div>
+
+<!-- ── New order toast ────────────────────────────────────────── -->
+<div id="order-toast" class="order-toast" style="display:none">
+  <span class="toast-icon">🛵</span>
+  <div class="toast-body">
+    <div class="toast-title">New delivery available!</div>
+    <div class="toast-sub" id="toast-sub">Ready for pickup</div>
+  </div>
+  <button class="toast-close" id="toast-dismiss">✕</button>
+</div>
+
+<!-- ── Withdrawal sheet ───────────────────────────────────────── -->
+<div id="withdraw-sheet" style="display:none">
+  <div class="sheet-backdrop" id="wd-backdrop"></div>
+  <div class="bottom-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-inner">
+      <h3 class="sheet-title">Withdraw funds</h3>
+      <p class="sheet-avail">Available: <strong id="sheet-avail-amt">R0</strong></p>
+
+      <div class="form-group">
+        <label>Amount (R)</label>
+        <input type="number" id="wd-amount" placeholder="Minimum R50" min="50" inputmode="numeric">
+      </div>
+      <div class="form-group">
+        <label>Bank</label>
+        <select id="wd-bank">
+          <option value="">Select your bank…</option>
+          <option>Capitec Bank</option>
+          <option>FNB / First National Bank</option>
+          <option>Standard Bank</option>
+          <option>Absa</option>
+          <option>Nedbank</option>
+          <option>Discovery Bank</option>
+          <option>TymeBank</option>
+          <option>African Bank</option>
+          <option>Investec</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Account number</label>
+        <input type="text" id="wd-account" placeholder="e.g. 1234567890" inputmode="numeric">
+      </div>
+      <div class="form-group">
+        <label>Account holder name</label>
+        <input type="text" id="wd-holder" placeholder="Full name on account">
+      </div>
+
+      <p class="sheet-note">Withdrawals are processed within 1–2 business days.</p>
+      <p class="wd-error" id="wd-error" style="display:none"></p>
+
+      <button class="btn btn-primary btn-block" id="wd-submit">Submit request</button>
+      <button class="btn btn-outline btn-block" id="wd-cancel" style="margin-top:8px">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/demo-mock.js?v=3"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/auth.js"></script>
+<script>
+  // ── State ──────────────────────────────────────────────────────
+  let profile = window.DEMO_MODE ? window.DEMO_PROFILE : null;
+  let activeOrder = null;
+  let watchId = null;
+  let lastWriteTime = 0;
+  let activeMap = null;
+  let driverMarker = null;
+  let pickupMarker = null;
+  let dropMarker = null;
+  let routePolyline = null;
+  let poolChannel = null;
+  let knownPoolIds = new Set();
+  let driverLat = null;
+  let driverLng = null;
+  let demoGpsInterval = null;
+  let todayEarnings = 0;
+  let todayCount = 0;
+  let availableBalance = 0;
+
+  const ICON_BAG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M16 7V5a4 4 0 0 0-8 0v2"/><rect x="3" y="7" width="18" height="14" rx="2"/></svg>`;
+
+  // ── Bottom nav ─────────────────────────────────────────────────
+  document.querySelectorAll('.nav-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      const target = tab.dataset.tab;
+      document.getElementById('view-deliveries').style.display = target === 'deliveries' ? 'block' : 'none';
+      document.getElementById('view-wallet').style.display = target === 'wallet' ? 'block' : 'none';
+      if (target === 'wallet') loadWallet();
+    });
+  });
+
+  // ── Map icons ──────────────────────────────────────────────────
+  function makeMapIcon(bg, svgPath, size = 36) {
+    return L.divIcon({
+      html: `<div style="background:${bg};width:${size}px;height:${size}px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,0.28)"><svg viewBox="0 0 24 24" width="${Math.round(size*0.48)}" height="${Math.round(size*0.48)}" fill="white">${svgPath}</svg></div>`,
+      className: '', iconSize: [size, size], iconAnchor: [size/2, size/2],
+    });
+  }
+  const DRIVER_ICON = makeMapIcon('#16a34a', '<circle cx="12" cy="7" r="3.5"/><path d="M4 20c0-4.418 3.582-8 8-8s8 3.582 8 8"/>');
+  const PICKUP_ICON = makeMapIcon('#ff5722', '<path d="M16 7V5a4 4 0 0 0-8 0v2"/><rect x="3" y="7" width="18" height="14" rx="2"/>');
+  const DROP_ICON   = makeMapIcon('#1a1d29', '<path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"/>');
+
+  // ── Audio ping ─────────────────────────────────────────────────
+  function playPing() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      [[880, 0], [1100, 0.18], [880, 0.36]].forEach(([freq, t]) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.35, ctx.currentTime + t);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.22);
+        osc.start(ctx.currentTime + t); osc.stop(ctx.currentTime + t + 0.22);
+      });
+    } catch (_) {}
+  }
+
+  // ── Earnings (header strip) ────────────────────────────────────
+  async function loadEarnings() {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const { data } = await sb.from('orders').select('delivery_fee,created_at').eq('driver_id', profile.id).eq('status', 'delivered');
+    const todayOrders = (data || []).filter(o => new Date(o.created_at) >= today);
+    todayEarnings = todayOrders.reduce((s, o) => s + (Number(o.delivery_fee) || 0), 0);
+    todayCount = todayOrders.length;
+    renderEarnings();
+  }
+
+  function renderEarnings() {
+    document.getElementById('earn-today').textContent = `R${todayEarnings.toFixed(0)}`;
+    document.getElementById('earn-count').textContent = todayCount;
+  }
+
+  // ── Wallet tab ─────────────────────────────────────────────────
+  async function loadWallet() {
+    const [ordersRes, wdRes] = await Promise.all([
+      sb.from('orders').select('delivery_fee,created_at').eq('driver_id', profile.id).eq('status', 'delivered'),
+      sb.from('withdrawals').select('*').eq('driver_id', profile.id).order('created_at', { ascending: false }),
+    ]);
+
+    const orders = ordersRes.data || [];
+    const withdrawals = wdRes.data || [];
+
+    const totalEarned = orders.reduce((s, o) => s + (Number(o.delivery_fee) || 0), 0);
+    const totalWithdrawn = withdrawals.filter(w => w.status !== 'cancelled').reduce((s, w) => s + (Number(w.amount) || 0), 0);
+    const pending = withdrawals.filter(w => w.status === 'pending').reduce((s, w) => s + (Number(w.amount) || 0), 0);
+    availableBalance = Math.max(0, totalEarned - totalWithdrawn);
+
+    document.getElementById('wallet-balance').textContent = `R${availableBalance.toFixed(0)}`;
+    document.getElementById('wstat-earned').textContent = `R${totalEarned.toFixed(0)}`;
+    document.getElementById('wstat-withdrawn').textContent = `R${totalWithdrawn.toFixed(0)}`;
+    document.getElementById('wstat-trips').textContent = orders.length;
+
+    const pendingNote = document.getElementById('wallet-pending-note');
+    if (pending > 0) {
+      pendingNote.textContent = `R${pending.toFixed(0)} pending processing`;
+      pendingNote.style.display = 'block';
+    } else {
+      pendingNote.style.display = 'none';
+    }
+
+    renderWithdrawals(withdrawals);
+  }
+
+  function renderWithdrawals(list) {
+    const el = document.getElementById('withdrawal-history');
+    if (!list.length) {
+      el.innerHTML = `<div class="empty-state" style="padding:30px 20px">No withdrawals yet.</div>`;
+      return;
+    }
+    el.innerHTML = list.map(w => {
+      const date = new Date(w.created_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' });
+      const statusClass = w.status === 'paid' ? 'delivered' : w.status === 'pending' ? 'pending' : 'cancelled';
+      return `
+        <div class="wd-row">
+          <div class="wd-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+          </div>
+          <div class="wd-info">
+            <div class="wd-bank">${w.bank_name}</div>
+            <div class="wd-meta">${w.account_holder || ''} · ${w.account_number} · ${date}</div>
+          </div>
+          <div class="wd-right">
+            <div class="wd-amount">R${Number(w.amount).toFixed(0)}</div>
+            <span class="badge badge-${statusClass}">${w.status}</span>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  // ── Withdrawal sheet ───────────────────────────────────────────
+  function openWithdrawSheet() {
+    document.getElementById('sheet-avail-amt').textContent = `R${availableBalance.toFixed(0)}`;
+    document.getElementById('wd-amount').value = '';
+    document.getElementById('wd-bank').value = '';
+    document.getElementById('wd-account').value = '';
+    document.getElementById('wd-holder').value = '';
+    document.getElementById('wd-error').style.display = 'none';
+    document.getElementById('withdraw-sheet').style.display = 'block';
+  }
+
+  function closeWithdrawSheet() {
+    document.getElementById('withdraw-sheet').style.display = 'none';
+  }
+
+  document.getElementById('open-withdraw-btn').addEventListener('click', openWithdrawSheet);
+  document.getElementById('wd-backdrop').addEventListener('click', closeWithdrawSheet);
+  document.getElementById('wd-cancel').addEventListener('click', closeWithdrawSheet);
+
+  document.getElementById('wd-submit').addEventListener('click', async () => {
+    const amount = parseFloat(document.getElementById('wd-amount').value);
+    const bank = document.getElementById('wd-bank').value.trim();
+    const account = document.getElementById('wd-account').value.trim();
+    const holder = document.getElementById('wd-holder').value.trim();
+    const errEl = document.getElementById('wd-error');
+
+    errEl.style.display = 'none';
+    if (!amount || amount < 50) { showWdError('Minimum withdrawal is R50.'); return; }
+    if (amount > availableBalance) { showWdError(`You only have R${availableBalance.toFixed(0)} available.`); return; }
+    if (!bank) { showWdError('Please select your bank.'); return; }
+    if (!account) { showWdError('Please enter your account number.'); return; }
+    if (!holder) { showWdError('Please enter the account holder name.'); return; }
+
+    const btn = document.getElementById('wd-submit');
+    btn.disabled = true; btn.textContent = 'Submitting…';
+
+    const { error } = await sb.from('withdrawals').insert({
+      driver_id: profile.id,
+      amount,
+      bank_name: bank,
+      account_number: account.slice(-4).padStart(account.length, '*'),
+      account_holder: holder,
+      status: 'pending',
+    });
+
+    btn.disabled = false; btn.textContent = 'Submit request';
+
+    if (error) { showWdError('Something went wrong. Please try again.'); return; }
+
+    closeWithdrawSheet();
+    await loadWallet();
+  });
+
+  function showWdError(msg) {
+    const el = document.getElementById('wd-error');
+    el.textContent = msg; el.style.display = 'block';
+  }
+
+  // ── Status UI ──────────────────────────────────────────────────
+  function setStatusUI(isOnline) {
+    document.getElementById('status-dot').classList.toggle('online', isOnline);
+    document.getElementById('status-text').textContent = isOnline ? "You're online" : "You're offline";
+    document.getElementById('status-sub').textContent = isOnline
+      ? 'Looking for delivery requests near you'
+      : 'Go online to start receiving deliveries';
+    document.getElementById('offline-msg').style.display = isOnline ? 'none' : 'block';
+  }
+
+  // ── GPS ────────────────────────────────────────────────────────
+  function startLocationSharing() {
+    if (window.DEMO_MODE) { startDemoGPS(); return; }
+    if (watchId != null || !navigator.geolocation) return;
+    watchId = navigator.geolocation.watchPosition(async pos => {
+      driverLat = pos.coords.latitude; driverLng = pos.coords.longitude;
+      updateDriverMarker();
+      const now = Date.now();
+      if (now - lastWriteTime < 4000) return;
+      lastWriteTime = now;
+      await sb.from('drivers').update({ current_lat: driverLat, current_lng: driverLng, updated_at: new Date().toISOString() }).eq('id', profile.id);
+    }, null, { enableHighAccuracy: true, maximumAge: 0 });
+  }
+
+  function stopLocationSharing() {
+    if (window.DEMO_MODE) { if (demoGpsInterval) { clearInterval(demoGpsInterval); demoGpsInterval = null; } return; }
+    if (watchId != null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+  }
+
+  function startDemoGPS() {
+    if (demoGpsInterval) return;
+    const store = JSON.parse(localStorage.getItem('zoom_demo_store_v1') || '{}');
+    const d = (store.drivers || []).find(dr => dr.id === profile.id);
+    driverLat = d?.current_lat ?? -25.75; driverLng = d?.current_lng ?? 28.19;
+    if (activeMap) updateDriverMarker();
+
+    demoGpsInterval = setInterval(() => {
+      if (!activeOrder) return;
+      const isPickedUp = activeOrder.status === 'picked_up';
+      const destLat = isPickedUp ? activeOrder.delivery_lat : activeOrder.restaurants?.lat;
+      const destLng = isPickedUp ? activeOrder.delivery_lng : activeOrder.restaurants?.lng;
+      if (!destLat) return;
+      driverLat += (destLat - driverLat) * 0.07;
+      driverLng += (destLng - driverLng) * 0.07;
+      const st = JSON.parse(localStorage.getItem('zoom_demo_store_v1') || '{}');
+      const dr = (st.drivers || []).find(d => d.id === profile.id);
+      if (dr) { dr.current_lat = driverLat; dr.current_lng = driverLng; dr.updated_at = new Date().toISOString(); }
+      localStorage.setItem('zoom_demo_store_v1', JSON.stringify(st));
+      updateDriverMarker();
+    }, 2000);
+  }
+
+  // ── Pool subscription ──────────────────────────────────────────
+  function subscribePool() {
+    if (poolChannel) return;
+    poolChannel = sb.channel('order-pool')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: 'status=eq.ready' }, payload => {
+        const order = payload.new;
+        if (order && !order.driver_id && !knownPoolIds.has(order.id)) pingNewOrder(order);
+        loadPool();
+      })
+      .subscribe();
+  }
+
+  function unsubscribePool() {
+    if (poolChannel) { sb.removeChannel(poolChannel); poolChannel = null; }
+  }
+
+  // ── Ping ───────────────────────────────────────────────────────
+  function pingNewOrder(order) {
+    playPing();
+    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    if (Notification.permission === 'granted') {
+      new Notification('New delivery available!', { body: order?.restaurants?.name ? `Pickup from ${order.restaurants.name}` : 'A new order is ready' });
+    }
+    const sub = document.getElementById('toast-sub');
+    if (sub) sub.textContent = order?.restaurants?.name ? `Pickup from ${order.restaurants.name}` : 'Ready for pickup';
+    const toast = document.getElementById('order-toast');
+    if (toast) { toast.style.display = 'flex'; clearTimeout(toast._t); toast._t = setTimeout(() => { toast.style.display = 'none'; }, 6000); }
+    const badge = document.getElementById('pool-badge');
+    if (badge) badge.classList.add('pulse');
+  }
+
+  document.getElementById('toast-dismiss').addEventListener('click', () => { document.getElementById('order-toast').style.display = 'none'; });
+  document.getElementById('notif-btn').addEventListener('click', async () => {
+    if ('Notification' in window && Notification.permission !== 'granted') {
+      const p = await Notification.requestPermission();
+      if (p === 'granted') document.getElementById('notif-btn').style.color = 'var(--success)';
+    }
+  });
+
+  // ── Pool ───────────────────────────────────────────────────────
+  async function loadPool() {
+    if (activeOrder) return;
+    const { data, error } = await sb.from('orders').select('*, restaurants(name, address, lat, lng)').eq('status', 'ready').is('driver_id', null);
+    if (error) { console.error(error); return; }
+    const orders = data || [];
+    orders.forEach(o => knownPoolIds.add(o.id));
+
+    const badge = document.getElementById('pool-badge');
+    badge.textContent = orders.length;
+    badge.style.display = orders.length ? 'inline-flex' : 'none';
+    badge.classList.remove('pulse');
+
+    document.getElementById('pool-list').innerHTML = orders.map(o => `
+      <div class="delivery-card">
+        <div class="delivery-card-top">
+          <span class="delivery-icon">${ICON_BAG}</span>
+          <div class="delivery-card-info">
+            <strong>${o.restaurants?.name || 'Restaurant'}</strong>
+            ${o.restaurants?.address ? `<div style="font-size:0.78rem;color:var(--muted);margin-top:1px">${o.restaurants.address}</div>` : ''}
+          </div>
+          <span class="earn-chip">+R${Number(o.delivery_fee || 0).toFixed(0)}</span>
+        </div>
+        ${routeLineHTML(o.restaurants?.address, o.delivery_address)}
+        <button class="btn btn-primary btn-block" data-accept="${o.id}">Accept delivery</button>
+      </div>
+    `).join('') || `<div class="empty-state">No deliveries right now.<br><span style="font-size:0.82rem">We'll alert you when one arrives.</span></div>`;
+
+    document.getElementById('pool-list').querySelectorAll('[data-accept]').forEach(btn => {
+      btn.addEventListener('click', () => acceptOrder(btn.dataset.accept));
+    });
+  }
+
+  // ── Accept ─────────────────────────────────────────────────────
+  async function acceptOrder(orderId) {
+    const { data, error } = await sb.from('orders').update({ driver_id: profile.id }).eq('id', orderId).is('driver_id', null).select('*, restaurants(name, address, lat, lng)').single();
+    if (error || !data) { alert('This order was just taken by another driver.'); loadPool(); return; }
+    activeOrder = data;
+    unsubscribePool();
+    showActiveOrder();
+  }
+
+  // ── Active order ───────────────────────────────────────────────
+  function showActiveOrder() {
+    document.getElementById('pool-view').style.display = 'none';
+    document.getElementById('active-order-view').style.display = 'block';
+    renderActiveOrder();
+  }
+
+  const NEXT_STATUS = { ready: 'picked_up', picked_up: 'delivered' };
+  const NEXT_LABEL  = { ready: 'Confirm pickup', picked_up: 'Confirm delivery' };
+
+  function renderActiveOrder() {
+    const o = activeOrder;
+    const isReady = o.status === 'ready';
+    document.getElementById('active-order-card').innerHTML = `
+      <div class="delivery-card active-delivery-card">
+        <div class="delivery-card-top">
+          <span class="delivery-icon">${ICON_BAG}</span>
+          <div class="delivery-card-info"><strong>${o.restaurants?.name || 'Restaurant'}</strong></div>
+          <span class="badge badge-${o.status}">${o.status.replace('_', ' ')}</span>
+        </div>
+        <div class="phase-chip ${isReady ? 'phase-pickup' : 'phase-drop'}">
+          ${isReady ? '📍 Head to restaurant for pickup' : '🏠 Head to customer for drop-off'}
+        </div>
+        ${routeLineHTML(o.restaurants?.address, o.delivery_address)}
+        ${NEXT_STATUS[o.status]
+          ? `<button class="btn btn-primary btn-block" id="advance-btn">${NEXT_LABEL[o.status]}</button>`
+          : `<p style="text-align:center;color:var(--success);font-weight:700;margin:0;padding:10px 0">✅ Delivered — excellent work!</p>`}
+      </div>`;
+    document.getElementById('advance-btn')?.addEventListener('click', advanceOrder);
+    initActiveMap(o);
+  }
+
+  async function advanceOrder() {
+    const next = NEXT_STATUS[activeOrder.status];
+    await sb.from('orders').update({ status: next, updated_at: new Date().toISOString() }).eq('id', activeOrder.id);
+    sb.functions.invoke('order-notify', { body: { order_id: activeOrder.id } }).catch(() => {});
+    activeOrder.status = next;
+    if (next === 'delivered') {
+      todayEarnings += Number(activeOrder.delivery_fee) || 0;
+      todayCount++;
+      renderEarnings();
+      renderActiveOrder();
+      setTimeout(() => {
+        activeOrder = null; teardownMap();
+        document.getElementById('active-order-view').style.display = 'none';
+        document.getElementById('pool-view').style.display = 'block';
+        knownPoolIds.clear(); subscribePool(); loadPool();
+      }, 2500);
+    } else {
+      renderActiveOrder();
+    }
+  }
+
+  // ── Map ────────────────────────────────────────────────────────
+  function initActiveMap(o) {
+    if (!activeMap) {
+      const lat = driverLat ?? o.restaurants?.lat ?? -25.75;
+      const lng = driverLng ?? o.restaurants?.lng ?? 28.19;
+      activeMap = L.map('active-map', { zoomControl: true }).setView([lat, lng], 14);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { attribution: '© OpenStreetMap © CARTO', maxZoom: 19 }).addTo(activeMap);
+    } else { activeMap.invalidateSize(); }
+
+    if (driverLat && driverLng && !driverMarker)
+      driverMarker = L.marker([driverLat, driverLng], { icon: DRIVER_ICON, zIndexOffset: 1000 }).addTo(activeMap).bindPopup('You');
+    if (o.restaurants?.lat && o.restaurants?.lng && !pickupMarker)
+      pickupMarker = L.marker([o.restaurants.lat, o.restaurants.lng], { icon: PICKUP_ICON }).addTo(activeMap).bindPopup(`Pickup: ${o.restaurants.name || 'Restaurant'}`);
+    if (o.delivery_lat && o.delivery_lng && !dropMarker)
+      dropMarker = L.marker([o.delivery_lat, o.delivery_lng], { icon: DROP_ICON }).addTo(activeMap).bindPopup(`Drop-off: ${o.delivery_address || ''}`);
+    fitMapBounds();
+  }
+
+  function updateDriverMarker() {
+    if (!activeMap || driverLat == null) return;
+    if (!driverMarker)
+      driverMarker = L.marker([driverLat, driverLng], { icon: DRIVER_ICON, zIndexOffset: 1000 }).addTo(activeMap).bindPopup('You');
+    else driverMarker.setLatLng([driverLat, driverLng]);
+    fitMapBounds();
+  }
+
+  function fitMapBounds() {
+    if (!activeMap) return;
+    const src  = driverMarker?.getLatLng();
+    const dest = activeOrder?.status === 'picked_up' ? dropMarker?.getLatLng() : (pickupMarker?.getLatLng() ?? dropMarker?.getLatLng());
+    if (src && dest) {
+      if (!routePolyline) routePolyline = L.polyline([src, dest], { color: '#ff5722', weight: 3, dashArray: '8 6', opacity: 0.85 }).addTo(activeMap);
+      else routePolyline.setLatLngs([src, dest]);
+    }
+    const points = [driverMarker, pickupMarker, dropMarker].filter(Boolean).map(m => m.getLatLng());
+    if (points.length > 1) activeMap.fitBounds(L.latLngBounds(points), { padding: [54, 54], maxZoom: 16 });
+    else if (points.length === 1) activeMap.panTo(points[0]);
+  }
+
+  function teardownMap() {
+    if (activeMap) { activeMap.remove(); activeMap = null; }
+    driverMarker = pickupMarker = dropMarker = routePolyline = null;
+  }
+
+  // ── Helpers ────────────────────────────────────────────────────
+  function routeLineHTML(pickup, dropoff) {
+    return `<div class="route-line">
+      <div class="route-row"><span class="route-dot pickup"></span><span>${pickup || '—'}</span></div>
+      <div class="route-connector"></div>
+      <div class="route-row"><span class="route-dot dropoff"></span><span>${dropoff || '—'}</span></div>
+    </div>`;
+  }
+
+  // ── Event listeners ────────────────────────────────────────────
+  document.getElementById('logout-btn').addEventListener('click', async () => {
+    stopLocationSharing(); unsubscribePool(); await signOut(); window.location.href = 'index.html';
+  });
+
+  document.getElementById('online-toggle').addEventListener('change', async e => {
+    const on = e.target.checked;
+    await sb.from('drivers').update({ is_online: on }).eq('id', profile.id);
+    setStatusUI(on);
+    if (on) { startLocationSharing(); subscribePool(); loadPool(); }
+    else { stopLocationSharing(); unsubscribePool(); document.getElementById('pool-list').innerHTML = ''; document.getElementById('pool-badge').style.display = 'none'; }
+  });
+
+  // ── Init ───────────────────────────────────────────────────────
+  (async () => {
+    if (!profile) profile = await requireRole('driver');
+    if (!profile) return;
+
+    const { data: driverRow } = await sb.from('drivers').select('*').eq('id', profile.id).maybeSingle();
+    const isOnline = driverRow?.is_online || false;
+    document.getElementById('online-toggle').checked = isOnline;
+    setStatusUI(isOnline);
+
+    await loadEarnings();
+
+    const { data: existing } = await sb.from('orders').select('*, restaurants(name, address, lat, lng)').eq('driver_id', profile.id).in('status', ['ready', 'picked_up']).maybeSingle();
+    if (existing) {
+      activeOrder = existing; startLocationSharing(); showActiveOrder();
+    } else if (isOnline) {
+      startLocationSharing(); subscribePool(); loadPool();
+    }
+  })();
+</script>
+</body>
+</html>
