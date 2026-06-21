@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
     const html = `
       <div style="font-family:Inter,Arial,sans-serif;max-width:520px;margin:0 auto;color:#1a1d29">
         <div style="background:#1a1d29;padding:24px 28px;border-radius:12px 12px 0 0">
-          <span style="font-size:1.5rem;font-weight:900;color:#fff">Zoom<span style="color:#ff5a3c">.</span></span>
+          <span style="font-size:1.5rem;font-weight:900;color:#fff">Extro<span style="color:#ff5a3c">.</span></span>
         </div>
         <div style="background:#f7f8fa;padding:28px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px">
           <h2 style="font-size:1.2rem;font-weight:800;margin:0 0 12px">${order.restaurants?.name || 'Your order'}</h2>
@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: 'Zoom <noreply@yourdomain.co.za>',
+        from: 'Extro <onboarding@resend.dev>',
         to: [email],
         subject: `Order update — ${STATUS_COPY[order.status] ? order.status.replace('_', ' ') : 'update'}`,
         html,

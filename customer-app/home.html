@@ -687,7 +687,7 @@
       document.getElementById('cart-bar-text').textContent = `${count} item${count === 1 ? '' : 's'} · ${money(subtotal)}`;
       document.getElementById('cart-total-summary').textContent = money(total);
       document.getElementById('cart-subtotal').textContent = money(subtotal);
-      document.getElementById('cart-fee').textContent = extroPass && cart.length ? '<span style="text-decoration:line-through;color:var(--muted);font-weight:400">R25.00</span> Free' : money(fee);
+      document.getElementById('cart-fee').textContent = money(fee);
 
       const body = document.getElementById('cart-body');
       body.innerHTML = cart.map(c => `
