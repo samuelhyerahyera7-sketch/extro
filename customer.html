@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Zoom — Order food & groceries</title>
+  <title>Extro — Order food & groceries</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
@@ -610,7 +610,7 @@
 
       try {
         const { data: payment } = await sb.functions.invoke('create-payfast-payment', {
-          body: { order_id: order.id, amount: total, item_name: `Zoom order #${order.id.slice(0, 8)}` },
+          body: { order_id: order.id, amount: total, item_name: `Extro order #${order.id.slice(0, 8)}` },
         });
         if (payment?.url && payment?.fields) { submitPayfastForm(payment.url, payment.fields); return; }
       } catch (e) {
