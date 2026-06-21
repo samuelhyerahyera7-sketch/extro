@@ -1,15 +1,15 @@
-async function sendOtp(phone, channel = 'sms', role = 'driver') {
+async function sendOtp(email, role = 'driver') {
   if (window.DEMO_MODE) return { data: {}, error: null };
   const { data, error } = await sb.auth.signInWithOtp({
-    phone,
-    options: { channel, data: { role } },
+    email,
+    options: { data: { role }, shouldCreateUser: true },
   });
   return { data, error };
 }
 
-async function verifyOtp(phone, token) {
+async function verifyOtp(email, token) {
   if (window.DEMO_MODE) return { data: {}, error: null };
-  const { data, error } = await sb.auth.verifyOtp({ phone, token, type: 'sms' });
+  const { data, error } = await sb.auth.verifyOtp({ email, token, type: 'email' });
   return { data, error };
 }
 

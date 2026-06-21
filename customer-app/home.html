@@ -208,6 +208,52 @@
       <div id="menu-list"></div>
     </div>
 
+    <!-- ── View: Account ────────────────────────────────────── -->
+    <div id="view-account" style="display:none;padding-bottom:100px">
+      <div class="sticky-subheader">
+        <h2>Account</h2>
+      </div>
+
+      <!-- Profile card -->
+      <div style="padding:20px 20px 0">
+        <div style="display:flex;align-items:center;gap:14px;background:var(--card);border-radius:16px;padding:16px;border:1px solid var(--border);margin-bottom:16px">
+          <div id="acct-avatar" style="width:56px;height:56px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;font-size:1.4rem;font-weight:700;color:#fff">?</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:800;font-size:1.05rem" id="acct-name">—</div>
+            <div style="font-size:0.8rem;color:var(--muted);margin-top:2px" id="acct-email">—</div>
+          </div>
+          <button class="btn btn-outline btn-sm" id="acct-edit-btn" style="flex-shrink:0;border-radius:100px">Edit</button>
+        </div>
+
+        <!-- Saved addresses -->
+        <div style="margin-bottom:16px">
+          <p style="font-weight:700;font-size:0.85rem;margin:0 0 10px;color:var(--ink)">Saved addresses</p>
+          <div id="acct-addresses"></div>
+          <button class="btn btn-outline btn-block" id="acct-add-addr-btn" style="border-radius:12px;margin-top:8px;font-size:0.85rem">
+            + Add new address
+          </button>
+        </div>
+
+        <!-- Order stats -->
+        <div style="display:flex;gap:10px;margin-bottom:20px">
+          <div style="flex:1;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center">
+            <div style="font-size:1.5rem;font-weight:800" id="acct-order-count">—</div>
+            <div style="font-size:0.75rem;color:var(--muted);margin-top:2px">Total orders</div>
+          </div>
+          <div style="flex:1;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center">
+            <div style="font-size:1.5rem;font-weight:800" id="acct-total-spent">—</div>
+            <div style="font-size:0.75rem;color:var(--muted);margin-top:2px">Total spent</div>
+          </div>
+        </div>
+
+        <!-- Logout -->
+        <button class="btn btn-block" id="acct-logout-btn"
+          style="border-radius:100px;height:50px;font-size:1rem;background:#fff1f2;color:#e11d48;border:1.5px solid #fecdd3;font-weight:700">
+          Log out of Extro
+        </button>
+      </div>
+    </div>
+
     <!-- ── View: Order tracking ──────────────────────────────── -->
     <div id="view-orders" style="display:none">
       <div class="sticky-subheader">
@@ -320,7 +366,7 @@
       return min + (hash % (max - min + 1));
     }
 
-    const ALL_VIEWS = ['view-profile-complete', 'view-address-setup', 'view-restaurants', 'view-menu', 'view-orders'];
+    const ALL_VIEWS = ['view-profile-complete', 'view-address-setup', 'view-restaurants', 'view-menu', 'view-orders', 'view-account'];
     function showView(id) {
       ALL_VIEWS.forEach(v => { document.getElementById(v).style.display = v === id ? 'block' : 'none'; });
       if (id === 'view-address-setup' && addrMap) setTimeout(() => addrMap.invalidateSize(), 80);
@@ -778,11 +824,7 @@
       if (t === 'home') { showView('view-restaurants'); }
       else if (t === 'search') { showView('view-restaurants'); setTimeout(() => document.getElementById('search-input').focus(), 100); }
       else if (t === 'orders') { loadOrders(); }
-      else if (t === 'account') {
-        if (confirm('Log out of Extro?')) { signOut().then(() => { window.location.href = 'index.html'; }); }
-        document.querySelectorAll('.nav-tab')[0].classList.add('active');
-        tab.classList.remove('active');
-      }
+      else if (t === 'account') { loadAccount(); }
     });
 
     async function loadOrders() {
@@ -916,25 +958,46 @@
       if (window.DEMO_MODE) startDemoDriverSimulation(order);
     }
 
-    function placeDriverOnMap(lat, lng, order, icon) {
+    async function fetchRoadRoute(fromLat, fromLng, toLat, toLng) {
+      try {
+        const url = `https://router.project-osrm.org/route/v1/driving/${fromLng},${fromLat};${toLng},${toLat}?overview=full&geometries=geojson`;
+        const res = await fetch(url);
+        const data = await res.json();
+        const coords = data.routes?.[0]?.geometry?.coordinates;
+        if (coords?.length > 1) return coords.map(([lng, lat]) => [lat, lng]);
+      } catch (_) {}
+      return [[fromLat, fromLng], [toLat, toLng]];
+    }
+
+    function placeDriverOnMap(lat, lng, order, icon, precomputedRoute) {
       const latlng = [lat, lng];
       if (!trackingMarker) {
-        trackingMarker = L.marker(latlng, { icon: icon || CAR_ICON, zIndexOffset: 1000 }).addTo(trackingMap).bindPopup('Your driver');
+        trackingMarker = L.marker(latlng, { icon: icon || BIKE_ICON, zIndexOffset: 1000 }).addTo(trackingMap).bindPopup('Your driver');
       } else {
         trackingMarker.setLatLng(latlng);
         if (icon) trackingMarker.setIcon(icon);
       }
-      const dest = order?.delivery_lat ? [[lat, lng], [order.delivery_lat, order.delivery_lng]] : null;
-      if (dest) {
+
+      if (precomputedRoute) {
+        // Use road-following route provided by caller (demo simulation)
         if (!routeLine) {
-          routeLine = L.polyline(dest, { color: '#ff5722', weight: 3, dashArray: '8 6', opacity: 0.8 }).addTo(trackingMap);
-        } else {
-          routeLine.setLatLngs(dest);
+          routeLine = L.polyline(precomputedRoute, { color: '#ff5722', weight: 4, opacity: 0.85 }).addTo(trackingMap);
         }
-        trackingMap.fitBounds(dest, { padding: [50, 50] });
-      } else {
-        trackingMap.panTo(latlng);
+        trackingMap.panTo(latlng, { animate: true, duration: 0.8 });
+        return;
       }
+
+      // Live mode: fetch road route async
+      if (!order?.delivery_lat) { trackingMap.panTo(latlng); return; }
+      fetchRoadRoute(lat, lng, order.delivery_lat, order.delivery_lng).then(routeCoords => {
+        if (!trackingMap) return;
+        if (!routeLine) {
+          routeLine = L.polyline(routeCoords, { color: '#ff5722', weight: 4, opacity: 0.85 }).addTo(trackingMap);
+        } else {
+          routeLine.setLatLngs(routeCoords);
+        }
+        if (routeCoords.length > 1) trackingMap.fitBounds(routeCoords, { padding: [50, 50] });
+      });
     }
 
     function setDriverStatusLabel(icon, text) {
@@ -944,61 +1007,61 @@
       if (textEl) textEl.textContent = text;
     }
 
-    function startDemoDriverSimulation(order) {
-      // Guard: only one simulation at a time
+    async function startDemoDriverSimulation(order) {
       if (window._demoSimInterval) { clearInterval(window._demoSimInterval); window._demoSimInterval = null; }
 
-      const restaurantLat = order.restaurants?.lat ?? -25.746;
-      const restaurantLng = order.restaurants?.lng ?? 28.188;
-      const endLat = order.delivery_lat || -25.7512;
-      const endLng = order.delivery_lng || 28.1884;
-      const parkLat = endLat + 0.0008;
-      const parkLng = endLng + 0.0006;
+      const startLat = order.restaurants?.lat ?? -25.746;
+      const startLng = order.restaurants?.lng ?? 28.188;
+      const endLat   = order.delivery_lat   || -25.7512;
+      const endLng   = order.delivery_lng   || 28.1884;
 
-      const phases = [
-        { steps: 3,  ms: 1200, icon: WALK_ICON, emoji: '🚶', text: 'Driver is collecting your order',  fromLat: restaurantLat,        fromLng: restaurantLng,        toLat: restaurantLat - 0.002, toLng: restaurantLng + 0.001 },
-        { steps: 12, ms: 2000, icon: BIKE_ICON, emoji: '🚲', text: 'Driver is cycling to you',          fromLat: restaurantLat - 0.002, fromLng: restaurantLng + 0.001, toLat: parkLat,               toLng: parkLng },
-        { steps: 4,  ms: 1400, icon: WALK_ICON, emoji: '🚶', text: 'Driver is almost at your door',    fromLat: parkLat,              fromLng: parkLng,              toLat: endLat,                toLng: endLng },
-      ];
+      setDriverStatusLabel('🚶', 'Driver is collecting your order');
 
-      let phaseIdx = 0;
+      // Fetch the real road route from restaurant → delivery address
+      const routeCoords = await fetchRoadRoute(startLat, startLng, endLat, endLng);
+
+      // Draw the full route on the map immediately
+      if (routeLine) { routeLine.remove(); routeLine = null; }
+      routeLine = L.polyline(routeCoords, { color: '#ff5722', weight: 4, opacity: 0.85 }).addTo(trackingMap);
+      if (routeCoords.length > 1) trackingMap.fitBounds(routeCoords, { padding: [50, 50] });
+
+      const total = routeCoords.length;
       let step = 0;
+      const STEP_MS = 1400;
 
       function tick() {
-        const ph = phases[phaseIdx];
-        step++;
-        const t = Math.min(step / ph.steps, 1);
-        const lat = ph.fromLat + (ph.toLat - ph.fromLat) * t;
-        const lng = ph.fromLng + (ph.toLng - ph.fromLng) * t;
+        if (!trackingMap || step >= total) {
+          clearInterval(window._demoSimInterval); window._demoSimInterval = null;
+          setDriverStatusLabel('✅', 'Order delivered!');
+          const st = JSON.parse(localStorage.getItem('extro_demo_store_v1') || '{}');
+          const o = (st.orders || []).find(o => o.id === order.id);
+          if (o) { o.status = 'delivered'; o.updated_at = new Date().toISOString(); }
+          localStorage.setItem('extro_demo_store_v1', JSON.stringify(st));
+          return;
+        }
 
+        const [lat, lng] = routeCoords[step];
+        const progress = step / total;
+
+        // Phase labels based on progress through route
+        let icon, emoji, text;
+        if (progress < 0.08)      { icon = WALK_ICON; emoji = '🚶'; text = 'Driver is collecting your order'; }
+        else if (progress < 0.88) { icon = BIKE_ICON; emoji = '🚲'; text = 'Driver is cycling to you'; }
+        else                       { icon = WALK_ICON; emoji = '🚶'; text = 'Driver is almost at your door'; }
+
+        // Update driver position in shared demo store
         const store = JSON.parse(localStorage.getItem('extro_demo_store_v1') || '{}');
         const d = (store.drivers || []).find(d => d.id === 'demo-driver');
         if (d) { d.current_lat = lat; d.current_lng = lng; d.updated_at = new Date().toISOString(); }
         localStorage.setItem('extro_demo_store_v1', JSON.stringify(store));
 
-        placeDriverOnMap(lat, lng, order, ph.icon);
-        setDriverStatusLabel(ph.emoji, ph.text);
-
-        if (step >= ph.steps) {
-          clearInterval(window._demoSimInterval); window._demoSimInterval = null;
-          phaseIdx++;
-          if (phaseIdx < phases.length) {
-            step = 0;
-            window._demoSimInterval = setInterval(tick, phases[phaseIdx].ms);
-            setDriverStatusLabel(phases[phaseIdx].emoji, phases[phaseIdx].text);
-          } else {
-            setDriverStatusLabel('✅', 'Order delivered!');
-            // Mark order delivered in the demo store so status steps update
-            const st = JSON.parse(localStorage.getItem('extro_demo_store_v1') || '{}');
-            const o = (st.orders || []).find(o => o.id === order.id);
-            if (o) { o.status = 'delivered'; o.updated_at = new Date().toISOString(); }
-            localStorage.setItem('extro_demo_store_v1', JSON.stringify(st));
-          }
-        }
+        placeDriverOnMap(lat, lng, order, icon, routeCoords);
+        setDriverStatusLabel(emoji, text);
+        step++;
       }
 
-      setDriverStatusLabel(phases[0].emoji, phases[0].text);
-      window._demoSimInterval = setInterval(tick, phases[0].ms);
+      tick(); // show driver immediately at restaurant
+      window._demoSimInterval = setInterval(tick, STEP_MS);
     }
 
     function subscribeDriverLocation(driverId) {
@@ -1011,6 +1074,58 @@
         })
         .subscribe();
     }
+
+    // ── Account view ───────────────────────────────────────────
+    async function loadAccount() {
+      showView('view-account');
+
+      // Profile
+      const nameEl = document.getElementById('acct-name');
+      const emailEl = document.getElementById('acct-email');
+      const avatarEl = document.getElementById('acct-avatar');
+      nameEl.textContent = profile.full_name || profile.first_name || 'You';
+      emailEl.textContent = profile.email || '';
+      if (profile.avatar_url) {
+        avatarEl.innerHTML = `<img src="${profile.avatar_url}" style="width:100%;height:100%;object-fit:cover">`;
+      } else {
+        avatarEl.textContent = (profile.first_name || profile.full_name || '?')[0].toUpperCase();
+      }
+
+      // Saved addresses
+      const { data: addrs } = await sb.from('addresses').select('*').eq('customer_id', profile.id).order('created_at');
+      const addrBox = document.getElementById('acct-addresses');
+      addrBox.innerHTML = (addrs || []).map(a => `
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M12 22s7-7.58 7-12a7 7 0 1 0-14 0c0 4.42 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:600;font-size:0.85rem">${a.label || a.address_type || 'Address'}</div>
+            <div style="font-size:0.78rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.street_address || ''}</div>
+          </div>
+          ${a.is_default ? '<span style="font-size:0.7rem;background:#dcfce7;color:#16a34a;border-radius:99px;padding:2px 8px;font-weight:700">Default</span>' : ''}
+        </div>`).join('') || '<p style="color:var(--muted);font-size:0.85rem;margin:8px 0">No saved addresses yet.</p>';
+
+      // Order stats
+      const { data: orders } = await sb.from('orders').select('total').eq('customer_id', profile.id);
+      const count = (orders || []).length;
+      const spent = (orders || []).reduce((s, o) => s + (Number(o.total) || 0), 0);
+      document.getElementById('acct-order-count').textContent = count;
+      document.getElementById('acct-total-spent').textContent = `R${spent.toFixed(0)}`;
+    }
+
+    document.getElementById('acct-logout-btn').addEventListener('click', async () => {
+      await signOut(); window.location.href = 'index.html';
+    });
+    document.getElementById('acct-add-addr-btn').addEventListener('click', () => {
+      showView('view-address-setup');
+      document.getElementById('addr-back-btn').style.display = 'flex';
+      if (!addrMap) initAddressMap();
+    });
+    document.getElementById('acct-edit-btn').addEventListener('click', () => {
+      showView('view-profile-complete');
+      document.getElementById('p-first-name').value = profile.first_name || '';
+      document.getElementById('p-last-name').value = profile.last_name || '';
+      document.getElementById('p-email').value = profile.email || '';
+    });
 
     async function ensureDeliveryAddress() {
       const { data: addrs } = await sb.from('addresses').select('*').eq('customer_id', profile.id).order('created_at');
