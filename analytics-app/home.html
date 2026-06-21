@@ -144,8 +144,8 @@
       const current = filterByDays(allOrders, rangeDays, 0);
       const prev = filterByDays(allOrders, rangeDays, 1);
 
-      const revenue = current.reduce((s, o) => s + (o.total_amount - o.delivery_fee), 0);
-      const prevRevenue = prev.reduce((s, o) => s + (o.total_amount - o.delivery_fee), 0);
+      const revenue = current.reduce((s, o) => s + (o.total - o.delivery_fee), 0);
+      const prevRevenue = prev.reduce((s, o) => s + (o.total - o.delivery_fee), 0);
 
       const orders = current.length;
       const prevOrders = prev.length;
@@ -189,7 +189,7 @@
       labels.forEach(l => revenueByDay[l] = 0);
       orders.forEach(o => {
         const label = new Date(o.created_at).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric' });
-        if (revenueByDay[label] !== undefined) revenueByDay[label] += o.total_amount - o.delivery_fee;
+        if (revenueByDay[label] !== undefined) revenueByDay[label] += o.total - o.delivery_fee;
       });
       const data = labels.map(l => revenueByDay[l]);
 
@@ -289,7 +289,7 @@
               <div style="color:var(--muted);font-size:0.78rem;margin-top:2px">${o.delivery_address || ''}</div>
             </div>
             <span class="badge badge-${o.status}">${o.status.replace('_', ' ')}</span>
-            <span class="order-amount">${money(o.total_amount)}</span>
+            <span class="order-amount">${money(o.total)}</span>
           </div>`;
       }).join('');
     }
