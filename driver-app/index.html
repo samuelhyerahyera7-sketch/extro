@@ -144,7 +144,7 @@
     });
 
     (async () => {
-      if (window.DEMO_MODE) return;
+      if (window.DEMO_MODE) { window.location.href = 'home.html?demo=1'; return; }
       const profile = await getCurrentProfile();
       if (profile && profile.role === role) window.location.href = 'home.html';
     })();

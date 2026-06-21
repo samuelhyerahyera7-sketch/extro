@@ -188,11 +188,11 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
 
--- ── Subscriptions (Zoom Pass) ─────────────────────────────────
+-- ── Subscriptions (Extro Pass) ────────────────────────────────
 create table if not exists public.subscriptions (
   id          uuid primary key default gen_random_uuid(),
   customer_id uuid references public.profiles(id) on delete cascade,
-  plan        text not null default 'zoom_pass',
+  plan        text not null default 'extro_pass',
   status      text not null default 'active',  -- active | cancelled | expired
   price       numeric(10,2) not null default 49.00,
   started_at  timestamptz default now(),

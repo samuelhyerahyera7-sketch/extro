@@ -408,7 +408,7 @@
 
   function startDemoGPS() {
     if (demoGpsInterval) return;
-    const store = JSON.parse(localStorage.getItem('zoom_demo_store_v1') || '{}');
+    const store = JSON.parse(localStorage.getItem('extro_demo_store_v1') || '{}');
     const d = (store.drivers || []).find(dr => dr.id === profile.id);
     driverLat = d?.current_lat ?? -25.75; driverLng = d?.current_lng ?? 28.19;
     if (activeMap) updateDriverMarker();
@@ -421,10 +421,10 @@
       if (!destLat) return;
       driverLat += (destLat - driverLat) * 0.07;
       driverLng += (destLng - driverLng) * 0.07;
-      const st = JSON.parse(localStorage.getItem('zoom_demo_store_v1') || '{}');
+      const st = JSON.parse(localStorage.getItem('extro_demo_store_v1') || '{}');
       const dr = (st.drivers || []).find(d => d.id === profile.id);
       if (dr) { dr.current_lat = driverLat; dr.current_lng = driverLng; dr.updated_at = new Date().toISOString(); }
-      localStorage.setItem('zoom_demo_store_v1', JSON.stringify(st));
+      localStorage.setItem('extro_demo_store_v1', JSON.stringify(st));
       updateDriverMarker();
     }, 2000);
   }

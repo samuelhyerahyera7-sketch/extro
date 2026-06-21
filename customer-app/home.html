@@ -687,7 +687,7 @@
       document.getElementById('cart-bar-text').textContent = `${count} item${count === 1 ? '' : 's'} · ${money(subtotal)}`;
       document.getElementById('cart-total-summary').textContent = money(total);
       document.getElementById('cart-subtotal').textContent = money(subtotal);
-      document.getElementById('cart-fee').textContent = zoomPass && cart.length ? '<span style="text-decoration:line-through;color:var(--muted);font-weight:400">R25.00</span> Free' : money(fee);
+      document.getElementById('cart-fee').textContent = extroPass && cart.length ? '<span style="text-decoration:line-through;color:var(--muted);font-weight:400">R25.00</span> Free' : money(fee);
 
       const body = document.getElementById('cart-body');
       body.innerHTML = cart.map(c => `
@@ -912,7 +912,7 @@
     }
 
     function startDemoDriverSimulation(order) {
-      const driverRow = JSON.parse(localStorage.getItem('zoom_demo_store_v1') || '{}').drivers?.[0];
+      const driverRow = JSON.parse(localStorage.getItem('extro_demo_store_v1') || '{}').drivers?.[0];
       const restaurantLat = driverRow?.current_lat ?? -25.75;
       const restaurantLng = driverRow?.current_lng ?? 28.19;
       const endLat = order.delivery_lat || -25.7512;
@@ -939,10 +939,10 @@
         const lat = ph.fromLat + (ph.toLat - ph.fromLat) * t;
         const lng = ph.fromLng + (ph.toLng - ph.fromLng) * t;
 
-        const store = JSON.parse(localStorage.getItem('zoom_demo_store_v1') || '{}');
+        const store = JSON.parse(localStorage.getItem('extro_demo_store_v1') || '{}');
         const d = (store.drivers || []).find(d => d.id === 'demo-driver');
         if (d) { d.current_lat = lat; d.current_lng = lng; d.updated_at = new Date().toISOString(); }
-        localStorage.setItem('zoom_demo_store_v1', JSON.stringify(store));
+        localStorage.setItem('extro_demo_store_v1', JSON.stringify(store));
 
         placeDriverOnMap(lat, lng, order, ph.icon);
         setDriverStatusLabel(ph.emoji, ph.text);

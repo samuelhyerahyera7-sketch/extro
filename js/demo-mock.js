@@ -19,7 +19,7 @@
     avatar_url: null,
   };
 
-  const STORE_KEY = 'zoom_demo_store_v1';
+  const STORE_KEY = 'extro_demo_store_v1';
   function seed() {
     return {
       restaurants: [
