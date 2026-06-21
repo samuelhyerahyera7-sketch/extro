@@ -254,15 +254,33 @@
       </div>
     </div>
 
-    <!-- ── View: Order tracking ──────────────────────────────── -->
+    <!-- ── View: Orders ─────────────────────────────────────── -->
     <div id="view-orders" style="display:none">
       <div class="sticky-subheader">
         <button class="icon-btn" id="back-to-restaurants-2">
           <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
         </button>
-        <h2>My Orders</h2>
+        <h2>Orders</h2>
       </div>
-      <div id="orders-list" style="padding:0 20px"></div>
+
+      <!-- Order tabs (hidden during tracking) -->
+      <div id="order-tab-row" style="display:flex;border-bottom:2px solid var(--border);background:var(--card);position:sticky;top:54px;z-index:10">
+        <button class="order-tab-btn" data-otab="items"
+          style="flex:1;padding:13px 8px;font-size:0.88rem;font-weight:700;border:none;border-bottom:3px solid var(--primary);background:none;color:var(--primary);cursor:pointer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" style="vertical-align:-2px;margin-right:4px"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          Past items
+        </button>
+        <button class="order-tab-btn" data-otab="orders"
+          style="flex:1;padding:13px 8px;font-size:0.88rem;font-weight:700;border:none;border-bottom:3px solid transparent;background:none;color:var(--muted);cursor:pointer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" style="vertical-align:-2px;margin-right:4px"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2V2z"/></svg>
+          Past orders
+        </button>
+      </div>
+
+      <div id="past-items-pane" style="padding:0 20px 100px"></div>
+      <div id="past-orders-pane" style="display:none;padding:0 20px 100px"></div>
+      <!-- Active order tracking injects here -->
+      <div id="orders-list" style="padding:0 20px 100px"></div>
     </div>
 
     <!-- Bottom navigation -->
@@ -294,6 +312,23 @@
     </div>
   </div>
 
+  <!-- Item detail sheet -->
+  <div id="item-sheet" style="display:none;position:fixed;inset:0;z-index:600">
+    <div class="sheet-backdrop" id="item-sheet-backdrop" style="position:absolute;inset:0;background:rgba(0,0,0,0.45)"></div>
+    <div style="position:absolute;bottom:0;left:0;right:0;background:var(--card);border-radius:22px 22px 0 0;max-height:88vh;display:flex;flex-direction:column">
+      <div style="width:36px;height:4px;border-radius:2px;background:var(--border);margin:10px auto 0;flex-shrink:0"></div>
+      <div id="item-sheet-body" style="overflow-y:auto;padding:16px 20px 0"></div>
+      <div style="padding:14px 20px 28px;flex-shrink:0;border-top:1px solid var(--border);background:var(--card)">
+        <div style="display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:14px">
+          <button id="item-sheet-dec" style="width:36px;height:36px;border-radius:50%;border:2px solid var(--border);background:var(--bg);font-size:1.3rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--ink)">−</button>
+          <span id="item-sheet-qty" style="font-size:1.1rem;font-weight:800;min-width:24px;text-align:center">1</span>
+          <button id="item-sheet-inc" style="width:36px;height:36px;border-radius:50%;border:none;background:var(--primary);font-size:1.3rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff">+</button>
+        </div>
+        <button id="item-sheet-add" class="btn btn-primary btn-block" style="border-radius:100px;height:52px;font-size:1rem">Add to basket · R0</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Cart bottom sheet -->
   <div class="sheet-backdrop" id="sheet-backdrop" style="display:none"></div>
   <div class="cart-panel" id="cart-panel" style="display:none">
@@ -317,6 +352,16 @@
       <div class="form-group">
         <label>Delivery address</label>
         <input type="text" id="delivery-address" placeholder="e.g. 12 Oak St, Pretoria">
+      </div>
+      <div class="form-group" style="margin-bottom:12px">
+        <label style="display:flex;align-items:center;gap:5px;font-size:0.82rem;font-weight:700">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          Add a note
+          <span style="font-weight:400;color:var(--muted)">(allergy info, special requests)</span>
+        </label>
+        <textarea id="order-note" rows="2"
+          placeholder="e.g. No nuts please, extra sauce, ring doorbell twice…"
+          style="width:100%;border:1.5px solid var(--border);border-radius:12px;padding:10px 12px;font-family:inherit;font-size:0.85rem;resize:none;box-sizing:border-box;background:var(--bg);color:var(--ink);outline:none;line-height:1.5"></textarea>
       </div>
       <div class="row-between" style="margin-bottom:8px">
         <span class="muted">Subtotal</span><strong id="cart-subtotal">R0.00</strong>
@@ -693,35 +738,86 @@
       const list = document.getElementById('menu-list');
       list.innerHTML = `<div class="card" style="margin:0 20px 20px">` +
         menuItems.map(item => `
-          <div class="menu-item-row">
+          <div class="menu-item-row" data-open="${item.id}" style="cursor:pointer">
             <div class="menu-item-info">
               <h4>${item.name}</h4>
               <p>${item.description || ''}</p>
               <div class="price">${money(item.price)}</div>
             </div>
-            <button class="btn btn-primary btn-sm" data-add="${item.id}">Add</button>
-          </div>`).join('') + `</div>`
+            <button class="btn btn-primary btn-sm" data-open="${item.id}">Add</button>
+          </div>`).join('')
         || `<div class="empty-state">No items on this menu yet.</div>`;
+      list.innerHTML += '</div>';
 
-      list.querySelectorAll('[data-add]').forEach(btn => {
-        btn.addEventListener('click', () => addToCart(btn.dataset.add));
+      list.querySelectorAll('[data-open]').forEach(el => {
+        el.addEventListener('click', () => openItemSheet(el.dataset.open));
       });
       showView('view-menu');
     }
 
-    function addToCart(itemId) {
+    // ── Item detail sheet ──────────────────────────────────────
+    let _sheetItem = null;
+    let _sheetQty = 1;
+
+    function openItemSheet(itemId) {
+      _sheetItem = menuItems.find(i => i.id === itemId);
+      if (!_sheetItem) return;
+      _sheetQty = 1;
+
+      const inCart = cart.find(c => c.item.id === itemId);
+      document.getElementById('item-sheet-body').innerHTML = `
+        <div style="font-weight:800;font-size:1.15rem;margin-bottom:6px">${_sheetItem.name}</div>
+        ${_sheetItem.description ? `<p style="color:var(--muted);font-size:0.85rem;margin:0 0 10px;line-height:1.5">${_sheetItem.description}</p>` : ''}
+        <div style="font-size:1.1rem;font-weight:700;margin-bottom:16px">R${Number(_sheetItem.price).toFixed(2)}</div>
+        ${inCart ? `<div style="background:#fef9c3;border-radius:10px;padding:8px 12px;font-size:0.8rem;color:#854d0e;margin-bottom:12px">Already in basket · ${inCart.qty} added</div>` : ''}
+        <div style="margin-bottom:16px">
+          <label style="font-size:0.82rem;font-weight:700;display:flex;align-items:center;gap:5px;margin-bottom:6px">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            Special request
+            <span style="font-weight:400;color:var(--muted)">(optional)</span>
+          </label>
+          <textarea id="item-note" rows="2"
+            placeholder="Allergy info, no onions, extra sauce…"
+            style="width:100%;border:1.5px solid var(--border);border-radius:12px;padding:10px 12px;font-family:inherit;font-size:0.85rem;resize:none;box-sizing:border-box;background:var(--bg);color:var(--ink);outline:none;line-height:1.5"></textarea>
+        </div>`;
+
+      updateSheetBtn();
+      document.getElementById('item-sheet').style.display = 'block';
+    }
+
+    function updateSheetBtn() {
+      if (!_sheetItem) return;
+      const total = (Number(_sheetItem.price) * _sheetQty).toFixed(2);
+      document.getElementById('item-sheet-qty').textContent = _sheetQty;
+      document.getElementById('item-sheet-dec').style.opacity = _sheetQty <= 1 ? '0.4' : '1';
+      document.getElementById('item-sheet-add').textContent = `Add ${_sheetQty > 1 ? _sheetQty + '× ' : ''}to basket · R${total}`;
+    }
+
+    function closeItemSheet() { document.getElementById('item-sheet').style.display = 'none'; _sheetItem = null; _sheetQty = 1; }
+
+    document.getElementById('item-sheet-backdrop').addEventListener('click', closeItemSheet);
+    document.getElementById('item-sheet-dec').addEventListener('click', () => { if (_sheetQty > 1) { _sheetQty--; updateSheetBtn(); } });
+    document.getElementById('item-sheet-inc').addEventListener('click', () => { _sheetQty++; updateSheetBtn(); });
+    document.getElementById('item-sheet-add').addEventListener('click', () => {
+      if (!_sheetItem) return;
+      const note = document.getElementById('item-note')?.value.trim() || '';
+      addToCart(_sheetItem.id, _sheetQty, note);
+      closeItemSheet();
+    });
+
+    function addToCart(itemId, qty = 1, note = '') {
       const item = menuItems.find(i => i.id === itemId);
-      const existing = cart.find(c => c.item.id === itemId);
-      if (existing) existing.qty++;
-      else cart.push({ item, qty: 1 });
+      if (!item) return;
+      const existing = cart.find(c => c.item.id === itemId && c.note === note);
+      if (existing) existing.qty += qty;
+      else cart.push({ item, qty, note });
       renderCart();
     }
 
-    function changeQty(itemId, delta) {
-      const row = cart.find(c => c.item.id === itemId);
-      if (!row) return;
-      row.qty += delta;
-      if (row.qty <= 0) cart = cart.filter(c => c.item.id !== itemId);
+    function changeQty(idx, delta) {
+      if (!cart[idx]) return;
+      cart[idx].qty += delta;
+      if (cart[idx].qty <= 0) cart.splice(idx, 1);
       renderCart();
     }
 
@@ -738,23 +834,25 @@
       document.getElementById('cart-fee').textContent = money(fee);
 
       const body = document.getElementById('cart-body');
-      body.innerHTML = cart.map(c => `
-        <div class="cart-row">
-          <div>
-            <div class="cart-item-name">${c.item.name}</div>
-            <div class="cart-item-price">${money(c.item.price)} each</div>
-          </div>
-          <div class="qty-stepper">
-            <button data-dec="${c.item.id}" title="${c.qty === 1 ? 'Remove' : 'Decrease'}">
-              ${c.qty === 1 ? ICON_TRASH_SM : '−'}
-            </button>
-            <span>${c.qty}</span>
-            <button data-inc="${c.item.id}">+</button>
+      body.innerHTML = cart.map((c, idx) => `
+        <div class="cart-row" style="flex-direction:column;align-items:stretch;gap:6px">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div>
+              <div class="cart-item-name">${c.item.name}</div>
+              <div class="cart-item-price">${money(c.item.price)} each${c.note ? ` · <em style="color:var(--muted)">${c.note}</em>` : ''}</div>
+            </div>
+            <div class="qty-stepper">
+              <button data-dec="${idx}" title="${c.qty === 1 ? 'Remove' : 'Decrease'}">
+                ${c.qty === 1 ? ICON_TRASH_SM : '−'}
+              </button>
+              <span>${c.qty}</span>
+              <button data-inc="${idx}">+</button>
+            </div>
           </div>
         </div>`).join('') || `<p class="muted" style="padding:16px 0">Your cart is empty.</p>`;
 
-      body.querySelectorAll('[data-inc]').forEach(b => b.addEventListener('click', () => changeQty(b.dataset.inc, 1)));
-      body.querySelectorAll('[data-dec]').forEach(b => b.addEventListener('click', () => changeQty(b.dataset.dec, -1)));
+      body.querySelectorAll('[data-inc]').forEach(b => b.addEventListener('click', () => changeQty(parseInt(b.dataset.inc), 1)));
+      body.querySelectorAll('[data-dec]').forEach(b => b.addEventListener('click', () => changeQty(parseInt(b.dataset.dec), -1)));
     }
 
     function openCart() {
@@ -794,11 +892,13 @@
       const fee = deliveryFee();
       const total = subtotal + fee;
 
+      const orderNote = (document.getElementById('order-note')?.value || '').trim();
       const { data: order, error } = await sb.from('orders').insert({
         customer_id: profile.id, restaurant_id: currentRestaurant.id,
-        items: cart.map(c => ({ id: c.item.id, name: c.item.name, price: c.item.price, qty: c.qty })),
+        items: cart.map(c => ({ id: c.item.id, name: c.item.name, price: c.item.price, qty: c.qty, note: c.note || '' })),
         subtotal, delivery_fee: fee, total, delivery_address: address,
         delivery_lat: currentAddress?.lat, delivery_lng: currentAddress?.lng,
+        note: orderNote || null,
       }).select().single();
 
       if (error) { errorEl.textContent = error.message; return; }
@@ -830,19 +930,104 @@
     async function loadOrders() {
       const { data, error } = await sb.from('orders').select('*, restaurants(name,lat,lng)').eq('customer_id', profile.id).order('created_at', { ascending: false });
       if (error) { console.error(error); return; }
-      const list = document.getElementById('orders-list');
-      list.innerHTML = data.map(o => `
-        <div class="card mt-16" data-order="${o.id}" style="cursor:pointer">
-          <div class="row-between">
-            <strong>${o.restaurants?.name || 'Order'}</strong>
-            <span class="badge badge-${o.status}">${o.status.replace('_', ' ')}</span>
-          </div>
-          <p class="muted" style="margin:6px 0 0">${money(o.total)} · ${new Date(o.created_at).toLocaleString('en-ZA')}</p>
-        </div>`).join('') || `<div class="empty-state">No orders yet.</div>`;
 
-      list.querySelectorAll('[data-order]').forEach(el => {
-        el.addEventListener('click', () => openOrderTracking(el.dataset.order));
+      // --- Past items pane: flat list of all items ever ordered ---
+      const itemsPane = document.getElementById('past-items-pane');
+      const allItems = [];
+      (data || []).forEach(o => {
+        const restName = o.restaurants?.name || 'Unknown';
+        (o.items || []).forEach(item => allItems.push({ ...item, restName, orderId: o.id }));
       });
+      if (allItems.length === 0) {
+        itemsPane.innerHTML = `<div class="empty-state" style="padding:40px 0">No past items yet.</div>`;
+      } else {
+        itemsPane.innerHTML = allItems.map((item, idx) => `
+          <div style="display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--border)">
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${item.name}</div>
+              <div style="font-size:0.82rem;color:var(--muted);margin-top:2px">${item.restName} · ${money(item.price)}</div>
+            </div>
+            <button data-reorder-item="${idx}" style="width:36px;height:36px;border-radius:50%;border:none;background:var(--primary);color:#fff;font-size:1.3rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">+</button>
+          </div>`).join('');
+        itemsPane.querySelectorAll('[data-reorder-item]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const item = allItems[parseInt(btn.dataset.reorderItem)];
+            if (!item) return;
+            const existing = menuItems.find(m => m.id === item.id);
+            if (existing) { addToCart(existing.id, 1, ''); openCart(); }
+            else {
+              // item not in current menu — add directly from past order data
+              const synthetic = { id: item.id, name: item.name, price: item.price, description: '' };
+              if (!menuItems.find(m => m.id === synthetic.id)) menuItems.push(synthetic);
+              addToCart(synthetic.id, 1, ''); openCart();
+            }
+          });
+        });
+      }
+
+      // --- Past orders pane: order cards ---
+      const ordersPane = document.getElementById('past-orders-pane');
+      const list = document.getElementById('orders-list');
+      if (!data || data.length === 0) {
+        ordersPane.innerHTML = `<div class="empty-state" style="padding:40px 0">No orders yet.</div>`;
+        list.innerHTML = '';
+      } else {
+        ordersPane.innerHTML = data.map(o => {
+          const itemSummary = (o.items || []).map(i => `${i.qty}× ${i.name}`).join(', ');
+          return `<div class="card mt-16">
+            <div class="row-between" style="margin-bottom:6px">
+              <strong>${o.restaurants?.name || 'Order'}</strong>
+              <span class="badge badge-${o.status}">${o.status.replace('_', ' ')}</span>
+            </div>
+            <p class="muted" style="margin:0 0 6px;font-size:0.82rem">${new Date(o.created_at).toLocaleString('en-ZA')}</p>
+            <p style="margin:0 0 10px;font-size:0.88rem;color:var(--text)">${itemSummary}</p>
+            <div class="row-between">
+              <strong>${money(o.total)}</strong>
+              <div style="display:flex;gap:8px">
+                <button data-track="${o.id}" style="padding:6px 14px;border-radius:100px;border:1.5px solid var(--border);background:transparent;font-size:0.82rem;cursor:pointer;font-family:inherit">Track</button>
+                <button data-reorder-order="${o.id}" style="padding:6px 14px;border-radius:100px;border:none;background:var(--primary);color:#fff;font-size:0.82rem;cursor:pointer;font-family:inherit">Reorder</button>
+              </div>
+            </div>
+          </div>`;
+        }).join('');
+        ordersPane.querySelectorAll('[data-track]').forEach(btn => {
+          btn.addEventListener('click', () => openOrderTracking(btn.dataset.track));
+        });
+        ordersPane.querySelectorAll('[data-reorder-order]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const o = data.find(x => x.id === btn.dataset.reorderOrder);
+            if (!o) return;
+            (o.items || []).forEach(item => {
+              const existing = menuItems.find(m => m.id === item.id);
+              if (!existing) menuItems.push({ id: item.id, name: item.name, price: item.price, description: '' });
+              addToCart(item.id, item.qty || 1, '');
+            });
+            openCart();
+          });
+        });
+        list.innerHTML = '';
+      }
+
+      // Tab switching
+      document.querySelectorAll('.order-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.order-tab-btn').forEach(b => {
+            b.style.borderBottom = '3px solid transparent';
+            b.style.color = 'var(--muted)';
+            b.style.fontWeight = '500';
+          });
+          btn.style.borderBottom = '3px solid var(--primary)';
+          btn.style.color = 'var(--primary)';
+          btn.style.fontWeight = '700';
+          const tab = btn.dataset.otab;
+          document.getElementById('past-items-pane').style.display = tab === 'items' ? 'block' : 'none';
+          document.getElementById('past-orders-pane').style.display = tab === 'orders' ? 'block' : 'none';
+        });
+      });
+      // Default to "Past orders" tab active
+      const defaultTab = document.querySelector('.order-tab-btn[data-otab="orders"]');
+      if (defaultTab) defaultTab.click();
+
       showView('view-orders');
     }
 
