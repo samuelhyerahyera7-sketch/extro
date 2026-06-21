@@ -58,7 +58,7 @@
           driver_id: 'demo-driver',
           status: d === 0 ? STATUSES[Math.floor(Math.random() * STATUSES.length)] : 'delivered',
           payment_status: 'paid',
-          total_amount: subtotal + delivery_fee,
+          total: subtotal + delivery_fee,
           delivery_fee,
           items: JSON.stringify(items),
           delivery_address: '11 Flora Rd, Valhalla',

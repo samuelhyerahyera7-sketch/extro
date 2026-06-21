@@ -298,6 +298,7 @@
     let routeLine = null;
     let trackedOrder = null;
     let driverChannel = null;
+    let _renderOrderId = null;
     let activeCategory = '';
     let searchText = '';
     let currentAddress = null;
@@ -323,6 +324,7 @@
     function showView(id) {
       ALL_VIEWS.forEach(v => { document.getElementById(v).style.display = v === id ? 'block' : 'none'; });
       if (id === 'view-address-setup' && addrMap) setTimeout(() => addrMap.invalidateSize(), 80);
+      if (id === 'view-orders' && trackingMap) setTimeout(() => trackingMap.invalidateSize(), 80);
     }
 
     document.getElementById('avatar-edit-btn').addEventListener('click', () => document.getElementById('avatar-input').click());
@@ -784,7 +786,7 @@
     });
 
     async function loadOrders() {
-      const { data, error } = await sb.from('orders').select('*, restaurants(name)').eq('customer_id', profile.id).order('created_at', { ascending: false });
+      const { data, error } = await sb.from('orders').select('*, restaurants(name,lat,lng)').eq('customer_id', profile.id).order('created_at', { ascending: false });
       if (error) { console.error(error); return; }
       const list = document.getElementById('orders-list');
       list.innerHTML = data.map(o => `
@@ -804,7 +806,7 @@
 
     async function openOrderTracking(orderId) {
       showView('view-orders');
-      const { data: order } = await sb.from('orders').select('*, restaurants(name)').eq('id', orderId).single();
+      const { data: order } = await sb.from('orders').select('*, restaurants(name,lat,lng)').eq('id', orderId).single();
       renderTracking(order);
 
       sb.channel(`order-${orderId}`)
@@ -821,6 +823,20 @@
       const steps = ['pending', 'accepted', 'preparing', 'ready', 'picked_up', 'delivered'];
       const idx = steps.indexOf(order.status);
       const list = document.getElementById('orders-list');
+      const existingMap = document.getElementById('tracking-map');
+
+      // If same order and map already exists: update only status parts — don't destroy the map
+      if (_renderOrderId === order.id && existingMap) {
+        const badge = list.querySelector('.badge');
+        if (badge) { badge.className = `badge badge-${order.status}`; badge.textContent = order.status.replace('_', ' '); }
+        list.querySelectorAll('.status-step').forEach((el, i) => el.classList.toggle('active', i <= idx));
+        if (order.status === 'delivered') setDriverStatusLabel('✅', 'Order delivered!');
+        return;
+      }
+
+      _renderOrderId = order.id;
+      const showDriver = !!(order.driver_id) || window.DEMO_MODE;
+
       list.innerHTML = `
         <div class="card">
           <div class="row-between">
@@ -830,14 +846,15 @@
           <div class="status-track">
             ${steps.map((s, i) => `<div class="status-step ${i <= idx ? 'active' : ''}">${s.replace('_', ' ')}</div>`).join('')}
           </div>
-          ${order.driver_id ? `
+          ${showDriver ? `
           <div id="driver-status-label" style="display:flex;align-items:center;gap:8px;margin-top:14px;padding:10px 14px;background:var(--bg);border-radius:10px;font-size:0.82rem;font-weight:600;color:var(--ink)">
-            <span id="driver-status-icon" style="font-size:1.1rem">🚗</span>
-            <span id="driver-status-text">Driver is on the way</span>
+            <span id="driver-status-icon" style="font-size:1.1rem">🚲</span>
+            <span id="driver-status-text">Driver is collecting your order</span>
           </div>
           <div id="tracking-map" style="height:260px;border-radius:12px;margin-top:8px;overflow:hidden"></div>` : ''}
         </div>`;
-      if (order.driver_id) initTrackingMap(order);
+
+      if (showDriver) initTrackingMap(order);
     }
 
     function makeDriverIcon(type) {
@@ -861,23 +878,39 @@
     async function initTrackingMap(order) {
       trackedOrder = order;
       if (trackingMap) { trackingMap.remove(); trackingMap = null; trackingMarker = null; routeLine = null; }
-      trackingMap = L.map('tracking-map').setView([order.delivery_lat || -25.7, order.delivery_lng || 28.2], 14);
+      trackingMap = L.map('tracking-map').setView([order.delivery_lat || -25.75, order.delivery_lng || 28.19], 14);
       L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { attribution: '© OpenStreetMap © CARTO', maxZoom: 19 }).addTo(trackingMap);
 
+      setTimeout(() => trackingMap && trackingMap.invalidateSize(), 200);
+
       const dropIcon = L.divIcon({
-        html: `<div style="background:#222;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.3);border:3px solid #fff"><svg viewBox="0 0 24 24" fill="white" width="15" height="15"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></div>`,
-        className: '',
-        iconSize: [32, 32],
-        iconAnchor: [16, 32],
+        html: `<div style="background:#1a1d29;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.3);border:3px solid #fff"><svg viewBox="0 0 24 24" fill="white" width="15" height="15"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></div>`,
+        className: '', iconSize: [32, 32], iconAnchor: [16, 32],
       });
+      const pickupIcon = L.divIcon({
+        html: `<div style="background:#ff5722;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.3);border:3px solid #fff"><svg viewBox="0 0 24 24" fill="white" width="15" height="15"><path d="M16 7V5a4 4 0 0 0-8 0v2"/><rect x="3" y="7" width="18" height="14" rx="2"/></svg></div>`,
+        className: '', iconSize: [32, 32], iconAnchor: [16, 16],
+      });
+
+      const boundsPoints = [];
       if (order.delivery_lat && order.delivery_lng) {
         L.marker([order.delivery_lat, order.delivery_lng], { icon: dropIcon }).addTo(trackingMap).bindPopup('Your address');
+        boundsPoints.push([order.delivery_lat, order.delivery_lng]);
+      }
+      if (order.restaurants?.lat && order.restaurants?.lng) {
+        L.marker([order.restaurants.lat, order.restaurants.lng], { icon: pickupIcon }).addTo(trackingMap).bindPopup(order.restaurants.name || 'Restaurant');
+        boundsPoints.push([order.restaurants.lat, order.restaurants.lng]);
+      }
+      if (boundsPoints.length > 1) {
+        trackingMap.fitBounds(boundsPoints, { padding: [55, 55] });
       }
 
-      // Load driver's current position immediately
-      const { data: driverRow } = await sb.from('drivers').select('current_lat,current_lng').eq('id', order.driver_id).maybeSingle();
-      if (driverRow?.current_lat) {
-        placeDriverOnMap(driverRow.current_lat, driverRow.current_lng, order);
+      const driverId = order.driver_id || (window.DEMO_MODE ? 'demo-driver' : null);
+      if (driverId) {
+        const { data: driverRow } = await sb.from('drivers').select('current_lat,current_lng').eq('id', driverId).maybeSingle();
+        if (driverRow?.current_lat) {
+          placeDriverOnMap(driverRow.current_lat, driverRow.current_lng, order);
+        }
       }
 
       if (window.DEMO_MODE) startDemoDriverSimulation(order);
@@ -912,25 +945,24 @@
     }
 
     function startDemoDriverSimulation(order) {
-      const driverRow = JSON.parse(localStorage.getItem('extro_demo_store_v1') || '{}').drivers?.[0];
-      const restaurantLat = driverRow?.current_lat ?? -25.75;
-      const restaurantLng = driverRow?.current_lng ?? 28.19;
+      // Guard: only one simulation at a time
+      if (window._demoSimInterval) { clearInterval(window._demoSimInterval); window._demoSimInterval = null; }
+
+      const restaurantLat = order.restaurants?.lat ?? -25.746;
+      const restaurantLng = order.restaurants?.lng ?? 28.188;
       const endLat = order.delivery_lat || -25.7512;
       const endLng = order.delivery_lng || 28.1884;
-      // Midpoint slightly offset — where driver parks before walking to door
       const parkLat = endLat + 0.0008;
       const parkLng = endLng + 0.0006;
 
-      // Phase config: [steps, intervalMs, icon, label emoji, label text, fromLat, fromLng, toLat, toLng]
       const phases = [
-        { steps: 4,  ms: 1800, icon: WALK_ICON, emoji: '🚶', text: 'Driver is walking to their bike',    fromLat: restaurantLat, fromLng: restaurantLng, toLat: restaurantLat - 0.003, toLng: restaurantLng + 0.002 },
-        { steps: 14, ms: 2200, icon: BIKE_ICON, emoji: '🚲', text: 'Driver is on their way to you',       fromLat: restaurantLat - 0.003, fromLng: restaurantLng + 0.002, toLat: parkLat, toLng: parkLng },
-        { steps: 5,  ms: 1600, icon: WALK_ICON, emoji: '🚶', text: 'Driver is almost at your door',       fromLat: parkLat, fromLng: parkLng, toLat: endLat, toLng: endLng },
+        { steps: 3,  ms: 1200, icon: WALK_ICON, emoji: '🚶', text: 'Driver is collecting your order',  fromLat: restaurantLat,        fromLng: restaurantLng,        toLat: restaurantLat - 0.002, toLng: restaurantLng + 0.001 },
+        { steps: 12, ms: 2000, icon: BIKE_ICON, emoji: '🚲', text: 'Driver is cycling to you',          fromLat: restaurantLat - 0.002, fromLng: restaurantLng + 0.001, toLat: parkLat,               toLng: parkLng },
+        { steps: 4,  ms: 1400, icon: WALK_ICON, emoji: '🚶', text: 'Driver is almost at your door',    fromLat: parkLat,              fromLng: parkLng,              toLat: endLat,                toLng: endLng },
       ];
 
       let phaseIdx = 0;
       let step = 0;
-      let sim = null;
 
       function tick() {
         const ph = phases[phaseIdx];
@@ -948,20 +980,25 @@
         setDriverStatusLabel(ph.emoji, ph.text);
 
         if (step >= ph.steps) {
-          clearInterval(sim);
+          clearInterval(window._demoSimInterval); window._demoSimInterval = null;
           phaseIdx++;
           if (phaseIdx < phases.length) {
             step = 0;
-            sim = setInterval(tick, phases[phaseIdx].ms);
+            window._demoSimInterval = setInterval(tick, phases[phaseIdx].ms);
             setDriverStatusLabel(phases[phaseIdx].emoji, phases[phaseIdx].text);
           } else {
             setDriverStatusLabel('✅', 'Order delivered!');
+            // Mark order delivered in the demo store so status steps update
+            const st = JSON.parse(localStorage.getItem('extro_demo_store_v1') || '{}');
+            const o = (st.orders || []).find(o => o.id === order.id);
+            if (o) { o.status = 'delivered'; o.updated_at = new Date().toISOString(); }
+            localStorage.setItem('extro_demo_store_v1', JSON.stringify(st));
           }
         }
       }
 
       setDriverStatusLabel(phases[0].emoji, phases[0].text);
-      sim = setInterval(tick, phases[0].ms);
+      window._demoSimInterval = setInterval(tick, phases[0].ms);
     }
 
     function subscribeDriverLocation(driverId) {

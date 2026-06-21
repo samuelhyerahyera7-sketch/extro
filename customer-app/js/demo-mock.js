@@ -58,7 +58,7 @@
         { id: 'demo-driver', vehicle_type: 'car', is_online: true, current_lat: -25.75, current_lng: 28.19, updated_at: t },
       ],
       orders: [
-        { id: 'order-demo-1', customer_id: 'demo-customer', restaurant_id: 'r2', driver_id: 'demo-driver', status: 'picked_up', payment_status: 'paid', items: JSON.stringify([{ name: 'Classic Smash Burger', price: 115, qty: 1 }, { name: 'Loaded Cheese Fries', price: 65, qty: 1 }]), total_amount: 205, delivery_fee: 25, delivery_address: '11 Flora Rd, Valhalla, Centurion', delivery_lat: -25.7512, delivery_lng: 28.1884, created_at: t },
+        { id: 'order-demo-1', customer_id: 'demo-customer', restaurant_id: 'r2', driver_id: 'demo-driver', status: 'picked_up', payment_status: 'paid', items: [{ name: 'Classic Smash Burger', price: 115, qty: 1 }, { name: 'Loaded Cheese Fries', price: 65, qty: 1 }], subtotal: 180, total: 205, delivery_fee: 25, delivery_address: '11 Flora Rd, Valhalla, Centurion', delivery_lat: -25.7512, delivery_lng: 28.1884, created_at: t },
       ],
       addresses: [
         { id: 'addr-demo', customer_id: 'demo-customer', street_address: '11 Flora Rd, Valhalla, Centurion', lat: -25.7512, lng: 28.1884, is_default: true, type: 'home', created_at: t },
@@ -137,7 +137,7 @@
             const o = (s.orders || []).find(o => o.id === orderId);
             if (o) { o.status = 'picked_up'; o.driver_id = 'demo-driver'; o.updated_at = new Date().toISOString(); }
             saveStore(s);
-          }, 5000);
+          }, 2000);
         }
         const result = inserted.map(r => attachRelations(this.table, r, store));
         return this.singleMode ? { data: result[0], error: null } : { data: result, error: null };

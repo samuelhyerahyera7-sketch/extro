@@ -125,6 +125,7 @@
     }
 
     function parseItems(order) {
+      if (Array.isArray(order.items)) return order.items;
       try { return JSON.parse(order.items || '[]'); } catch { return []; }
     }
 
