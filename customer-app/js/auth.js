@@ -13,6 +13,21 @@ async function verifyOtp(email, token) {
   return { data, error };
 }
 
+async function sendPhoneOtp(phone, role = 'customer') {
+  if (window.DEMO_MODE) return { data: {}, error: null };
+  const { data, error } = await sb.auth.signInWithOtp({
+    phone,
+    options: { data: { role }, shouldCreateUser: true },
+  });
+  return { data, error };
+}
+
+async function verifyPhoneOtp(phone, token) {
+  if (window.DEMO_MODE) return { data: {}, error: null };
+  const { data, error } = await sb.auth.verifyOtp({ phone, token, type: 'sms' });
+  return { data, error };
+}
+
 async function signOut() {
   await sb.auth.signOut();
 }
