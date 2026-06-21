@@ -109,15 +109,13 @@ a { color: var(--primary); text-decoration: none; }
 .auth-wrap {
   min-height: 100vh;
   display: flex;
-  align-items: flex-start;
   justify-content: center;
-  padding: 0 24px 40px;
   background: #fff;
 }
 .auth-card {
   background: transparent;
   border-radius: 0;
-  padding: 60px 0 40px;
+  padding: 52px 28px 48px;
   width: 100%;
   max-width: 420px;
   box-shadow: none;
