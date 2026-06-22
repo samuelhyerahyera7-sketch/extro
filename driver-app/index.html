@@ -8,43 +8,127 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { margin: 0; background: #fff; }
+    .auth-hero {
+      position: relative;
+      height: 270px;
+      background: linear-gradient(140deg, #0f172a 0%, #1e293b 55%, #1a3a5c 100%);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .auth-hero-circle {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.05);
+    }
+    .auth-hero-emoji {
+      position: absolute;
+      line-height: 1;
+      user-select: none;
+      pointer-events: none;
+    }
+    .auth-hero-logo {
+      position: absolute;
+      top: 28px;
+      left: 24px;
+      z-index: 1;
+      font-size: 2rem;
+      font-weight: 900;
+      color: #fff;
+      letter-spacing: -0.04em;
+      font-family: 'Inter', sans-serif;
+    }
+    .auth-hero-curve {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 28px;
+      background: #fff;
+      border-radius: 22px 22px 0 0;
+    }
+    .auth-form-wrap { padding: 20px 24px 56px; }
+    .auth-phone-row { display: flex; gap: 8px; margin-bottom: 14px; }
+    .auth-country-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 14px;
+      height: 52px;
+      border: 1.5px solid var(--border);
+      border-radius: 14px;
+      background: #fff;
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--ink);
+      white-space: nowrap;
+      flex-shrink: 0;
+      font-family: 'Inter', sans-serif;
+    }
+    .auth-field {
+      width: 100%;
+      height: 52px;
+      border-radius: 14px;
+      border: 1.5px solid var(--border);
+      padding: 0 16px;
+      font-size: 1rem;
+      font-family: 'Inter', sans-serif;
+      outline: none;
+      box-sizing: border-box;
+      background: #fff;
+      color: var(--ink);
+    }
+    .auth-field:focus { border-color: var(--primary); }
+    .auth-toggle-link { color: var(--primary); font-weight: 700; cursor: pointer; }
+  </style>
 </head>
 <body>
-  <div class="auth-wrap">
-    <div class="auth-card">
+  <div style="min-height:100vh;display:flex;flex-direction:column;background:#fff">
+
+    <!-- Hero -->
+    <div class="auth-hero">
+      <div class="auth-hero-circle" style="width:220px;height:220px;top:-70px;right:-50px"></div>
+      <div class="auth-hero-circle" style="width:140px;height:140px;bottom:-50px;left:-30px"></div>
+      <div class="auth-hero-emoji" style="font-size:5.5rem;opacity:0.12;top:-8px;right:-4px;transform:rotate(14deg)">🛵</div>
+      <div class="auth-hero-emoji" style="font-size:4.5rem;opacity:0.1;bottom:34px;left:-4px;transform:rotate(-10deg)">📦</div>
+      <div class="auth-hero-emoji" style="font-size:3.8rem;opacity:0.08;top:60px;left:72px;transform:rotate(6deg)">🗺️</div>
+      <div class="auth-hero-emoji" style="font-size:4rem;opacity:0.07;bottom:40px;right:44px;transform:rotate(-4deg)">⚡</div>
+      <div class="auth-hero-logo">Extro<span style="color:var(--primary)">.</span></div>
+      <div style="position:absolute;bottom:52px;left:24px;z-index:1">
+        <span style="color:rgba(255,255,255,0.7);font-size:0.85rem;font-weight:600;font-family:'Inter',sans-serif;letter-spacing:0.05em;text-transform:uppercase">Driver Portal</span>
+      </div>
+      <div class="auth-hero-curve"></div>
+    </div>
+
+    <!-- Form -->
+    <div class="auth-form-wrap">
 
       <div id="step-email">
-        <h1 class="auth-logo">Extro<span style="color:var(--primary)">.</span></h1>
+        <h2 style="font-size:1.55rem;font-weight:800;margin:0 0 4px;color:var(--ink);letter-spacing:-0.02em">Sign in or sign up</h2>
+        <p style="color:var(--muted);font-size:0.88rem;margin:0 0 24px;line-height:1.5">Start accepting deliveries in your area.</p>
 
-        <div style="margin:44px 0 28px">
-          <h2 style="font-size:1.6rem;font-weight:800;margin:0 0 8px;letter-spacing:-0.02em;color:var(--ink)">Driver portal</h2>
-          <p style="color:var(--muted);font-size:0.9rem;margin:0;line-height:1.5">Sign in to start accepting deliveries.</p>
-        </div>
-
-        <!-- Method toggle -->
-        <div style="display:flex;background:#f3f4f6;border-radius:12px;padding:4px;margin-bottom:20px">
-          <button id="tab-email" onclick="setAuthMethod('email')" style="flex:1;padding:10px;border:none;border-radius:9px;font-size:0.88rem;font-weight:700;cursor:pointer;background:var(--primary);color:#fff;font-family:inherit;transition:all 0.15s">Email</button>
-          <button id="tab-phone" onclick="setAuthMethod('phone')" style="flex:1;padding:10px;border:none;border-radius:9px;font-size:0.88rem;font-weight:700;cursor:pointer;background:transparent;color:var(--muted);font-family:inherit;transition:all 0.15s">Phone</button>
-        </div>
-
-        <div id="input-email-wrap">
-          <label style="display:block;font-size:0.82rem;font-weight:600;color:var(--ink);margin-bottom:8px">Email address</label>
-          <input type="email" id="email-address" placeholder="you@example.com" inputmode="email" autocomplete="email"
-            style="width:100%;height:52px;border-radius:14px;border:1.5px solid var(--border);padding:0 16px;font-size:1rem;font-family:inherit;outline:none;box-sizing:border-box;background:#fff;color:var(--ink);margin-bottom:14px">
-        </div>
-
-        <div id="input-phone-wrap" style="display:none">
+        <!-- Phone (primary) -->
+        <div id="input-phone-wrap">
           <label style="display:block;font-size:0.82rem;font-weight:600;color:var(--ink);margin-bottom:8px">Phone number</label>
-          <input type="tel" id="phone-number" placeholder="+27 81 234 5678" inputmode="tel" autocomplete="tel"
-            style="width:100%;height:52px;border-radius:14px;border:1.5px solid var(--border);padding:0 16px;font-size:1rem;font-family:inherit;outline:none;box-sizing:border-box;background:#fff;color:var(--ink);margin-bottom:14px">
+          <div class="auth-phone-row">
+            <div class="auth-country-pill">🇿🇦 +27</div>
+            <input type="tel" id="phone-number" class="auth-field" placeholder="81 234 5678" inputmode="tel" autocomplete="tel" style="flex:1;margin-bottom:0">
+          </div>
         </div>
 
-        <button class="btn btn-primary btn-block" id="send-code-btn" style="border-radius:14px;height:52px;font-size:1rem;font-weight:700">
-          Continue
-        </button>
+        <!-- Email (secondary) -->
+        <div id="input-email-wrap" style="display:none">
+          <label style="display:block;font-size:0.82rem;font-weight:600;color:var(--ink);margin-bottom:8px">Email address</label>
+          <input type="email" id="email-address" class="auth-field" placeholder="you@example.com" inputmode="email" autocomplete="email" style="margin-bottom:14px">
+        </div>
+
+        <button class="btn btn-primary btn-block" id="send-code-btn" style="border-radius:100px;height:52px;font-size:1rem;font-weight:700">Continue</button>
         <p class="error-msg" id="email-error" style="margin-top:10px"></p>
-        <p style="text-align:center;margin-top:20px;font-size:0.82rem;color:var(--muted)">
-          Just exploring? <a href="home.html?demo=1" style="color:var(--primary);font-weight:700">Try the demo</a>
+
+        <p style="text-align:center;margin-top:20px;font-size:0.88rem">
+          <span id="toggle-method-link" class="auth-toggle-link">Use email instead</span>
+        </p>
+        <p style="text-align:center;margin-top:14px;font-size:0.82rem;color:var(--muted)">
+          Just exploring? <a href="home.html?demo=1" class="auth-toggle-link">Try the demo</a>
         </p>
       </div>
 
@@ -69,7 +153,7 @@
         <button class="btn btn-primary btn-block" id="verify-btn" style="margin-top:24px;border-radius:100px;height:50px;font-size:1rem">Verify</button>
         <p class="error-msg" id="otp-error" style="margin-top:8px"></p>
         <p style="text-align:center;font-size:0.85rem;color:var(--muted);margin-top:16px">
-          Didn't receive it? <span id="resend-link" style="color:var(--primary);font-weight:700;cursor:pointer">Resend</span>
+          Didn't receive it? <span id="resend-link" class="auth-toggle-link">Resend</span>
         </p>
       </div>
 
@@ -83,17 +167,18 @@
     const role = 'driver';
     let emailAddress = '';
     let phoneNumber = '';
-    let authMethod = 'email';
+    let authMethod = 'phone';
 
     function setAuthMethod(method) {
       authMethod = method;
       document.getElementById('input-email-wrap').style.display = method === 'email' ? 'block' : 'none';
       document.getElementById('input-phone-wrap').style.display = method === 'phone' ? 'block' : 'none';
-      document.getElementById('tab-email').style.background = method === 'email' ? 'var(--primary)' : 'transparent';
-      document.getElementById('tab-email').style.color = method === 'email' ? '#fff' : 'var(--muted)';
-      document.getElementById('tab-phone').style.background = method === 'phone' ? 'var(--primary)' : 'transparent';
-      document.getElementById('tab-phone').style.color = method === 'phone' ? '#fff' : 'var(--muted)';
+      document.getElementById('toggle-method-link').textContent = method === 'phone' ? 'Use email instead' : 'Use phone instead';
     }
+
+    document.getElementById('toggle-method-link').addEventListener('click', () => {
+      setAuthMethod(authMethod === 'phone' ? 'email' : 'phone');
+    });
 
     async function requestCode() {
       const errorEl = document.getElementById('email-error');
@@ -110,7 +195,7 @@
         if (!error) document.getElementById('otp-hint').textContent = `We sent a 6-digit code to ${emailAddress}. Check your inbox.`;
       } else {
         const raw = document.getElementById('phone-number').value.trim().replace(/\s/g, '');
-        if (!raw || raw.length < 9) { errorEl.textContent = 'Please enter a valid phone number.'; btn.disabled = false; btn.textContent = 'Continue'; return; }
+        if (!raw || raw.length < 8) { errorEl.textContent = 'Please enter a valid phone number.'; btn.disabled = false; btn.textContent = 'Continue'; return; }
         phoneNumber = raw.startsWith('+') ? raw : '+27' + raw.replace(/^0/, '');
         ({ error } = await sendPhoneOtp(phoneNumber, role));
         if (!error) document.getElementById('otp-hint').textContent = `We sent a 6-digit code to ${phoneNumber}.`;
@@ -124,8 +209,8 @@
     }
 
     document.getElementById('send-code-btn').addEventListener('click', requestCode);
-    document.getElementById('email-address').addEventListener('keydown', e => { if (e.key === 'Enter') requestCode(); });
     document.getElementById('phone-number').addEventListener('keydown', e => { if (e.key === 'Enter') requestCode(); });
+    document.getElementById('email-address').addEventListener('keydown', e => { if (e.key === 'Enter') requestCode(); });
 
     document.getElementById('back-to-email').addEventListener('click', () => {
       document.getElementById('step-otp').style.display = 'none';

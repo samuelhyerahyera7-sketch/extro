@@ -72,6 +72,10 @@
             <circle cx="16" cy="16" r="6" fill="white"/>
           </svg>
         </div>
+        <button id="adjust-pin-btn" style="position:absolute;bottom:14px;left:50%;transform:translateX(-50%);background:#fff;border:none;border-radius:100px;padding:8px 18px;font-size:0.82rem;font-weight:700;color:var(--ink);box-shadow:0 2px 12px rgba(0,0,0,0.18);cursor:pointer;font-family:inherit;z-index:999;display:flex;align-items:center;gap:6px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M12 22s7-7.58 7-12a7 7 0 1 0-14 0c0 4.42 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg>
+          Adjust pin
+        </button>
       </div>
 
       <div class="addr-detail-section">
@@ -121,22 +125,34 @@
           </div>
         </div>
 
-        <div class="floating-input-group">
-          <label>House Number (Required)</label>
-          <input id="addr-house-num" placeholder="11">
-          <button class="floating-clear" id="addr-num-clear">×</button>
+        <!-- Apt/Suite + Entry code side by side -->
+        <div style="display:flex;gap:10px;margin-bottom:12px">
+          <div class="floating-input-group" style="flex:1;margin-bottom:0">
+            <label>Apt / Unit no.</label>
+            <input id="addr-house-num" placeholder="e.g. 11">
+          </div>
+          <div class="floating-input-group" style="flex:1;margin-bottom:0">
+            <label>Entry code (Optional)</label>
+            <input id="addr-entry-code" placeholder="e.g. #1234">
+          </div>
         </div>
 
         <div class="floating-input-group">
-          <label>Add a label e.g "Home" (Optional)</label>
-          <input id="addr-label" placeholder="Home" value="Home">
+          <label>Address label (Optional)</label>
+          <input id="addr-label" placeholder="e.g. Home, Work, Gym" value="Home">
           <button class="floating-clear" id="addr-label-clear">×</button>
         </div>
 
-        <h3 style="font-size:1rem;font-weight:700;margin:20px 0 10px">Delivery Instructions</h3>
-        <textarea id="addr-instructions" class="addr-instructions-box" rows="3" placeholder="Best entrance, house description, etc."></textarea>
+        <!-- Drop-off options -->
+        <h3 style="font-size:0.95rem;font-weight:700;margin:20px 0 10px;color:var(--ink)">Drop-off options</h3>
+        <div style="display:flex;background:#f3f4f6;border-radius:100px;padding:4px;margin-bottom:16px">
+          <button id="dropoff-hand" onclick="setDropoff('hand')" style="flex:1;padding:9px;border:none;border-radius:100px;font-size:0.85rem;font-weight:700;cursor:pointer;background:var(--ink);color:#fff;font-family:inherit;transition:all 0.15s">Hand it to me</button>
+          <button id="dropoff-door" onclick="setDropoff('door')" style="flex:1;padding:9px;border:none;border-radius:100px;font-size:0.85rem;font-weight:700;cursor:pointer;background:transparent;color:var(--muted);font-family:inherit;transition:all 0.15s">Leave at my door</button>
+        </div>
 
-        <button class="btn btn-primary btn-block" id="addr-save-btn" style="border-radius:100px;height:52px;font-size:1rem;margin-top:16px">Save</button>
+        <textarea id="addr-instructions" class="addr-instructions-box" rows="3" placeholder="e.g. Ring the bell after drop-off, leave next to the door, call upon arrival…&#10;&#10;Do not add order changes or requests here."></textarea>
+
+        <button class="btn btn-primary btn-block" id="addr-save-btn" style="border-radius:100px;height:52px;font-size:1rem;margin-top:16px;font-weight:700">Save Address</button>
       </div>
     </div>
 
@@ -456,8 +472,18 @@
       selectedAddrType = item.dataset.type;
     });
 
-    document.getElementById('addr-num-clear').addEventListener('click', () => { document.getElementById('addr-house-num').value = ''; });
     document.getElementById('addr-label-clear').addEventListener('click', () => { document.getElementById('addr-label').value = ''; });
+
+    let selectedDropoff = 'hand';
+    function setDropoff(mode) {
+      selectedDropoff = mode;
+      const hand = document.getElementById('dropoff-hand');
+      const door = document.getElementById('dropoff-door');
+      hand.style.background = mode === 'hand' ? 'var(--ink)' : 'transparent';
+      hand.style.color = mode === 'hand' ? '#fff' : 'var(--muted)';
+      door.style.background = mode === 'door' ? 'var(--ink)' : 'transparent';
+      door.style.color = mode === 'door' ? '#fff' : 'var(--muted)';
+    }
 
     document.getElementById('addr-back-btn').addEventListener('click', () => {
       if (currentAddress) showView('view-restaurants');
@@ -471,8 +497,15 @@
 
     document.getElementById('addr-save-btn').addEventListener('click', async () => {
       const houseNum = document.getElementById('addr-house-num').value.trim();
+      const entryCode = document.getElementById('addr-entry-code').value.trim();
       const label = document.getElementById('addr-label').value.trim() || 'Home';
-      const instructions = document.getElementById('addr-instructions').value.trim();
+      const note = document.getElementById('addr-instructions').value.trim();
+      const dropoffLabel = selectedDropoff === 'door' ? 'Leave at my door' : 'Hand it to me';
+      const instructions = [
+        dropoffLabel,
+        entryCode ? `Entry code: ${entryCode}` : '',
+        note,
+      ].filter(Boolean).join(' • ');
       const streetRaw = document.getElementById('addr-street').textContent.replace('Detecting location…', '').trim();
       const street = houseNum ? houseNum + ' ' + streetRaw.replace(/^\d+\s*/, '') : streetRaw;
 
