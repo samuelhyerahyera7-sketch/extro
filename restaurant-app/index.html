@@ -238,7 +238,7 @@
       authMode = mode;
       document.getElementById('tab-register').classList.toggle('active', mode === 'register');
       document.getElementById('tab-login').classList.toggle('active', mode === 'login');
-      document.getElementById('send-code-btn').textContent = mode === 'register' ? 'Create account →' : 'Send OTP →';
+      document.getElementById('send-code-btn').textContent = mode === 'register' ? 'Create account' : 'Send OTP';
       document.getElementById('email-error').textContent = '';
       document.getElementById('register-context').style.display = mode === 'register' ? 'block' : 'none';
       document.getElementById('login-context').style.display = mode === 'login' ? 'block' : 'none';
