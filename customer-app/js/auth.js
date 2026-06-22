@@ -10,6 +10,9 @@ async function sendOtp(email, role = 'customer') {
 async function verifyOtp(email, token) {
   if (window.DEMO_MODE) return { data: {}, error: null };
   const { data, error } = await sb.auth.verifyOtp({ email, token, type: 'email' });
+  if (!error && data?.user) {
+    await sb.from('profiles').upsert({ id: data.user.id, role: 'customer' }, { onConflict: 'id', ignoreDuplicates: true });
+  }
   return { data, error };
 }
 
@@ -25,6 +28,9 @@ async function sendPhoneOtp(phone, role = 'customer') {
 async function verifyPhoneOtp(phone, token) {
   if (window.DEMO_MODE) return { data: {}, error: null };
   const { data, error } = await sb.auth.verifyOtp({ phone, token, type: 'sms' });
+  if (!error && data?.user) {
+    await sb.from('profiles').upsert({ id: data.user.id, role: 'customer', phone: data.user.phone }, { onConflict: 'id', ignoreDuplicates: true });
+  }
   return { data, error };
 }
 
