@@ -10,10 +10,10 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     * { box-sizing: border-box; }
-    html, body { margin: 0; min-height: 100vh; overflow: hidden; font-family: 'Inter', sans-serif; }
+    html, body { margin: 0; min-height: 100dvh; overflow: hidden; font-family: 'Inter', sans-serif; }
 
     .auth-page {
-      min-height: 100vh;
+      min-height: 100dvh;
       background: url('login-bg.jpg.png') top left / 100% 100% no-repeat;
     }
 
@@ -21,7 +21,7 @@
       max-width: 390px;
       margin: 0 auto;
       width: 100%;
-      min-height: 100vh;
+      min-height: 100dvh;
       display: flex;
       flex-direction: column;
     }
@@ -34,7 +34,7 @@
     }
 
     .extro-logo {
-      font-size: 3.4rem;
+      font-size: 3.9rem;
       font-weight: 900;
       letter-spacing: -0.05em;
       color: #0f172a;
@@ -44,9 +44,10 @@
     .extro-logo .dot { color: var(--primary); }
 
     .logo-sub {
-      font-size: 0.8rem;
-      color: #9ca3af;
+      font-size: 0.92rem;
+      color: #374151;
       margin: 0;
+      font-weight: 500;
     }
     .logo-sub .sep { color: var(--primary); margin: 0 5px; }
 
@@ -55,12 +56,12 @@
 
     /* Form section */
     .auth-content {
-      padding: 0 56px;
+      padding: 0 64px;
       flex-shrink: 0;
     }
 
     .footer {
-      padding: 4px 56px 20px;
+      padding: 4px 64px 20px;
       flex-shrink: 0;
       margin-top: auto;
     }
@@ -183,7 +184,7 @@
       margin-top: 6px;
       cursor: pointer;
       text-decoration: none;
-      background: #fff5f0;
+      background: rgba(255, 100, 50, 0.09);
       border-radius: 12px;
     }
     .browse-icon {
