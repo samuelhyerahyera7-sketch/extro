@@ -42,9 +42,10 @@ async function signOut() {
 
 async function getCurrentProfile() {
   if (window.DEMO_MODE) return window.DEMO_PROFILE;
-  const { data: { user } } = await sb.auth.getUser();
-  if (!user) return null;
-  const { data: profile } = await sb.from('profiles').select('*').eq('id', user.id).single();
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session?.user) return null;
+  const user = session.user;
+  const { data: profile } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
   return profile;
 }
 

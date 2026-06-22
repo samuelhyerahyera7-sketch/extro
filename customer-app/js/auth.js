@@ -34,13 +34,13 @@ async function signOut() {
 
 async function getCurrentProfile() {
   if (window.DEMO_MODE) return window.DEMO_PROFILE;
-  const { data: { user } } = await sb.auth.getUser();
-  if (!user) return null;
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session?.user) return null;
+  const user = session.user;
 
   let { data: profile } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
 
   if (!profile) {
-    // Profile missing — create it now that we know the session is active
     await sb.from('profiles').upsert(
       { id: user.id, role: 'customer', phone: user.phone || null },
       { onConflict: 'id', ignoreDuplicates: true }
