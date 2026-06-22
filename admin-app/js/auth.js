@@ -1,3 +1,8 @@
+async function signInWithPassword(email, password) {
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  return { data, error };
+}
+
 async function sendOtp(email) {
   const { data, error } = await sb.auth.signInWithOtp({
     email,
