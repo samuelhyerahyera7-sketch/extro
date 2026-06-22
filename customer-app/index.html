@@ -14,7 +14,15 @@
 
     .auth-page {
       min-height: 100dvh;
-      background: url('login-bg.jpg.png') top left / 100% 100% no-repeat fixed;
+      position: relative;
+    }
+
+    .auth-page::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: url('login-bg.jpg.png') top left / 100% 100% no-repeat;
+      z-index: -1;
     }
 
     .content-wrap {
