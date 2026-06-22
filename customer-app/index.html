@@ -19,22 +19,23 @@
       overflow: hidden;
     }
 
-    /* Floating food images scattered around edges */
+    /* Each food image is absolutely positioned with a mask that fades it
+       from fully visible at its corner/edge toward transparent at the center */
     .fi {
       position: absolute;
       pointer-events: none;
-      mix-blend-mode: multiply;
+      display: block;
       object-fit: cover;
     }
 
     .auth-content {
       position: relative;
       z-index: 10;
-      padding: 240px 24px 32px;
+      padding: 220px 24px 32px;
     }
 
     .extro-logo {
-      font-size: 3rem;
+      font-size: 3.2rem;
       font-weight: 900;
       letter-spacing: -0.05em;
       color: #0f172a;
@@ -48,10 +49,9 @@
       text-align: center;
       font-size: 0.9rem;
       color: #9ca3af;
-      margin: 0 0 36px;
-      letter-spacing: 0.01em;
+      margin: 0 0 32px;
     }
-    .logo-sub .sep { color: var(--primary); margin: 0 6px; }
+    .logo-sub .sep { color: var(--primary); margin: 0 7px; }
 
     .section-label {
       font-size: 1.1rem;
@@ -81,7 +81,6 @@
       color: #0f172a;
       white-space: nowrap;
       flex-shrink: 0;
-      cursor: pointer;
     }
     .phone-input-row input {
       flex: 1;
@@ -128,7 +127,6 @@
       font-weight: 700;
       cursor: pointer;
       font-family: 'Inter', sans-serif;
-      margin-bottom: 0;
     }
     .btn-continue:active { opacity: 0.88; }
 
@@ -170,13 +168,13 @@
       align-items: center;
       gap: 14px;
       padding: 14px 0;
-      margin-top: 6px;
+      margin-top: 4px;
       cursor: pointer;
       text-decoration: none;
     }
     .browse-icon {
-      width: 44px;
-      height: 44px;
+      width: 46px;
+      height: 46px;
       border-radius: 12px;
       background: #fff5f3;
       display: flex;
@@ -185,7 +183,7 @@
       flex-shrink: 0;
     }
     .browse-text { flex: 1; }
-    .browse-text strong { display: block; font-size: 0.88rem; font-weight: 700; color: #0f172a; }
+    .browse-text strong { display: block; font-size: 0.88rem; font-weight: 700; color: #0f172a; line-height: 1.4; }
     .browse-text span { font-size: 0.78rem; color: #9ca3af; }
 
     .terms-text {
@@ -193,43 +191,76 @@
       font-size: 0.74rem;
       color: #9ca3af;
       line-height: 1.6;
-      margin-top: 10px;
+      margin-top: 12px;
     }
     .terms-text a { color: var(--primary); text-decoration: none; }
 
-    /* OTP screen */
     .link-primary { color: var(--primary); font-weight: 700; cursor: pointer; }
   </style>
 </head>
 <body>
-
   <div class="auth-page">
 
-    <!-- Scattered food images -->
-    <!-- Top-left: Burger -->
-    <img class="fi" src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&h=400&fit=crop&q=85" style="top:-15px;left:-25px;width:195px;height:190px;border-radius:24px">
-    <!-- Top-center: Fries -->
-    <img class="fi" src="https://images.unsplash.com/photo-1630384060421-cb20d0e0649d?w=300&h=280&fit=crop&q=85" style="top:-10px;left:130px;width:130px;height:130px;border-radius:20px">
-    <!-- Top-right: Tomatoes -->
-    <img class="fi" src="https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=300&h=300&fit=crop&q=85" style="top:-10px;right:-15px;width:170px;height:170px;border-radius:24px">
-    <!-- Left middle: blueberries/leaves -->
-    <img class="fi" src="https://images.unsplash.com/photo-1498557850523-fd3d118b962e?w=250&h=200&fit=crop&q=85" style="top:215px;left:-20px;width:130px;height:110px;border-radius:18px">
-    <!-- Right upper-mid: Avocado -->
-    <img class="fi" src="https://images.unsplash.com/photo-1519162808019-7de1683fa2ad?w=280&h=300&fit=crop&q=85" style="top:245px;right:-20px;width:140px;height:150px;border-radius:20px">
-    <!-- Right lower-mid: Milk -->
-    <img class="fi" src="https://images.unsplash.com/photo-1550583724-b2692b85b150?w=250&h=280&fit=crop&q=85" style="top:420px;right:-15px;width:105px;height:130px;border-radius:18px">
-    <!-- Bottom-left: Pizza -->
-    <img class="fi" src="https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=350&h=320&fit=crop&q=85" style="bottom:-5px;left:-15px;width:185px;height:165px;border-radius:24px">
-    <!-- Bottom-right: Banana -->
-    <img class="fi" src="https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?w=250&h=220&fit=crop&q=85" style="bottom:65px;right:-10px;width:125px;height:110px;border-radius:18px">
-    <!-- Bottom-right: Apple -->
-    <img class="fi" src="https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=250&h=250&fit=crop&q=85" style="bottom:-10px;right:-5px;width:115px;height:115px;border-radius:18px">
+    <!-- ── Floating food images with mask fade ─────────────────── -->
 
-    <!-- Main content -->
+    <!-- Burger — top-left, fades toward bottom-right -->
+    <img class="fi" src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=420&h=400&fit=crop&q=90"
+      style="top:-10px;left:-20px;width:210px;height:200px;
+        -webkit-mask-image:radial-gradient(ellipse at 18% 18%, black 28%, transparent 68%);
+        mask-image:radial-gradient(ellipse at 18% 18%, black 28%, transparent 68%)">
+
+    <!-- Fries — top-center, fades downward -->
+    <img class="fi" src="https://images.unsplash.com/photo-1630384060421-cb20d0e0649d?w=320&h=300&fit=crop&q=90"
+      style="top:-8px;left:50%;transform:translateX(-40%);width:145px;height:135px;
+        -webkit-mask-image:radial-gradient(ellipse at 50% 15%, black 22%, transparent 62%);
+        mask-image:radial-gradient(ellipse at 50% 15%, black 22%, transparent 62%)">
+
+    <!-- Tomatoes — top-right, fades toward bottom-left -->
+    <img class="fi" src="https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=380&h=360&fit=crop&q=90"
+      style="top:-8px;right:-18px;width:185px;height:178px;
+        -webkit-mask-image:radial-gradient(ellipse at 82% 18%, black 28%, transparent 65%);
+        mask-image:radial-gradient(ellipse at 82% 18%, black 28%, transparent 65%)">
+
+    <!-- Blueberries/leaves — left mid, fades toward right -->
+    <img class="fi" src="https://images.unsplash.com/photo-1498557850523-fd3d118b962e?w=280&h=240&fit=crop&q=90"
+      style="top:210px;left:-18px;width:138px;height:118px;
+        -webkit-mask-image:radial-gradient(ellipse at 12% 50%, black 25%, transparent 62%);
+        mask-image:radial-gradient(ellipse at 12% 50%, black 25%, transparent 62%)">
+
+    <!-- Avocado — right upper-mid, fades toward left -->
+    <img class="fi" src="https://images.unsplash.com/photo-1519162808019-7de1683fa2ad?w=300&h=330&fit=crop&q=90"
+      style="top:255px;right:-18px;width:148px;height:160px;
+        -webkit-mask-image:radial-gradient(ellipse at 88% 40%, black 25%, transparent 62%);
+        mask-image:radial-gradient(ellipse at 88% 40%, black 25%, transparent 62%)">
+
+    <!-- Milk — right lower-mid, fades toward left -->
+    <img class="fi" src="https://images.unsplash.com/photo-1550583724-b2692b85b150?w=260&h=300&fit=crop&q=90"
+      style="top:438px;right:-14px;width:112px;height:140px;
+        -webkit-mask-image:radial-gradient(ellipse at 88% 50%, black 25%, transparent 62%);
+        mask-image:radial-gradient(ellipse at 88% 50%, black 25%, transparent 62%)">
+
+    <!-- Pizza — bottom-left, fades toward top-right -->
+    <img class="fi" src="https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&h=360&fit=crop&q=90"
+      style="bottom:-8px;left:-15px;width:195px;height:175px;
+        -webkit-mask-image:radial-gradient(ellipse at 18% 82%, black 28%, transparent 65%);
+        mask-image:radial-gradient(ellipse at 18% 82%, black 28%, transparent 65%)">
+
+    <!-- Banana — bottom-right upper, fades toward left -->
+    <img class="fi" src="https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?w=280&h=240&fit=crop&q=90"
+      style="bottom:70px;right:-12px;width:132px;height:114px;
+        -webkit-mask-image:radial-gradient(ellipse at 85% 50%, black 25%, transparent 62%);
+        mask-image:radial-gradient(ellipse at 85% 50%, black 25%, transparent 62%)">
+
+    <!-- Apple — bottom-right, fades toward top-left -->
+    <img class="fi" src="https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=260&h=260&fit=crop&q=90"
+      style="bottom:-8px;right:-8px;width:122px;height:122px;
+        -webkit-mask-image:radial-gradient(ellipse at 82% 82%, black 25%, transparent 62%);
+        mask-image:radial-gradient(ellipse at 82% 82%, black 25%, transparent 62%)">
+
+    <!-- ── Form content ───────────────────────────────────────── -->
     <div class="auth-content">
-
       <div id="step-email">
-        <!-- Logo -->
+
         <h1 class="extro-logo">Extro<span class="dot">.</span></h1>
         <p class="logo-sub">Food <span class="sep">•</span> Groceries</p>
 
@@ -275,7 +306,7 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22">
               <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/>
               <path d="M16 10a4 4 0 0 1-8 0"/>
-              <polyline points="9 14 10.5 16 14 12"/>
+              <polyline points="9 14 10.5 15.5 14 12"/>
             </svg>
           </div>
           <div class="browse-text">
