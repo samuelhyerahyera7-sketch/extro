@@ -18,7 +18,7 @@
     }
 
     .content-wrap {
-      max-width: 430px;
+      max-width: 390px;
       margin: 0 auto;
       width: 100%;
       min-height: 100vh;
@@ -26,9 +26,9 @@
       flex-direction: column;
     }
 
-    /* Hero — logo sits at ~35% from top */
+    /* Hero — logo at 38% from top */
     .logo-block {
-      padding-top: 35vh;
+      padding-top: 38vh;
       text-align: center;
       flex-shrink: 0;
     }
@@ -50,7 +50,8 @@
     }
     .logo-sub .sep { color: var(--primary); margin: 0 5px; }
 
-    .spacer { flex: 1; }
+    /* Fixed small gap between logo and form */
+    .spacer { flex: none; height: 5vh; }
 
     /* Form section */
     .auth-content {
@@ -59,15 +60,15 @@
     }
 
     .footer {
-      padding: 6px 20px 24px;
+      padding: 4px 20px 20px;
       flex-shrink: 0;
     }
 
     .section-label {
-      font-size: 0.95rem;
+      font-size: 0.92rem;
       font-weight: 800;
       color: #0f172a;
-      margin: 0 0 6px;
+      margin: 0 0 5px;
     }
 
     .phone-input-row {
@@ -75,8 +76,8 @@
       border: 1.5px solid #d1d5db;
       border-radius: 10px;
       overflow: hidden;
-      height: 44px;
-      margin-bottom: 6px;
+      height: 40px;
+      margin-bottom: 5px;
       background: #fff;
     }
     .phone-input-row:focus-within { border-color: #374151; }
@@ -97,43 +98,43 @@
       border: none;
       outline: none;
       padding: 0 10px;
-      font-size: 0.9rem;
+      font-size: 0.88rem;
       font-family: 'Inter', sans-serif;
       color: #0f172a;
       background: #fff;
     }
     .email-input {
       width: 100%;
-      height: 44px;
+      height: 40px;
       border: 1.5px solid #d1d5db;
       border-radius: 10px;
       padding: 0 10px;
-      font-size: 0.9rem;
+      font-size: 0.88rem;
       font-family: 'Inter', sans-serif;
       color: #0f172a;
       outline: none;
-      margin-bottom: 6px;
+      margin-bottom: 5px;
     }
     .email-input:focus { border-color: #374151; }
 
     .link-underline {
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       font-weight: 600;
       color: #0f172a;
       text-decoration: underline;
       cursor: pointer;
       display: inline-block;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
 
     .btn-continue {
       width: 100%;
-      height: 44px;
+      height: 40px;
       border-radius: 100px;
       border: none;
       background: var(--primary);
       color: #fff;
-      font-size: 0.9rem;
+      font-size: 0.88rem;
       font-weight: 700;
       cursor: pointer;
       font-family: 'Inter', sans-serif;
@@ -144,9 +145,9 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      margin: 8px 0;
+      margin: 6px 0;
       color: #9ca3af;
-      font-size: 0.75rem;
+      font-size: 0.72rem;
     }
     .or-divider::before, .or-divider::after {
       content: '';
@@ -157,12 +158,12 @@
 
     .btn-social {
       width: 100%;
-      height: 44px;
+      height: 40px;
       border-radius: 10px;
       border: 1.5px solid #d1d5db;
       background: #fff;
       color: #0f172a;
-      font-size: 0.88rem;
+      font-size: 0.85rem;
       font-weight: 600;
       cursor: pointer;
       font-family: 'Inter', sans-serif;
@@ -177,14 +178,14 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 8px 0;
+      padding: 6px 0;
       cursor: pointer;
       text-decoration: none;
     }
     .browse-icon {
-      width: 34px;
-      height: 34px;
-      border-radius: 9px;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
       background: #fff5f3;
       display: flex;
       align-items: center;
@@ -192,8 +193,8 @@
       flex-shrink: 0;
     }
     .browse-text { flex: 1; }
-    .browse-text strong { display: block; font-size: 0.8rem; font-weight: 700; color: #0f172a; line-height: 1.3; }
-    .browse-text span { font-size: 0.7rem; color: #9ca3af; }
+    .browse-text strong { display: block; font-size: 0.78rem; font-weight: 700; color: #0f172a; line-height: 1.3; }
+    .browse-text span { font-size: 0.68rem; color: #9ca3af; }
 
     .terms-text {
       text-align: center;
