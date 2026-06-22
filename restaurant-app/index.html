@@ -146,8 +146,12 @@
         <button class="auth-tab" id="tab-login">Login</button>
       </div>
 
+      <!-- Dynamic heading per tab -->
+      <h2 id="auth-title" style="font-size:1.2rem;font-weight:800;margin:0 0 4px;color:var(--ink)">List your restaurant on Extro</h2>
+      <p id="auth-sub" style="font-size:0.84rem;color:var(--muted);margin:0 0 18px;line-height:1.5">Create an account to get started. We'll send you a one-time code.</p>
+
       <div id="input-phone-wrap">
-        <p id="form-heading" style="font-size:1.05rem;font-weight:700;margin:0 0 12px;color:var(--ink)">Enter your phone number</p>
+        <p id="form-heading" style="font-size:0.88rem;font-weight:700;margin:0 0 8px;color:var(--ink)">Phone number</p>
         <div class="phone-input-row">
           <div class="country-pill">
             🇿🇦 +27
@@ -218,8 +222,17 @@
       authMode = mode;
       document.getElementById('tab-register').classList.toggle('active', mode === 'register');
       document.getElementById('tab-login').classList.toggle('active', mode === 'login');
-      document.getElementById('send-code-btn').textContent = mode === 'register' ? 'Continue' : 'Send code';
+      document.getElementById('send-code-btn').textContent = mode === 'register' ? 'Create account →' : 'Send OTP →';
       document.getElementById('email-error').textContent = '';
+      if (mode === 'register') {
+        document.getElementById('auth-title').textContent = 'List your restaurant on Extro';
+        document.getElementById('auth-sub').textContent = 'Create an account to get started. We\'ll send you a one-time code.';
+        document.getElementById('form-heading').textContent = 'Phone number';
+      } else {
+        document.getElementById('auth-title').textContent = 'Welcome back';
+        document.getElementById('auth-sub').textContent = 'Enter your phone number or email and we\'ll send you a sign-in code.';
+        document.getElementById('form-heading').textContent = 'Phone number';
+      }
     }
 
     function setAuthMethod(method) {
