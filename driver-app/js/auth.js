@@ -1,8 +1,8 @@
-async function sendOtp(email, role = 'driver') {
+async function sendOtp(email, role = 'driver', shouldCreateUser = true) {
   if (window.DEMO_MODE) return { data: {}, error: null };
   const { data, error } = await sb.auth.signInWithOtp({
     email,
-    options: { data: { role }, shouldCreateUser: true },
+    options: { data: { role }, shouldCreateUser },
   });
   return { data, error };
 }
@@ -17,11 +17,11 @@ async function verifyOtp(email, token) {
   return { data, error };
 }
 
-async function sendPhoneOtp(phone, role = 'driver') {
+async function sendPhoneOtp(phone, role = 'driver', shouldCreateUser = true) {
   if (window.DEMO_MODE) return { data: {}, error: null };
   const { data, error } = await sb.auth.signInWithOtp({
     phone,
-    options: { data: { role }, shouldCreateUser: true },
+    options: { data: { role }, shouldCreateUser },
   });
   return { data, error };
 }
