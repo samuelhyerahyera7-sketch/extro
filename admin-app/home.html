@@ -199,6 +199,33 @@
     </div>`;
   }
 
+  function docStatusBadge(status) {
+    if (status === 'approved') return '<span style="font-size:0.72rem;font-weight:700;color:#16a34a;background:#f0fdf4;padding:2px 8px;border-radius:100px">✓ Approved</span>';
+    if (status === 'declined') return '<span style="font-size:0.72rem;font-weight:700;color:#dc2626;background:#fef2f2;padding:2px 8px;border-radius:100px">✗ Declined</span>';
+    if (status === 'missing') return '<span style="font-size:0.72rem;font-weight:700;color:#d97706;background:#fffbeb;padding:2px 8px;border-radius:100px">⚠ Missing</span>';
+    return '<span style="font-size:0.72rem;font-weight:700;color:#6b7280;background:#f3f4f6;padding:2px 8px;border-radius:100px">⏳ Pending</span>';
+  }
+
+  function docRow(label, url, status, rId, key) {
+    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 0;border-bottom:1px solid #f3f4f6">
+      <div style="min-width:0">
+        <div style="font-size:0.78rem;font-weight:700;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${label}</div>
+        ${url ? `<a href="${url}" target="_blank" style="font-size:0.72rem;color:#2563eb;text-decoration:none;font-weight:600">View doc ↗</a>` : '<span style="font-size:0.72rem;color:#9ca3af">Not uploaded</span>'}
+      </div>
+      <div style="display:flex;align-items:center;gap:5px;flex-shrink:0">
+        ${docStatusBadge(status)}
+        <button onclick="setDocStatus('${rId}','${key}','approved')" style="font-size:0.7rem;padding:3px 8px;border-radius:6px;border:1.5px solid #16a34a;background:${status==='approved'?'#16a34a':'#fff'};color:${status==='approved'?'#fff':'#16a34a'};cursor:pointer;font-weight:700">Approve</button>
+        <button onclick="setDocStatus('${rId}','${key}','declined')" style="font-size:0.7rem;padding:3px 8px;border-radius:6px;border:1.5px solid #dc2626;background:${status==='declined'?'#dc2626':'#fff'};color:${status==='declined'?'#fff':'#dc2626'};cursor:pointer;font-weight:700">Decline</button>
+        <button onclick="setDocStatus('${rId}','${key}','missing')" style="font-size:0.7rem;padding:3px 8px;border-radius:6px;border:1.5px solid #d97706;background:${status==='missing'?'#d97706':'#fff'};color:${status==='missing'?'#fff':'#d97706'};cursor:pointer;font-weight:700">Missing</button>
+      </div>
+    </div>`;
+  }
+
+  async function setDocStatus(restaurantId, key, newStatus) {
+    await sb.from('restaurants').update({ [`${key}_status`]: newStatus }).eq('id', restaurantId);
+    loadAll();
+  }
+
   function restaurantCard(r) {
     const owner = r.profiles?.full_name || '—';
     const ownerPhone = r.profiles?.phone || '—';
@@ -207,19 +234,31 @@
     const badgeClass = isApproved ? 'approved' : status === 'rejected' ? 'rejected' : '';
     const badgeText = isApproved ? '✓ Live' : status === 'rejected' ? '✗ Rejected' : '⏳ Pending';
 
+    const hasAnyDoc = r.cert_url || r.business_reg_url || r.bank_account_url || r.menu_pricing_url;
+
     return `<div class="app-card">
       <div class="app-card-top">
         <div class="app-info">
-          <h3>${r.name}</h3>
-          <p class="app-sub">${r.category || ''}${r.address ? ' · ' + r.address : ''}</p>
+          <h3>${r.name}${r.brand_name && r.brand_name !== r.name ? ` <span style="font-weight:500;color:#6b7280;font-size:0.85em">(${r.brand_name})</span>` : ''}</h3>
+          <p class="app-sub">${r.cuisine_type || r.category || ''}${r.address ? ' · ' + r.address : ''}</p>
         </div>
         <span class="app-badge ${badgeClass}">${badgeText}</span>
       </div>
       <div class="app-meta">
         <span class="meta-chip"><strong>Owner:</strong> ${owner}</span>
         <span class="meta-chip"><strong>Phone:</strong> ${ownerPhone}</span>
-        ${r.phone ? `<span class="meta-chip"><strong>Restaurant:</strong> ${r.phone}</span>` : ''}
+        ${r.num_locations ? `<span class="meta-chip"><strong>Locations:</strong> ${r.num_locations}</span>` : ''}
+        ${r.social_media ? `<span class="meta-chip"><a href="${r.social_media}" target="_blank" style="color:#2563eb;text-decoration:none">🔗 Social</a></span>` : ''}
+        ${r.floor_suite ? `<span class="meta-chip"><strong>Floor/Suite:</strong> ${r.floor_suite}</span>` : ''}
+        ${r.phone ? `<span class="meta-chip"><strong>Restaurant tel:</strong> ${r.phone}</span>` : ''}
       </div>
+      ${hasAnyDoc ? `<div style="margin:12px 0 4px">
+        <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#6b7280;margin-bottom:4px">Documents</div>
+        ${docRow('Certificate of Acceptability', r.cert_url, r.cert_status, r.id, 'cert')}
+        ${docRow('Business Registration / CIPC', r.business_reg_url, r.business_reg_status, r.id, 'business_reg')}
+        ${docRow('Business Bank Account', r.bank_account_url, r.bank_account_status, r.id, 'bank_account')}
+        ${docRow('Menu &amp; Pricing', r.menu_pricing_url, r.menu_pricing_status, r.id, 'menu_pricing')}
+      </div>` : ''}
       ${r.rejection_reason ? `<p class="reject-reason-txt">Rejection reason: ${r.rejection_reason}</p>` : ''}
       <div class="app-date">Applied ${fmtDate(r.created_at)}</div>
       ${!isApproved ? `<div class="app-actions">

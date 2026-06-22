@@ -11,12 +11,34 @@
 </head>
 <body>
   <!-- ── Pending approval screen ───────────────────────────── -->
-  <div id="pending-view" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:200;align-items:center;justify-content:center;padding:32px;text-align:center">
-    <div style="max-width:340px;margin:0 auto">
-      <div style="font-size:3rem;margin-bottom:16px">⏳</div>
-      <h2 style="font-size:1.3rem;font-weight:800;margin:0 0 10px;color:var(--ink)">Application under review</h2>
-      <p style="color:var(--muted);font-size:0.9rem;line-height:1.6;margin:0 0 8px">Your restaurant <strong id="pending-name"></strong> has been submitted for approval.</p>
-      <p style="color:var(--muted);font-size:0.9rem;line-height:1.6;margin:0 0 28px">We'll review your application and get back to you within 24 hours.</p>
+  <div id="pending-view" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:200;overflow-y:auto;padding:32px 24px 48px">
+    <div style="max-width:420px;margin:0 auto;text-align:center;padding-top:24px">
+      <div style="font-size:2.8rem;margin-bottom:12px">✅</div>
+      <h2 style="font-size:1.25rem;font-weight:800;margin:0 0 4px;color:var(--ink)">Application submitted!</h2>
+      <p style="color:var(--muted);font-size:0.82rem;margin:0 0 24px">We'll be in touch soon.</p>
+
+      <!-- Confirmation message card -->
+      <div style="background:#fff;border:1.5px solid #e5e7eb;border-radius:16px;padding:24px 20px;text-align:left;margin-bottom:24px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid #f3f4f6">
+          <div style="width:36px;height:36px;border-radius:50%;background:#ff5a3c;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          </div>
+          <div>
+            <div style="font-size:0.78rem;font-weight:700;color:var(--ink)">Extro Restaurants</div>
+            <div style="font-size:0.72rem;color:var(--muted)">support@extro.app</div>
+          </div>
+        </div>
+        <p style="font-size:0.88rem;line-height:1.7;color:var(--ink);margin:0 0 12px">Hello <strong id="pending-owner-name"></strong>,</p>
+        <p style="font-size:0.88rem;line-height:1.7;color:var(--ink);margin:0 0 12px">Thank you for showing interest and signing up on <strong>Extro</strong> with your location:</p>
+        <div style="background:#f8f9fa;border-radius:10px;padding:10px 14px;margin-bottom:14px">
+          <p style="font-size:0.85rem;font-weight:700;color:var(--ink);margin:0">Store Name — <span id="pending-name"></span></p>
+        </div>
+        <p style="font-size:0.88rem;line-height:1.7;color:var(--ink);margin:0 0 12px">We are reviewing the location and business details you have shared with us. Kindly expect us to reach out to you shortly.</p>
+        <p style="font-size:0.88rem;line-height:1.7;color:var(--ink);margin:0 0 12px">In the meantime, if you have any questions or require further assistance, please don't hesitate to reach out to <a href="mailto:support@extro.app" style="color:#ff4214;font-weight:600">support@extro.app</a>. We're here to ensure your experience is smooth and successful.</p>
+        <p style="font-size:0.88rem;line-height:1.7;color:var(--ink);margin:0 0 16px">Thank you for your patience and cooperation. Hoping to see your business live on <strong>Extro</strong> soon!</p>
+        <p style="font-size:0.85rem;font-weight:700;color:var(--ink);margin:0">— The Extro Team</p>
+      </div>
+
       <button class="btn btn-outline" onclick="signOut().then(()=>window.location.href='index.html')" style="width:100%;max-width:280px">Sign out</button>
     </div>
   </div>
@@ -65,23 +87,27 @@
           <span class="onboard-badge">⏱ Under 5 min setup</span>
         </div>
 
-        <!-- Step 1: Info -->
+        <!-- Step 1: Business Details -->
         <div id="wizard-step-1">
           <div class="wizard-bar"><div class="wizard-fill" style="width:33%;background:var(--primary)"></div></div>
           <p class="wizard-label">Step 1 of 3</p>
-          <h2 class="wizard-h">Your restaurant</h2>
-          <p class="wizard-sub">We'll get you taking orders fast.</p>
-          <div class="form-group"><label>Restaurant name *</label><input id="setup-name" placeholder="e.g. Mama's Kitchen"></div>
+          <h2 class="wizard-h">Your business</h2>
+          <p class="wizard-sub">Tell us about your restaurant.</p>
+          <div class="form-group"><label>Store name *</label><input id="setup-name" placeholder="e.g. Mama's Kitchen"></div>
+          <div class="form-group"><label>Brand name *</label><input id="setup-brand" placeholder="e.g. Mama's (if different from store name)"></div>
           <div class="form-group">
-            <label>Category *</label>
+            <label>Cuisine type *</label>
             <select id="setup-category" class="form-select">
-              <option value="">Choose a category…</option>
+              <option value="">Choose a cuisine type…</option>
               <option>Home-style</option><option>Burgers</option><option>Pizza</option>
               <option>Chicken</option><option>Sushi</option><option>Healthy</option>
               <option>Groceries</option><option>Street Food</option><option>Seafood</option>
-              <option>Vegan</option><option>Bakery</option><option>Other</option>
+              <option>Vegan</option><option>Bakery</option><option>Braai</option>
+              <option>Indian</option><option>Chinese</option><option>Other</option>
             </select>
           </div>
+          <div class="form-group"><label>Number of locations *</label><input id="setup-locations" type="number" min="1" value="1" placeholder="1"></div>
+          <div class="form-group"><label>Social media or website link <span style="font-weight:400;color:var(--muted)">(optional)</span></label><input id="setup-social" type="url" placeholder="https://instagram.com/yourrestaurant"></div>
           <div class="form-group">
             <label>Average prep time</label>
             <div class="prep-chips" id="setup-prep-chips">
@@ -104,6 +130,7 @@
           <h2 class="wizard-h">Location &amp; hours</h2>
           <p class="wizard-sub">So customers know where to find you.</p>
           <div class="form-group"><label>Street address *</label><input id="setup-address" placeholder="12 Oak St, Pretoria"></div>
+          <div class="form-group"><label>Floor / Suite <span style="font-weight:400;color:var(--muted)">(optional)</span></label><input id="setup-floor-suite" placeholder="e.g. Floor 2, Suite 4B"></div>
           <div class="form-group"><label>Phone number (optional)</label><input id="setup-phone" type="tel" placeholder="+27 81 234 5678"></div>
           <div class="form-group">
             <label>Opening hours</label>
@@ -131,17 +158,74 @@
           <p class="error-msg" id="wizard-err-2"></p>
         </div>
 
-        <!-- Step 3: First Dish -->
+        <!-- Step 3: Documents -->
         <div id="wizard-step-3" style="display:none">
+          <style>
+            .doc-upload-zone{border:1.5px dashed var(--border);border-radius:12px;padding:14px 16px;cursor:pointer;transition:border-color 0.15s,background 0.15s;position:relative;margin-bottom:12px}
+            .doc-upload-zone:hover{border-color:var(--primary);background:#fff8f7}
+            .doc-upload-zone.has-file{border-color:#16a34a;background:#f0fdf4;border-style:solid}
+            .doc-upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+            .doc-upload-title{font-size:0.85rem;font-weight:700;color:var(--ink);margin-bottom:2px}
+            .doc-upload-sub{font-size:0.75rem;color:var(--muted)}
+            .doc-upload-status{font-size:0.75rem;font-weight:600;color:#16a34a;margin-top:4px;display:none}
+            .doc-upload-zone.has-file .doc-upload-status{display:block}
+            .doc-upload-icon{float:right;color:var(--muted)}
+            .doc-upload-zone.has-file .doc-upload-icon{color:#16a34a}
+          </style>
           <div class="wizard-bar"><div class="wizard-fill" style="width:100%;background:#16a34a"></div></div>
           <p class="wizard-label" style="color:#16a34a">Step 3 of 3 — almost there!</p>
-          <h2 class="wizard-h">Your first dish</h2>
-          <p class="wizard-sub">Add one item to get started. You can add more from the dashboard.</p>
-          <div class="form-group"><label>Dish name *</label><input id="first-item-name" placeholder="e.g. Chicken Burger"></div>
-          <div class="form-group"><label>Description (optional)</label><textarea id="first-item-desc" rows="2" placeholder="What makes it special?" style="width:100%;padding:12px;border:1.5px solid var(--border);border-radius:10px;font-size:0.88rem;resize:vertical;font-family:inherit"></textarea></div>
-          <div class="form-group"><label>Price (R) *</label><input id="first-item-price" type="number" step="0.01" placeholder="95.00"></div>
+          <h2 class="wizard-h">Upload documents</h2>
+          <p class="wizard-sub">These are required for your application. Upload what you have now — you can provide the rest later.</p>
+
+          <div class="doc-upload-zone" id="zone-cert">
+            <input type="file" id="file-cert" accept="image/*,.pdf">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between">
+              <div>
+                <div class="doc-upload-title">Certificate of Acceptability *</div>
+                <div class="doc-upload-sub">Issued by your local municipality</div>
+                <div class="doc-upload-status" id="status-cert">✓ File selected</div>
+              </div>
+              <svg class="doc-upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </div>
+          </div>
+
+          <div class="doc-upload-zone" id="zone-biz">
+            <input type="file" id="file-biz" accept="image/*,.pdf">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between">
+              <div>
+                <div class="doc-upload-title">Business Registration / CIPC *</div>
+                <div class="doc-upload-sub">CK document or company registration</div>
+                <div class="doc-upload-status" id="status-biz">✓ File selected</div>
+              </div>
+              <svg class="doc-upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </div>
+          </div>
+
+          <div class="doc-upload-zone" id="zone-bank">
+            <input type="file" id="file-bank" accept="image/*,.pdf">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between">
+              <div>
+                <div class="doc-upload-title">Business Bank Account *</div>
+                <div class="doc-upload-sub">Bank confirmation letter or statement header</div>
+                <div class="doc-upload-status" id="status-bank">✓ File selected</div>
+              </div>
+              <svg class="doc-upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </div>
+          </div>
+
+          <div class="doc-upload-zone" id="zone-menu">
+            <input type="file" id="file-menu" accept="image/*,.pdf">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between">
+              <div>
+                <div class="doc-upload-title">Menu &amp; Pricing</div>
+                <div class="doc-upload-sub">Your current menu with prices (optional)</div>
+                <div class="doc-upload-status" id="status-menu">✓ File selected</div>
+              </div>
+              <svg class="doc-upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </div>
+          </div>
+
           <button class="btn btn-primary btn-block" id="wizard-finish" style="border-radius:100px;height:52px;font-size:1rem;margin-top:8px">Submit for approval</button>
-          <button class="btn btn-outline btn-block" id="wizard-skip" style="border-radius:100px;height:48px;font-size:0.88rem;margin-top:10px">Skip — add dishes later</button>
           <button class="btn btn-block" id="wizard-back-3" style="background:none;border:none;color:var(--muted);font-size:0.85rem;margin-top:4px;cursor:pointer">← Back</button>
           <p class="error-msg" id="wizard-err-3"></p>
         </div>
@@ -266,13 +350,32 @@
       if (btn) btn.classList.toggle('active');
     });
 
+    // ── File upload zone feedback ──────────────────────────────────
+    [['file-cert','zone-cert','status-cert'],['file-biz','zone-biz','status-biz'],
+     ['file-bank','zone-bank','status-bank'],['file-menu','zone-menu','status-menu']].forEach(([fid,zid,sid]) => {
+      document.getElementById(fid).addEventListener('change', function() {
+        const zone = document.getElementById(zid);
+        const stat = document.getElementById(sid);
+        if (this.files[0]) {
+          zone.classList.add('has-file');
+          stat.textContent = `✓ ${this.files[0].name}`;
+        } else {
+          zone.classList.remove('has-file');
+        }
+      });
+    });
+
     // ── Wizard Step 1 ─────────────────────────────────────────────
     document.getElementById('wizard-next-1').addEventListener('click', () => {
       const name = document.getElementById('setup-name').value.trim();
+      const brand = document.getElementById('setup-brand').value.trim();
       const category = document.getElementById('setup-category').value;
+      const locations = parseInt(document.getElementById('setup-locations').value) || 0;
       const err = document.getElementById('wizard-err-1');
-      if (!name) { err.textContent = 'Restaurant name is required.'; return; }
-      if (!category) { err.textContent = 'Please choose a category.'; return; }
+      if (!name) { err.textContent = 'Store name is required.'; return; }
+      if (!brand) { err.textContent = 'Brand name is required.'; return; }
+      if (!category) { err.textContent = 'Please choose a cuisine type.'; return; }
+      if (locations < 1) { err.textContent = 'Number of locations must be at least 1.'; return; }
       err.textContent = '';
       document.getElementById('wizard-step-1').style.display = 'none';
       document.getElementById('wizard-step-2').style.display = 'block';
@@ -297,28 +400,46 @@
       document.getElementById('wizard-step-3').style.display = 'none';
       document.getElementById('wizard-step-2').style.display = 'block';
     });
-    document.getElementById('wizard-skip').addEventListener('click', () => finishSetup(false));
-    document.getElementById('wizard-finish').addEventListener('click', () => finishSetup(true));
+    document.getElementById('wizard-finish').addEventListener('click', () => finishSetup());
 
-    async function finishSetup(addFirstItem) {
+    async function uploadDoc(file, restaurantId, docType) {
+      if (!file) return null;
+      const ext = file.name.split('.').pop();
+      const path = `${restaurantId}/${docType}.${ext}`;
+      const { error } = await sb.storage.from('restaurant-docs').upload(path, file, { upsert: true });
+      if (error) { console.error('Upload error', docType, error); return null; }
+      const { data } = sb.storage.from('restaurant-docs').getPublicUrl(path);
+      return data.publicUrl;
+    }
+
+    async function finishSetup() {
       const err = document.getElementById('wizard-err-3');
-      const name = document.getElementById('setup-name').value.trim();
-      const category = document.getElementById('setup-category').value;
-      const address = document.getElementById('setup-address').value.trim();
-      const phone = document.getElementById('setup-phone').value.trim();
-      const opens = document.getElementById('setup-opens').value;
-      const closes = document.getElementById('setup-closes').value;
-      const activeDays = [...document.querySelectorAll('#setup-days .day-btn.active')].map(b => b.dataset.day);
-      const business_hours = { opens, closes, days: activeDays };
+      err.textContent = '';
 
-      if (addFirstItem) {
-        const itemName = document.getElementById('first-item-name').value.trim();
-        const itemPrice = parseFloat(document.getElementById('first-item-price').value);
-        if (!itemName || isNaN(itemPrice)) { err.textContent = 'Dish name and price are required, or click Skip.'; return; }
+      const certFile = document.getElementById('file-cert').files[0];
+      const bizFile  = document.getElementById('file-biz').files[0];
+      const bankFile = document.getElementById('file-bank').files[0];
+      if (!certFile || !bizFile || !bankFile) {
+        err.textContent = 'Please upload the Certificate of Acceptability, Business Registration, and Business Bank Account documents.';
+        return;
       }
 
+      const name      = document.getElementById('setup-name').value.trim();
+      const brand     = document.getElementById('setup-brand').value.trim();
+      const category  = document.getElementById('setup-category').value;
+      const locations = parseInt(document.getElementById('setup-locations').value) || 1;
+      const social    = document.getElementById('setup-social').value.trim();
+      const address   = document.getElementById('setup-address').value.trim();
+      const floorSuite = document.getElementById('setup-floor-suite').value.trim();
+      const phone     = document.getElementById('setup-phone').value.trim();
+      const opens     = document.getElementById('setup-opens').value;
+      const closes    = document.getElementById('setup-closes').value;
+      const activeDays = [...document.querySelectorAll('#setup-days .day-btn.active')].map(b => b.dataset.day);
+      const business_hours = { opens, closes, days: activeDays };
+      const menuFile  = document.getElementById('file-menu').files[0];
+
       const btn = document.getElementById('wizard-finish');
-      btn.disabled = true; btn.textContent = 'Setting up…';
+      btn.disabled = true; btn.textContent = 'Submitting…';
 
       let lat = null, lng = null;
       try {
@@ -328,23 +449,34 @@
       } catch (_) {}
 
       const { data, error } = await sb.from('restaurants').insert({
-        owner_id: profile.id, name, category, address, lat, lng,
+        owner_id: profile.id, name, category,
+        brand_name: brand, cuisine_type: category,
+        num_locations: locations, social_media: social || null,
+        address, floor_suite: floorSuite || null, lat, lng,
         phone: phone || null, prep_time_minutes: setupPrepTime,
         business_hours, commission_rate: PLATFORM_COMMISSION,
         is_approved: false, status: 'pending',
       }).select().single();
 
-      if (error) { err.textContent = error.message; btn.disabled = false; btn.textContent = '🚀 Submit for approval'; return; }
+      if (error) { err.textContent = error.message; btn.disabled = false; btn.textContent = 'Submit for approval'; return; }
       restaurant = data;
 
-      if (addFirstItem) {
-        const itemName = document.getElementById('first-item-name').value.trim();
-        const itemDesc = document.getElementById('first-item-desc').value.trim();
-        const itemPrice = parseFloat(document.getElementById('first-item-price').value);
-        await sb.from('menu_items').insert({ restaurant_id: restaurant.id, name: itemName, description: itemDesc, price: itemPrice });
-      }
+      btn.textContent = 'Uploading documents…';
+      const [certUrl, bizUrl, bankUrl, menuUrl] = await Promise.all([
+        uploadDoc(certFile,  restaurant.id, 'cert'),
+        uploadDoc(bizFile,   restaurant.id, 'business-reg'),
+        uploadDoc(bankFile,  restaurant.id, 'bank-account'),
+        uploadDoc(menuFile,  restaurant.id, 'menu-pricing'),
+      ]);
 
-      showPendingView(restaurant.name);
+      await sb.from('restaurants').update({
+        cert_url: certUrl, cert_status: certUrl ? 'pending' : 'missing',
+        business_reg_url: bizUrl, business_reg_status: bizUrl ? 'pending' : 'missing',
+        bank_account_url: bankUrl, bank_account_status: bankUrl ? 'pending' : 'missing',
+        menu_pricing_url: menuUrl, menu_pricing_status: menuUrl ? 'pending' : null,
+      }).eq('id', restaurant.id);
+
+      showPendingView(restaurant.name, profile.full_name || profile.first_name || '');
     }
 
     // ── Open toggle ───────────────────────────────────────────────
@@ -517,9 +649,10 @@
       loadMenu();
     });
 
-    function showPendingView(name) {
+    function showPendingView(name, ownerName) {
       document.getElementById('pending-name').textContent = name || '';
-      document.getElementById('pending-view').style.display = 'flex';
+      document.getElementById('pending-owner-name').textContent = ownerName || 'there';
+      document.getElementById('pending-view').style.display = 'block';
     }
 
     function showRejectedView(reason) {
@@ -542,7 +675,7 @@
         } else if (data.status === 'rejected') {
           showRejectedView(data.rejection_reason);
         } else {
-          showPendingView(data.name);
+          showPendingView(data.name, profile.full_name || profile.first_name || '');
         }
       }
     })();
