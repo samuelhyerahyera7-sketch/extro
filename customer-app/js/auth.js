@@ -57,9 +57,5 @@ async function requireRole(expectedRole, loginPage = 'index.html') {
     window.location.href = loginPage + qs;
     return null;
   }
-  if (profile.role !== expectedRole) {
-    window.location.href = `index.html${qs}`;
-    return null;
-  }
   return profile;
 }
