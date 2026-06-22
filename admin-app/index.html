@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Extro Admin — Sign In</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; font-family: 'Inter', sans-serif; background: #f8fafc; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .card { background: #fff; border-radius: 20px; padding: 40px 36px; width: 100%; max-width: 400px; border: 1px solid #e5e7eb; margin: 20px; }
+    .brand { font-size: 1.9rem; font-weight: 900; letter-spacing: -0.05em; color: #0f172a; margin: 0 0 2px; }
+    .brand span { color: #ff4214; }
+    .brand-tag { font-size: 0.75rem; font-weight: 700; color: #9ca3af; margin: 0 0 32px; letter-spacing: 0.08em; text-transform: uppercase; }
+    h2 { font-size: 1.1rem; font-weight: 700; margin: 0 0 20px; color: #0f172a; }
+    label { display: block; font-size: 0.82rem; font-weight: 600; color: #374151; margin-bottom: 6px; }
+    input[type=email] { width: 100%; height: 44px; border: 1.5px solid #d1d5db; border-radius: 10px; padding: 0 14px; font-size: 0.9rem; font-family: inherit; outline: none; color: #0f172a; }
+    input[type=email]:focus { border-color: #374151; }
+    .btn { width: 100%; height: 44px; border: none; border-radius: 100px; background: #0f172a; color: #fff; font-size: 0.9rem; font-weight: 700; cursor: pointer; margin-top: 14px; font-family: inherit; }
+    .btn:hover { background: #1e293b; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .error { color: #dc2626; font-size: 0.82rem; margin-top: 8px; min-height: 1.2em; }
+    .otp-row { display: flex; gap: 8px; margin-bottom: 4px; }
+    .otp-box { flex: 1; height: 52px; text-align: center; font-size: 1.3rem; font-weight: 700; border: 1.5px solid #d1d5db; border-radius: 10px; font-family: inherit; color: #0f172a; outline: none; }
+    .otp-box:focus { border-color: #374151; }
+    .hint { font-size: 0.83rem; color: #6b7280; margin: 0 0 18px; }
+    .back-link { font-size: 0.82rem; color: #9ca3af; cursor: pointer; margin-top: 14px; display: inline-block; }
+    .back-link:hover { color: #374151; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <h1 class="brand">Extro<span>.</span></h1>
+  <p class="brand-tag">Admin Dashboard</p>
+
+  <div id="step-email">
+    <h2>Sign in to Admin</h2>
+    <label>Email address</label>
+    <input type="email" id="email-input" placeholder="your@email.com" autocomplete="email">
+    <p class="error" id="email-error"></p>
+    <button class="btn" id="send-btn">Continue</button>
+  </div>
+
+  <div id="step-otp" style="display:none">
+    <h2>Enter the code</h2>
+    <p class="hint" id="otp-hint"></p>
+    <div class="otp-row">
+      <input class="otp-box" maxlength="1" type="text" inputmode="numeric" autocomplete="one-time-code">
+      <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
+      <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
+      <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
+      <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
+      <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
+    </div>
+    <p class="error" id="otp-error"></p>
+    <button class="btn" id="verify-btn">Verify & sign in</button>
+    <span class="back-link" id="back-link">← Use a different email</span>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/auth.js"></script>
+<script>
+  // Auto-redirect if already logged in as admin
+  (async () => {
+    const profile = await getCurrentProfile();
+    if (profile?.role === 'admin') window.location.href = 'home.html';
+  })();
+
+  let emailVal = '';
+
+  document.getElementById('email-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('send-btn').click();
+  });
+
+  document.getElementById('send-btn').addEventListener('click', async () => {
+    const email = document.getElementById('email-input').value.trim();
+    const err = document.getElementById('email-error');
+    err.textContent = '';
+    if (!email.includes('@')) { err.textContent = 'Please enter a valid email address.'; return; }
+
+    const btn = document.getElementById('send-btn');
+    btn.disabled = true; btn.textContent = 'Sending…';
+
+    const { error } = await sendOtp(email);
+    btn.disabled = false; btn.textContent = 'Continue';
+
+    if (error) { err.textContent = error.message; return; }
+
+    emailVal = email;
+    document.getElementById('otp-hint').textContent = `We sent a 6-digit code to ${email}`;
+    document.getElementById('step-email').style.display = 'none';
+    document.getElementById('step-otp').style.display = 'block';
+    document.querySelector('.otp-box').focus();
+  });
+
+  // OTP box auto-advance
+  document.querySelectorAll('.otp-box').forEach((box, i, all) => {
+    box.addEventListener('input', () => {
+      box.value = box.value.slice(-1);
+      if (box.value && i < all.length - 1) all[i + 1].focus();
+    });
+    box.addEventListener('keydown', e => {
+      if (e.key === 'Backspace' && !box.value && i > 0) all[i - 1].focus();
+    });
+  });
+
+  document.getElementById('verify-btn').addEventListener('click', async () => {
+    const token = [...document.querySelectorAll('.otp-box')].map(b => b.value).join('');
+    const err = document.getElementById('otp-error');
+    err.textContent = '';
+    if (token.length < 6) { err.textContent = 'Please enter all 6 digits.'; return; }
+
+    const btn = document.getElementById('verify-btn');
+    btn.disabled = true; btn.textContent = 'Verifying…';
+
+    const { error } = await verifyOtp(emailVal, token);
+    if (error) { err.textContent = error.message; btn.disabled = false; btn.textContent = 'Verify & sign in'; return; }
+
+    const profile = await getCurrentProfile();
+    if (!profile || profile.role !== 'admin') {
+      err.textContent = 'Access denied. This account does not have admin privileges.';
+      await signOut();
+      btn.disabled = false; btn.textContent = 'Verify & sign in';
+      return;
+    }
+
+    window.location.href = 'home.html';
+  });
+
+  document.getElementById('back-link').addEventListener('click', () => {
+    document.getElementById('step-otp').style.display = 'none';
+    document.getElementById('step-email').style.display = 'block';
+    document.querySelectorAll('.otp-box').forEach(b => b.value = '');
+    document.getElementById('otp-error').textContent = '';
+  });
+</script>
+</body>
+</html>

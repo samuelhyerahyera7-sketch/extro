@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Extro Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<header class="header">
+  <div style="display:flex;align-items:center">
+    <span class="header-brand">Extro<span>.</span></span>
+    <span class="header-tag">Admin</span>
+  </div>
+  <div class="header-right">
+    <span class="header-email" id="admin-name"></span>
+    <button class="btn-logout" id="logout-btn">Sign out</button>
+  </div>
+</header>
+
+<div class="stats-section">
+  <div class="stats-grid">
+    <div class="stat-card alert">
+      <div class="stat-num" id="stat-pending-drivers">—</div>
+      <div class="stat-label">Pending Drivers</div>
+    </div>
+    <div class="stat-card alert">
+      <div class="stat-num" id="stat-pending-restaurants">—</div>
+      <div class="stat-label">Pending Restaurants</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="stat-active-drivers">—</div>
+      <div class="stat-label">Active Drivers</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="stat-active-restaurants">—</div>
+      <div class="stat-label">Live Restaurants</div>
+    </div>
+  </div>
+</div>
+
+<div class="tabs-row">
+  <button class="tab-btn active" data-tab="drivers">Pending Drivers</button>
+  <button class="tab-btn" data-tab="restaurants">Pending Restaurants</button>
+  <button class="tab-btn" data-tab="all-drivers">All Drivers</button>
+  <button class="tab-btn" data-tab="all-restaurants">All Restaurants</button>
+</div>
+
+<div class="tab-content">
+  <div class="panel active" id="panel-drivers">
+    <div id="drivers-list"><div class="loading-txt">Loading…</div></div>
+  </div>
+  <div class="panel" id="panel-restaurants">
+    <div id="restaurants-list"><div class="loading-txt">Loading…</div></div>
+  </div>
+  <div class="panel" id="panel-all-drivers">
+    <div id="all-drivers-list"><div class="loading-txt">Loading…</div></div>
+  </div>
+  <div class="panel" id="panel-all-restaurants">
+    <div id="all-restaurants-list"><div class="loading-txt">Loading…</div></div>
+  </div>
+</div>
+
+<!-- Reject reason modal -->
+<div class="modal-overlay" id="reject-modal">
+  <div class="modal-box">
+    <h3>Reason for rejection <span style="font-weight:400;color:#9ca3af">(optional)</span></h3>
+    <textarea id="reject-reason" placeholder="e.g. ID document unclear, incomplete information…"></textarea>
+    <div class="modal-actions">
+      <button class="modal-cancel" id="modal-cancel">Cancel</button>
+      <button class="modal-confirm" id="modal-confirm">Confirm rejection</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/supabase-client.js"></script>
+<script src="js/auth.js"></script>
+<script>
+  let adminProfile = null;
+  let rejectTarget = null;
+
+  // Tab switching
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(`panel-${btn.dataset.tab}`).classList.add('active');
+    });
+  });
+
+  document.getElementById('logout-btn').addEventListener('click', async () => {
+    await signOut();
+    window.location.href = 'index.html';
+  });
+
+  document.getElementById('modal-cancel').addEventListener('click', () => {
+    document.getElementById('reject-modal').classList.remove('open');
+    rejectTarget = null;
+  });
+
+  document.getElementById('modal-confirm').addEventListener('click', async () => {
+    if (!rejectTarget) return;
+    const reason = document.getElementById('reject-reason').value.trim() || null;
+    const btn = document.getElementById('modal-confirm');
+    btn.disabled = true; btn.textContent = 'Rejecting…';
+
+    if (rejectTarget.type === 'driver') {
+      await sb.from('drivers').update({ status: 'rejected', rejection_reason: reason }).eq('id', rejectTarget.id);
+    } else {
+      await sb.from('restaurants').update({ status: 'rejected', is_approved: false, rejection_reason: reason }).eq('id', rejectTarget.id);
+    }
+
+    btn.disabled = false; btn.textContent = 'Confirm rejection';
+    document.getElementById('reject-modal').classList.remove('open');
+    rejectTarget = null;
+    loadAll();
+  });
+
+  function fmtDate(iso) {
+    if (!iso) return '—';
+    return new Date(iso).toLocaleString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+
+  function driverCard(d) {
+    const name = d.profiles?.full_name || '—';
+    const phone = d.profiles?.phone || '—';
+    const status = d.status || 'unregistered';
+    const badgeClass = status === 'approved' ? 'approved' : status === 'rejected' ? 'rejected' : '';
+    const badgeText = status === 'approved' ? '✓ Approved' : status === 'rejected' ? '✗ Rejected' : '⏳ Pending';
+    const hasRealDocs = d.id_document_url && !d.id_document_url.startsWith('demo://') && d.id_document_url !== 'pending';
+
+    return `<div class="app-card">
+      <div class="app-card-top">
+        <div class="app-info">
+          <h3>${name}</h3>
+          <p class="app-sub">${phone}</p>
+        </div>
+        <span class="app-badge ${badgeClass}">${badgeText}</span>
+      </div>
+      <div class="app-meta">
+        <span class="meta-chip"><strong>Vehicle:</strong> ${d.vehicle_type || '—'}</span>
+        <span class="meta-chip"><strong>SA ID:</strong> ${d.id_number || '—'}</span>
+        <span class="meta-chip"><strong>Verified:</strong> ${d.id_verified ? 'Yes' : 'No'}</span>
+      </div>
+      ${hasRealDocs ? `<div class="doc-links">
+        <a href="${d.id_document_url}" target="_blank" class="doc-link">🪪 ID Document</a>
+        ${d.vehicle_document_url ? `<a href="${d.vehicle_document_url}" target="_blank" class="doc-link">📄 Vehicle Reg</a>` : ''}
+        ${d.avatar_url ? `<a href="${d.avatar_url}" target="_blank" class="doc-link">📷 Photo</a>` : ''}
+      </div>` : ''}
+      ${d.rejection_reason ? `<p class="reject-reason-txt">Rejection reason: ${d.rejection_reason}</p>` : ''}
+      <div class="app-date">Submitted ${fmtDate(d.updated_at)}</div>
+      ${status !== 'approved' ? `<div class="app-actions">
+        <button class="btn-approve" data-approve-driver="${d.id}">✓ Approve</button>
+        ${status !== 'rejected' ? `<button class="btn-reject" data-reject-driver="${d.id}">✗ Reject</button>` : ''}
+      </div>` : ''}
+    </div>`;
+  }
+
+  function restaurantCard(r) {
+    const owner = r.profiles?.full_name || '—';
+    const ownerPhone = r.profiles?.phone || '—';
+    const status = r.status || 'pending';
+    const isApproved = r.is_approved;
+    const badgeClass = isApproved ? 'approved' : status === 'rejected' ? 'rejected' : '';
+    const badgeText = isApproved ? '✓ Live' : status === 'rejected' ? '✗ Rejected' : '⏳ Pending';
+
+    return `<div class="app-card">
+      <div class="app-card-top">
+        <div class="app-info">
+          <h3>${r.name}</h3>
+          <p class="app-sub">${r.category || ''}${r.address ? ' · ' + r.address : ''}</p>
+        </div>
+        <span class="app-badge ${badgeClass}">${badgeText}</span>
+      </div>
+      <div class="app-meta">
+        <span class="meta-chip"><strong>Owner:</strong> ${owner}</span>
+        <span class="meta-chip"><strong>Phone:</strong> ${ownerPhone}</span>
+        ${r.phone ? `<span class="meta-chip"><strong>Restaurant:</strong> ${r.phone}</span>` : ''}
+      </div>
+      ${r.rejection_reason ? `<p class="reject-reason-txt">Rejection reason: ${r.rejection_reason}</p>` : ''}
+      <div class="app-date">Applied ${fmtDate(r.created_at)}</div>
+      ${!isApproved ? `<div class="app-actions">
+        <button class="btn-approve" data-approve-restaurant="${r.id}">✓ Approve</button>
+        ${status !== 'rejected' ? `<button class="btn-reject" data-reject-restaurant="${r.id}">✗ Reject</button>` : ''}
+      </div>` : ''}
+    </div>`;
+  }
+
+  function attachActions() {
+    document.querySelectorAll('[data-approve-driver]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        btn.disabled = true; btn.textContent = 'Approving…';
+        await sb.from('drivers').update({
+          status: 'approved',
+          id_verified: true,
+          onboarded_at: new Date().toISOString(),
+        }).eq('id', btn.dataset.approveDriver);
+        loadAll();
+      });
+    });
+
+    document.querySelectorAll('[data-reject-driver]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        rejectTarget = { type: 'driver', id: btn.dataset.rejectDriver };
+        document.getElementById('reject-reason').value = '';
+        document.getElementById('reject-modal').classList.add('open');
+      });
+    });
+
+    document.querySelectorAll('[data-approve-restaurant]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        btn.disabled = true; btn.textContent = 'Approving…';
+        await sb.from('restaurants').update({
+          is_approved: true,
+          status: 'approved',
+          reviewed_at: new Date().toISOString(),
+          reviewed_by: adminProfile.id,
+        }).eq('id', btn.dataset.approveRestaurant);
+        loadAll();
+      });
+    });
+
+    document.querySelectorAll('[data-reject-restaurant]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        rejectTarget = { type: 'restaurant', id: btn.dataset.rejectRestaurant };
+        document.getElementById('reject-reason').value = '';
+        document.getElementById('reject-modal').classList.add('open');
+      });
+    });
+  }
+
+  async function loadAll() {
+    const [
+      { data: pendingDrivers },
+      { data: allDrivers },
+      { data: pendingRestaurants },
+      { data: allRestaurants },
+    ] = await Promise.all([
+      sb.from('drivers').select('*, profiles(id, full_name, phone)').eq('status', 'pending').order('updated_at', { ascending: false }),
+      sb.from('drivers').select('*, profiles(id, full_name, phone)').order('updated_at', { ascending: false }),
+      sb.from('restaurants').select('*, profiles!owner_id(id, full_name, phone)').eq('is_approved', false).neq('status', 'rejected').order('created_at', { ascending: false }),
+      sb.from('restaurants').select('*, profiles!owner_id(id, full_name, phone)').order('created_at', { ascending: false }),
+    ]);
+
+    const activeDrivers = (allDrivers || []).filter(d => d.status === 'approved').length;
+    const liveRestaurants = (allRestaurants || []).filter(r => r.is_approved).length;
+
+    document.getElementById('stat-pending-drivers').textContent = (pendingDrivers || []).length;
+    document.getElementById('stat-pending-restaurants').textContent = (pendingRestaurants || []).length;
+    document.getElementById('stat-active-drivers').textContent = activeDrivers;
+    document.getElementById('stat-active-restaurants').textContent = liveRestaurants;
+
+    const dList = document.getElementById('drivers-list');
+    dList.innerHTML = pendingDrivers?.length
+      ? pendingDrivers.map(driverCard).join('')
+      : `<div class="empty-panel"><div class="empty-icon">🎉</div><p>No pending driver applications</p></div>`;
+
+    const rList = document.getElementById('restaurants-list');
+    rList.innerHTML = pendingRestaurants?.length
+      ? pendingRestaurants.map(restaurantCard).join('')
+      : `<div class="empty-panel"><div class="empty-icon">🎉</div><p>No pending restaurant applications</p></div>`;
+
+    document.getElementById('all-drivers-list').innerHTML = allDrivers?.length
+      ? allDrivers.map(driverCard).join('')
+      : `<div class="empty-panel"><div class="empty-icon">🚗</div><p>No drivers registered yet</p></div>`;
+
+    document.getElementById('all-restaurants-list').innerHTML = allRestaurants?.length
+      ? allRestaurants.map(restaurantCard).join('')
+      : `<div class="empty-panel"><div class="empty-icon">🍽️</div><p>No restaurants registered yet</p></div>`;
+
+    attachActions();
+  }
+
+  (async () => {
+    adminProfile = await requireAdmin();
+    if (!adminProfile) return;
+    document.getElementById('admin-name').textContent = adminProfile.full_name || adminProfile.email || 'Admin';
+    await loadAll();
+  })();
+</script>
+</body>
+</html>

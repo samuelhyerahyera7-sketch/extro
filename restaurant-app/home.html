@@ -10,6 +10,28 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
+  <!-- ── Pending approval screen ───────────────────────────── -->
+  <div id="pending-view" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:200;align-items:center;justify-content:center;padding:32px;text-align:center">
+    <div style="max-width:340px;margin:0 auto">
+      <div style="font-size:3rem;margin-bottom:16px">⏳</div>
+      <h2 style="font-size:1.3rem;font-weight:800;margin:0 0 10px;color:var(--ink)">Application under review</h2>
+      <p style="color:var(--muted);font-size:0.9rem;line-height:1.6;margin:0 0 8px">Your restaurant <strong id="pending-name"></strong> has been submitted for approval.</p>
+      <p style="color:var(--muted);font-size:0.9rem;line-height:1.6;margin:0 0 28px">We'll review your application and get back to you within 24 hours.</p>
+      <button class="btn btn-outline" onclick="signOut().then(()=>window.location.href='index.html')" style="width:100%;max-width:280px">Sign out</button>
+    </div>
+  </div>
+
+  <!-- ── Rejected screen ───────────────────────────────────── -->
+  <div id="rejected-view" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:200;align-items:center;justify-content:center;padding:32px;text-align:center">
+    <div style="max-width:340px;margin:0 auto">
+      <div style="font-size:3rem;margin-bottom:16px">❌</div>
+      <h2 style="font-size:1.3rem;font-weight:800;margin:0 0 10px;color:var(--ink)">Application not approved</h2>
+      <p id="rejected-reason" style="color:var(--muted);font-size:0.9rem;line-height:1.6;margin:0 0 8px"></p>
+      <p style="color:var(--muted);font-size:0.85rem;margin:0 0 28px">Contact <a href="mailto:support@extro.app" style="color:#ff4214">support@extro.app</a> for more info.</p>
+      <button class="btn btn-outline" onclick="signOut().then(()=>window.location.href='index.html')" style="width:100%;max-width:280px">Sign out</button>
+    </div>
+  </div>
+
   <div class="app-shell">
     <!-- ── Restaurant Onboarding Wizard ────────────────────── -->
     <div id="setup-view" style="display:none">
@@ -118,7 +140,7 @@
           <div class="form-group"><label>Dish name *</label><input id="first-item-name" placeholder="e.g. Chicken Burger"></div>
           <div class="form-group"><label>Description (optional)</label><textarea id="first-item-desc" rows="2" placeholder="What makes it special?" style="width:100%;padding:12px;border:1.5px solid var(--border);border-radius:10px;font-size:0.88rem;resize:vertical;font-family:inherit"></textarea></div>
           <div class="form-group"><label>Price (R) *</label><input id="first-item-price" type="number" step="0.01" placeholder="95.00"></div>
-          <button class="btn btn-primary btn-block" id="wizard-finish" style="border-radius:100px;height:52px;font-size:1rem;margin-top:8px">🚀 Go live!</button>
+          <button class="btn btn-primary btn-block" id="wizard-finish" style="border-radius:100px;height:52px;font-size:1rem;margin-top:8px">Submit for approval</button>
           <button class="btn btn-outline btn-block" id="wizard-skip" style="border-radius:100px;height:48px;font-size:0.88rem;margin-top:10px">Skip — add dishes later</button>
           <button class="btn btn-block" id="wizard-back-3" style="background:none;border:none;color:var(--muted);font-size:0.85rem;margin-top:4px;cursor:pointer">← Back</button>
           <p class="error-msg" id="wizard-err-3"></p>
@@ -309,9 +331,10 @@
         owner_id: profile.id, name, category, address, lat, lng,
         phone: phone || null, prep_time_minutes: setupPrepTime,
         business_hours, commission_rate: PLATFORM_COMMISSION,
+        is_approved: false, status: 'pending',
       }).select().single();
 
-      if (error) { err.textContent = error.message; btn.disabled = false; btn.textContent = '🚀 Go live!'; return; }
+      if (error) { err.textContent = error.message; btn.disabled = false; btn.textContent = '🚀 Submit for approval'; return; }
       restaurant = data;
 
       if (addFirstItem) {
@@ -321,7 +344,7 @@
         await sb.from('menu_items').insert({ restaurant_id: restaurant.id, name: itemName, description: itemDesc, price: itemPrice });
       }
 
-      showMain();
+      showPendingView(restaurant.name);
     }
 
     // ── Open toggle ───────────────────────────────────────────────
@@ -494,6 +517,16 @@
       loadMenu();
     });
 
+    function showPendingView(name) {
+      document.getElementById('pending-name').textContent = name || '';
+      document.getElementById('pending-view').style.display = 'flex';
+    }
+
+    function showRejectedView(reason) {
+      document.getElementById('rejected-reason').textContent = reason ? `Reason: ${reason}` : '';
+      document.getElementById('rejected-view').style.display = 'flex';
+    }
+
     (async () => {
       profile = await requireRole('restaurant');
       if (!profile) return;
@@ -502,7 +535,13 @@
         document.getElementById('setup-view').style.display = 'block';
       } else {
         restaurant = data;
-        showMain();
+        if (data.is_approved) {
+          showMain();
+        } else if (data.status === 'rejected') {
+          showRejectedView(data.rejection_reason);
+        } else {
+          showPendingView(data.name);
+        }
       }
     })();
   </script>
