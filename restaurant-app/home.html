@@ -535,7 +535,9 @@
         document.getElementById('setup-view').style.display = 'block';
       } else {
         restaurant = data;
-        if (data.is_approved) {
+        // status='pending' only if explicitly set by new signup flow
+        // null status = old restaurant created before approval system → treat as live
+        if (data.is_approved || !data.status || data.status === 'approved') {
           showMain();
         } else if (data.status === 'rejected') {
           showRejectedView(data.rejection_reason);
