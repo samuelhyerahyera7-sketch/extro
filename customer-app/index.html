@@ -10,26 +10,36 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     * { box-sizing: border-box; }
-    body { margin: 0; background: #fff; font-family: 'Inter', sans-serif; min-height: 100vh; }
+    body { margin: 0; background: #fff; font-family: 'Inter', sans-serif; }
 
     .auth-page {
-      position: relative;
       height: 100vh;
-      background: url('login-bg.jpg.png') center top / cover no-repeat;
+      background: url('login-bg.jpg.png') top left / 100% 100% no-repeat;
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      justify-content: center;
+    }
+
+    /* Logo block — sits at ~30% from top */
+    .logo-block {
+      padding-top: 30vh;
+      text-align: center;
+      flex-shrink: 0;
     }
 
     .auth-content {
       position: relative;
       z-index: 10;
-      padding: 0 24px 24px;
+      padding: 0 24px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding-bottom: 28px;
     }
 
     .extro-logo {
-      font-size: 3.2rem;
+      font-size: 3rem;
       font-weight: 900;
       letter-spacing: -0.05em;
       color: #0f172a;
@@ -43,7 +53,7 @@
       text-align: center;
       font-size: 0.9rem;
       color: #9ca3af;
-      margin: 0 0 32px;
+      margin: 0;
     }
     .logo-sub .sep { color: var(--primary); margin: 0 7px; }
 
@@ -53,6 +63,7 @@
       color: #0f172a;
       margin: 0 0 12px;
     }
+    .form-gap { height: 6vh; flex-shrink: 0; }
 
     .phone-input-row {
       display: flex;
@@ -195,13 +206,17 @@
 <body>
   <div class="auth-page">
 
-    <!-- ── Form content ───────────────────────────────────────── -->
+    <!-- Logo block sits at ~30% from top -->
+    <div class="logo-block">
+      <h1 class="extro-logo">Extro<span class="dot">.</span></h1>
+      <p class="logo-sub">Food <span class="sep">•</span> Groceries</p>
+    </div>
+
+    <!-- ── Form content pushes to bottom ─────────────────────── -->
     <div class="auth-content">
       <div id="step-email">
 
-        <h1 class="extro-logo">Extro<span class="dot">.</span></h1>
-        <p class="logo-sub">Food <span class="sep">•</span> Groceries</p>
-
+        <div class="form-gap"></div>
         <!-- Phone (default) -->
         <div id="input-phone-wrap">
           <p class="section-label">Enter phone number</p>
