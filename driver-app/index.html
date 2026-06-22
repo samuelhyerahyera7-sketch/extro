@@ -9,155 +9,178 @@
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    body { margin: 0; background: #fff; }
-    .auth-hero {
-      position: relative;
-      height: 270px;
-      background: linear-gradient(140deg, #0f172a 0%, #1e293b 55%, #1a3a5c 100%);
-      overflow: hidden;
-      flex-shrink: 0;
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #fff; font-family: 'Inter', sans-serif; min-height: 100vh; }
+
+    .photo-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(2, 110px);
+      width: 100%;
     }
-    .auth-hero-circle {
-      position: absolute;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.05);
+    .photo-grid img {
+      width: 100%;
+      height: 110px;
+      object-fit: cover;
+      display: block;
     }
-    .auth-hero-emoji {
-      position: absolute;
-      line-height: 1;
-      user-select: none;
-      pointer-events: none;
-    }
-    .auth-hero-logo {
-      position: absolute;
-      top: 28px;
-      left: 24px;
-      z-index: 1;
+
+    .login-body { padding: 20px 20px 36px; }
+
+    .extro-logo {
       font-size: 2rem;
       font-weight: 900;
-      color: #fff;
       letter-spacing: -0.04em;
-      font-family: 'Inter', sans-serif;
+      color: var(--ink);
+      margin: 0 0 22px;
+      display: block;
     }
-    .auth-hero-curve {
-      position: absolute;
-      bottom: 0; left: 0; right: 0;
-      height: 28px;
+    .extro-logo span { color: var(--primary); }
+
+    .phone-input-row {
+      display: flex;
+      border: 1.5px solid #d1d5db;
+      border-radius: 10px;
+      overflow: hidden;
+      height: 52px;
+      margin-bottom: 10px;
       background: #fff;
-      border-radius: 22px 22px 0 0;
     }
-    .auth-form-wrap { padding: 20px 24px 56px; }
-    .auth-phone-row { display: flex; gap: 8px; margin-bottom: 14px; }
-    .auth-country-pill {
+    .phone-input-row:focus-within { border-color: #374151; }
+    .country-pill {
       display: flex;
       align-items: center;
-      gap: 6px;
-      padding: 0 14px;
-      height: 52px;
-      border: 1.5px solid var(--border);
-      border-radius: 14px;
-      background: #fff;
-      font-size: 0.92rem;
+      gap: 5px;
+      padding: 0 12px;
+      border-right: 1.5px solid #d1d5db;
+      font-size: 0.9rem;
       font-weight: 600;
       color: var(--ink);
       white-space: nowrap;
       flex-shrink: 0;
-      font-family: 'Inter', sans-serif;
+      background: #fff;
     }
-    .auth-field {
-      width: 100%;
-      height: 52px;
-      border-radius: 14px;
-      border: 1.5px solid var(--border);
-      padding: 0 16px;
+    .phone-input-row input {
+      flex: 1;
+      border: none;
+      outline: none;
+      padding: 0 14px;
       font-size: 1rem;
       font-family: 'Inter', sans-serif;
-      outline: none;
-      box-sizing: border-box;
-      background: #fff;
       color: var(--ink);
+      background: #fff;
     }
-    .auth-field:focus { border-color: var(--primary); }
+    .email-input {
+      width: 100%;
+      height: 52px;
+      border: 1.5px solid #d1d5db;
+      border-radius: 10px;
+      padding: 0 14px;
+      font-size: 1rem;
+      font-family: 'Inter', sans-serif;
+      color: var(--ink);
+      outline: none;
+      margin-bottom: 10px;
+    }
+    .email-input:focus { border-color: #374151; }
+
+    .link-underline {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--ink);
+      text-decoration: underline;
+      cursor: pointer;
+      display: inline-block;
+      margin-bottom: 14px;
+    }
+    .link-primary { color: var(--primary); font-weight: 700; cursor: pointer; }
+
+    .btn-continue {
+      width: 100%;
+      height: 52px;
+      border-radius: 10px;
+      border: none;
+      background: var(--primary);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+    }
+    .btn-continue:active { opacity: 0.88; }
     .auth-toggle-link { color: var(--primary); font-weight: 700; cursor: pointer; }
   </style>
 </head>
 <body>
-  <div style="min-height:100vh;display:flex;flex-direction:column;background:#fff">
 
-    <!-- Hero -->
-    <div class="auth-hero">
-      <div class="auth-hero-circle" style="width:220px;height:220px;top:-70px;right:-50px"></div>
-      <div class="auth-hero-circle" style="width:140px;height:140px;bottom:-50px;left:-30px"></div>
-      <div class="auth-hero-emoji" style="font-size:5.5rem;opacity:0.12;top:-8px;right:-4px;transform:rotate(14deg)">🛵</div>
-      <div class="auth-hero-emoji" style="font-size:4.5rem;opacity:0.1;bottom:34px;left:-4px;transform:rotate(-10deg)">📦</div>
-      <div class="auth-hero-emoji" style="font-size:3.8rem;opacity:0.08;top:60px;left:72px;transform:rotate(6deg)">🗺️</div>
-      <div class="auth-hero-emoji" style="font-size:4rem;opacity:0.07;bottom:40px;right:44px;transform:rotate(-4deg)">⚡</div>
-      <div class="auth-hero-logo">Extro<span style="color:var(--primary)">.</span></div>
-      <div style="position:absolute;bottom:52px;left:24px;z-index:1">
-        <span style="color:rgba(255,255,255,0.7);font-size:0.85rem;font-weight:600;font-family:'Inter',sans-serif;letter-spacing:0.05em;text-transform:uppercase">Driver Portal</span>
-      </div>
-      <div class="auth-hero-curve"></div>
-    </div>
+  <!-- Photo collage -->
+  <div class="photo-grid">
+    <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=300&h=110&fit=crop&q=80" alt="">
+    <img src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=300&h=110&fit=crop&q=80" alt="">
+    <img src="https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=300&h=110&fit=crop&q=80" alt="">
+    <img src="https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=300&h=110&fit=crop&q=80" alt="">
+    <img src="https://images.unsplash.com/photo-1546964124-0cce460f38ef?w=300&h=110&fit=crop&q=80" alt="">
+    <img src="https://images.unsplash.com/photo-1553621042-f6e147245754?w=300&h=110&fit=crop&q=80" alt="">
+  </div>
 
-    <!-- Form -->
-    <div class="auth-form-wrap">
+  <!-- Login form -->
+  <div class="login-body">
 
-      <div id="step-email">
-        <h2 style="font-size:1.55rem;font-weight:800;margin:0 0 4px;color:var(--ink);letter-spacing:-0.02em">Sign in or sign up</h2>
-        <p style="color:var(--muted);font-size:0.88rem;margin:0 0 24px;line-height:1.5">Start accepting deliveries in your area.</p>
+    <div id="step-email">
+      <span class="extro-logo">Extro<span>.</span></span>
 
-        <!-- Phone (primary) -->
-        <div id="input-phone-wrap">
-          <label style="display:block;font-size:0.82rem;font-weight:600;color:var(--ink);margin-bottom:8px">Phone number</label>
-          <div class="auth-phone-row">
-            <div class="auth-country-pill">🇿🇦 +27</div>
-            <input type="tel" id="phone-number" class="auth-field" placeholder="81 234 5678" inputmode="tel" autocomplete="tel" style="flex:1;margin-bottom:0">
+      <div id="input-phone-wrap">
+        <p style="font-size:1.15rem;font-weight:800;margin:0 0 12px;color:var(--ink)">Driver portal</p>
+        <div class="phone-input-row">
+          <div class="country-pill">
+            🇿🇦 +27
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
+          <input type="tel" id="phone-number" placeholder="81 234 5678" inputmode="tel" autocomplete="tel">
         </div>
-
-        <!-- Email (secondary) -->
-        <div id="input-email-wrap" style="display:none">
-          <label style="display:block;font-size:0.82rem;font-weight:600;color:var(--ink);margin-bottom:8px">Email address</label>
-          <input type="email" id="email-address" class="auth-field" placeholder="you@example.com" inputmode="email" autocomplete="email" style="margin-bottom:14px">
-        </div>
-
-        <button class="btn btn-primary btn-block" id="send-code-btn" style="border-radius:100px;height:52px;font-size:1rem;font-weight:700">Continue</button>
-        <p class="error-msg" id="email-error" style="margin-top:10px"></p>
-
-        <p style="text-align:center;margin-top:20px;font-size:0.88rem">
-          <span id="toggle-method-link" class="auth-toggle-link">Use email instead</span>
-        </p>
-        <p style="text-align:center;margin-top:14px;font-size:0.82rem;color:var(--muted)">
-          Just exploring? <a href="home.html?demo=1" class="auth-toggle-link">Try the demo</a>
-        </p>
       </div>
 
-      <div id="step-otp" style="display:none">
-        <button class="auth-back-btn" id="back-to-email">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
-            <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
-          </svg>
-        </button>
-        <h2 style="margin:16px 0 4px;font-size:1.3rem;font-weight:800">Enter the code</h2>
-        <p id="otp-hint" style="color:var(--muted);font-size:0.88rem;margin:0 0 24px;line-height:1.5"></p>
-
-        <div class="otp-row">
-          <input class="otp-box" maxlength="1" type="text" inputmode="numeric" autocomplete="one-time-code">
-          <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
-          <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
-          <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
-          <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
-          <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
-        </div>
-
-        <button class="btn btn-primary btn-block" id="verify-btn" style="margin-top:24px;border-radius:100px;height:50px;font-size:1rem">Verify</button>
-        <p class="error-msg" id="otp-error" style="margin-top:8px"></p>
-        <p style="text-align:center;font-size:0.85rem;color:var(--muted);margin-top:16px">
-          Didn't receive it? <span id="resend-link" class="auth-toggle-link">Resend</span>
-        </p>
+      <div id="input-email-wrap" style="display:none">
+        <p style="font-size:1.15rem;font-weight:800;margin:0 0 12px;color:var(--ink)">Enter email address</p>
+        <input type="email" id="email-address" class="email-input" placeholder="you@example.com" inputmode="email" autocomplete="email">
       </div>
 
+      <span id="toggle-method-link" class="link-underline">Use email instead</span>
+
+      <p class="error-msg" id="email-error" style="margin:0 0 8px"></p>
+
+      <button class="btn-continue" id="send-code-btn">Continue</button>
+
+      <p style="text-align:center;margin:16px 0 0;font-size:0.82rem;color:var(--muted)">
+        Just exploring? <a href="home.html?demo=1" class="link-primary">Try the demo</a>
+      </p>
     </div>
+
+    <div id="step-otp" style="display:none">
+      <button class="auth-back-btn" id="back-to-email">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+          <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+        </svg>
+      </button>
+      <h2 style="margin:16px 0 4px;font-size:1.3rem;font-weight:800">Enter the code</h2>
+      <p id="otp-hint" style="color:var(--muted);font-size:0.88rem;margin:0 0 24px;line-height:1.5"></p>
+
+      <div class="otp-row">
+        <input class="otp-box" maxlength="1" type="text" inputmode="numeric" autocomplete="one-time-code">
+        <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
+        <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
+        <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
+        <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
+        <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
+      </div>
+
+      <button class="btn btn-primary btn-block" id="verify-btn" style="margin-top:24px;border-radius:100px;height:50px;font-size:1rem">Verify</button>
+      <p class="error-msg" id="otp-error" style="margin-top:8px"></p>
+      <p style="text-align:center;font-size:0.85rem;color:var(--muted);margin-top:16px">
+        Didn't receive it? <span id="resend-link" class="auth-toggle-link">Resend</span>
+      </p>
+    </div>
+
   </div>
 
   <script src="js/demo-mock.js"></script>
