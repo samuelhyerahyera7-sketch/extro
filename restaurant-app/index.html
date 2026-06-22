@@ -146,9 +146,25 @@
         <button class="auth-tab" id="tab-login">Login</button>
       </div>
 
-      <!-- Dynamic heading per tab -->
-      <h2 id="auth-title" style="font-size:1.2rem;font-weight:800;margin:0 0 4px;color:var(--ink)">List your restaurant on Extro</h2>
-      <p id="auth-sub" style="font-size:0.84rem;color:var(--muted);margin:0 0 18px;line-height:1.5">Create an account to get started. We'll send you a one-time code.</p>
+      <!-- Register context block -->
+      <div id="register-context">
+        <h2 style="font-size:1.2rem;font-weight:800;margin:0 0 4px;color:var(--ink)">List your restaurant on Extro</h2>
+        <p style="font-size:0.84rem;color:var(--muted);margin:0 0 14px;line-height:1.5">New here? Create an account to get started.</p>
+        <div style="background:#f8f9fa;border-radius:12px;padding:12px 14px;margin-bottom:18px">
+          <p style="font-size:0.74rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);margin:0 0 8px">What happens next</p>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;align-items:center;gap:8px;font-size:0.82rem;color:var(--ink)"><span style="width:20px;height:20px;border-radius:50%;background:#ff5a3c;color:#fff;font-size:0.68rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">1</span>Verify your phone number</div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:0.82rem;color:var(--ink)"><span style="width:20px;height:20px;border-radius:50%;background:#ff5a3c;color:#fff;font-size:0.68rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">2</span>Fill in your business details &amp; upload documents</div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:0.82rem;color:var(--ink)"><span style="width:20px;height:20px;border-radius:50%;background:#ff5a3c;color:#fff;font-size:0.68rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">3</span>Extro reviews and approves your listing</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Login context block -->
+      <div id="login-context" style="display:none">
+        <h2 style="font-size:1.2rem;font-weight:800;margin:0 0 4px;color:var(--ink)">Welcome back</h2>
+        <p style="font-size:0.84rem;color:var(--muted);margin:0 0 18px;line-height:1.5">Enter your number and we'll send a one-time sign-in code.</p>
+      </div>
 
       <div id="input-phone-wrap">
         <p id="form-heading" style="font-size:0.88rem;font-weight:700;margin:0 0 8px;color:var(--ink)">Phone number</p>
@@ -224,16 +240,12 @@
       document.getElementById('tab-login').classList.toggle('active', mode === 'login');
       document.getElementById('send-code-btn').textContent = mode === 'register' ? 'Create account →' : 'Send OTP →';
       document.getElementById('email-error').textContent = '';
-      if (mode === 'register') {
-        document.getElementById('auth-title').textContent = 'List your restaurant on Extro';
-        document.getElementById('auth-sub').textContent = 'Create an account to get started. We\'ll send you a one-time code.';
-        document.getElementById('form-heading').textContent = 'Phone number';
-      } else {
-        document.getElementById('auth-title').textContent = 'Welcome back';
-        document.getElementById('auth-sub').textContent = 'Enter your phone number or email and we\'ll send you a sign-in code.';
-        document.getElementById('form-heading').textContent = 'Phone number';
-      }
+      document.getElementById('register-context').style.display = mode === 'register' ? 'block' : 'none';
+      document.getElementById('login-context').style.display = mode === 'login' ? 'block' : 'none';
     }
+
+    // Set initial state on load
+    setMode('register');
 
     function setAuthMethod(method) {
       authMethod = method;
