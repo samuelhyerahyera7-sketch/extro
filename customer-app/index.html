@@ -10,18 +10,25 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     * { box-sizing: border-box; }
-    html, body { margin: 0; height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; }
+    html, body { margin: 0; min-height: 100vh; overflow: hidden; font-family: 'Inter', sans-serif; }
 
     .auth-page {
-      height: 100%;
+      min-height: 100vh;
       background: url('login-bg.jpg.png') top left / 100% 100% no-repeat;
+    }
+
+    .content-wrap {
+      max-width: 430px;
+      margin: 0 auto;
+      width: 100%;
+      min-height: 100vh;
       display: flex;
       flex-direction: column;
     }
 
-    /* Logo sits at ~47% from top — in the centre of the background white space */
+    /* Hero — logo sits at ~35% from top */
     .logo-block {
-      padding-top: 10vh;
+      padding-top: 35vh;
       text-align: center;
       flex-shrink: 0;
     }
@@ -43,9 +50,17 @@
     }
     .logo-sub .sep { color: var(--primary); margin: 0 5px; }
 
-    /* Form flows naturally after logo */
+    .spacer { flex: 1; }
+
+    /* Form section */
     .auth-content {
-      padding: 6vh 20px 16px;
+      padding: 0 20px;
+      flex-shrink: 0;
+    }
+
+    .footer {
+      padding: 6px 20px 24px;
+      flex-shrink: 0;
     }
 
     .section-label {
@@ -194,98 +209,101 @@
 </head>
 <body>
   <div class="auth-page">
+    <div class="content-wrap">
 
-    <!-- Logo block sits at ~30% from top -->
-    <div class="logo-block">
-      <h1 class="extro-logo">Extro<span class="dot">.</span></h1>
-      <p class="logo-sub">Food <span class="sep">•</span> Groceries</p>
-    </div>
+      <!-- ── Hero: logo sits at 35vh ── -->
+      <div class="logo-block">
+        <h1 class="extro-logo">Extro<span class="dot">.</span></h1>
+        <p class="logo-sub">Food <span class="sep">•</span> Groceries</p>
+      </div>
 
-    <!-- ── Form content pushes to bottom ─────────────────────── -->
-    <div class="auth-content">
-      <div id="step-email">
+      <!-- ── Spacer pushes form down ── -->
+      <div class="spacer"></div>
 
-        <!-- Phone (default) -->
-        <div id="input-phone-wrap">
-          <p class="section-label">Enter phone number</p>
-          <div class="phone-input-row">
-            <div class="country-pill">
-              🇿🇦 +27
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="11" height="11"><polyline points="6 9 12 15 18 9"/></svg>
+      <!-- ── Form section ── -->
+      <div class="auth-content">
+        <div id="step-email">
+
+          <!-- Phone (default) -->
+          <div id="input-phone-wrap">
+            <p class="section-label">Enter phone number</p>
+            <div class="phone-input-row">
+              <div class="country-pill">
+                🇿🇦 +27
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="11" height="11"><polyline points="6 9 12 15 18 9"/></svg>
+              </div>
+              <input type="tel" id="phone-number" placeholder="81 234 5678" inputmode="tel" autocomplete="tel">
             </div>
-            <input type="tel" id="phone-number" placeholder="81 234 5678" inputmode="tel" autocomplete="tel">
           </div>
-        </div>
 
-        <!-- Email (hidden) -->
-        <div id="input-email-wrap" style="display:none">
-          <p class="section-label">Enter email address</p>
-          <input type="email" id="email-address" class="email-input" placeholder="you@example.com" inputmode="email" autocomplete="email">
-        </div>
+          <!-- Email (hidden) -->
+          <div id="input-email-wrap" style="display:none">
+            <p class="section-label">Enter email address</p>
+            <input type="email" id="email-address" class="email-input" placeholder="you@example.com" inputmode="email" autocomplete="email">
+          </div>
 
-        <span id="toggle-method-link" class="link-underline">Use email instead</span>
+          <span id="toggle-method-link" class="link-underline">Use email instead</span>
+          <p class="error-msg" id="email-error" style="margin:0 0 8px"></p>
 
-        <p class="error-msg" id="email-error" style="margin:0 0 8px"></p>
+          <button class="btn-continue" id="send-code-btn">Continue</button>
+          <div class="or-divider">or</div>
 
-        <button class="btn-continue" id="send-code-btn">Continue</button>
-
-        <div class="or-divider">or</div>
-
-        <button class="btn-social" id="google-btn">
-          <svg width="18" height="18" viewBox="0 0 48 48">
-            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.35-8.16 2.35-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-          </svg>
-          Continue with Google
-        </button>
-
-        <!-- Browse without signing in -->
-        <a href="home.html?demo=1" class="browse-row">
-          <div class="browse-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22">
-              <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/>
-              <path d="M16 10a4 4 0 0 1-8 0"/>
-              <polyline points="9 14 10.5 15.5 14 12"/>
+          <button class="btn-social" id="google-btn">
+            <svg width="18" height="18" viewBox="0 0 48 48">
+              <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+              <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+              <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+              <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.35-8.16 2.35-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
             </svg>
-          </div>
-          <div class="browse-text">
-            <strong>Browse restaurants without signing in</strong>
-            <span>Explore and order later</span>
-          </div>
-          <svg viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><polyline points="9 18 15 12 9 6"/></svg>
-        </a>
+            Continue with Google
+          </button>
 
+          <a href="home.html?demo=1" class="browse-row">
+            <div class="browse-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22">
+                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/>
+                <path d="M16 10a4 4 0 0 1-8 0"/>
+                <polyline points="9 14 10.5 15.5 14 12"/>
+              </svg>
+            </div>
+            <div class="browse-text">
+              <strong>Browse restaurants without signing in</strong>
+              <span>Explore and order later</span>
+            </div>
+            <svg viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><polyline points="9 18 15 12 9 6"/></svg>
+          </a>
+        </div>
+
+        <!-- OTP step -->
+        <div id="step-otp" style="display:none">
+          <button class="auth-back-btn" id="back-to-email">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+              <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+            </svg>
+          </button>
+          <h2 style="margin:16px 0 4px;font-size:1.3rem;font-weight:800">Enter the code</h2>
+          <p id="otp-hint" style="color:var(--muted);font-size:0.88rem;margin:0 0 24px;line-height:1.5"></p>
+          <div class="otp-row">
+            <input class="otp-box" maxlength="1" type="text" inputmode="numeric" autocomplete="one-time-code">
+            <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
+            <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
+            <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
+            <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
+            <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
+          </div>
+          <button class="btn btn-primary btn-block" id="verify-btn" style="margin-top:24px;border-radius:100px;height:50px;font-size:1rem">Verify</button>
+          <p class="error-msg" id="otp-error" style="margin-top:8px"></p>
+          <p style="text-align:center;font-size:0.85rem;color:var(--muted);margin-top:16px">
+            Didn't receive it? <span id="resend-link" class="link-primary">Resend</span>
+          </p>
+        </div>
+      </div>
+
+      <!-- ── Footer ── -->
+      <div class="footer">
         <p class="terms-text">
           By continuing, you agree to Extro's <a href="#">Terms</a> and <a href="#">Privacy Policy</a>.<br>
           We may send a verification code. Msg &amp; data rates may apply.
-        </p>
-      </div>
-
-      <!-- OTP step -->
-      <div id="step-otp" style="display:none">
-        <button class="auth-back-btn" id="back-to-email">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
-            <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
-          </svg>
-        </button>
-        <h2 style="margin:16px 0 4px;font-size:1.3rem;font-weight:800">Enter the code</h2>
-        <p id="otp-hint" style="color:var(--muted);font-size:0.88rem;margin:0 0 24px;line-height:1.5"></p>
-
-        <div class="otp-row">
-          <input class="otp-box" maxlength="1" type="text" inputmode="numeric" autocomplete="one-time-code">
-          <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
-          <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
-          <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
-          <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
-          <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
-        </div>
-
-        <button class="btn btn-primary btn-block" id="verify-btn" style="margin-top:24px;border-radius:100px;height:50px;font-size:1rem">Verify</button>
-        <p class="error-msg" id="otp-error" style="margin-top:8px"></p>
-        <p style="text-align:center;font-size:0.85rem;color:var(--muted);margin-top:16px">
-          Didn't receive it? <span id="resend-link" class="link-primary">Resend</span>
         </p>
       </div>
 
