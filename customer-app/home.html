@@ -879,7 +879,8 @@
         'linear-gradient(145deg,#ffca28,#f57f17)',
         'linear-gradient(145deg,#8d6e63,#4e342e)',
       ];
-      const sample = menuItems.slice(0, 10);
+      const groceryIds = new Set(restaurants.filter(r => (r.category || '').toLowerCase().includes('grocer')).map(r => r.id));
+      const sample = menuItems.filter(m => !groceryIds.has(m.restaurant_id)).slice(0, 10);
       grid.innerHTML = sample.map((item, i) => `
         <div class="dc" data-rid="${item.restaurant_id}">
           <div class="dc-img" style="background:${DISH_GRADS[i % DISH_GRADS.length]}">
@@ -962,6 +963,7 @@
 
       const inCart = cart.find(c => c.item.id === itemId);
       const extras = _sheetItem.extras || [];
+      const isGrocery = (currentRestaurant?.category || '').toLowerCase().includes('grocer');
 
       document.getElementById('item-sheet-body').innerHTML = `
         <div style="font-weight:800;font-size:1.25rem;margin-bottom:6px">${_sheetItem.name}</div>
@@ -980,12 +982,13 @@
             </label>`).join('')}
         </div>` : ''}
 
+        ${isGrocery ? '' : `
         <div style="margin-top:${extras.length ? 8 : 0}px;padding-top:${extras.length ? 12 : 0}px;${extras.length ? 'border-top:1px solid var(--border);' : ''}margin-bottom:4px">
           <div style="font-size:1rem;font-weight:700;margin-bottom:8px">Special instructions</div>
           <textarea id="item-note" rows="3"
             placeholder="Add a note"
             style="width:100%;border:none;border-radius:12px;padding:12px 14px;font-family:inherit;font-size:0.9rem;resize:none;box-sizing:border-box;background:var(--bg);color:var(--ink);outline:none;line-height:1.5;min-height:80px"></textarea>
-          <p style="font-size:0.78rem;color:var(--muted);margin:4px 0 0">You may be charged for extras.</p>
+          ${extras.length ? '<p style="font-size:0.78rem;color:var(--muted);margin:4px 0 0">You may be charged for extras.</p>' : ''}
         </div>
 
         <div id="allergy-row" style="display:flex;align-items:center;padding:16px 0;border-top:1px solid var(--border);margin-top:14px;cursor:pointer">
@@ -1004,7 +1007,7 @@
                 ${a}
               </label>`).join('')}
           </div>
-        </div>
+        </div>`}
         <div style="height:6px"></div>`;
 
       // Extras checkboxes
