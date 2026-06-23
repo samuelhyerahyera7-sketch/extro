@@ -214,14 +214,41 @@
     </div>
 
     <!-- ── View: Menu ────────────────────────────────────────── -->
-    <div id="view-menu" style="display:none">
-      <div class="sticky-subheader">
-        <button class="icon-btn" id="back-to-restaurants">
+    <div id="view-menu" style="display:none;padding-bottom:80px">
+      <div id="menu-hero-area"></div>
+      <div id="menu-list"></div>
+    </div>
+
+    <!-- ── View: Basket ──────────────────────────────────────── -->
+    <div id="view-basket" style="display:none;padding-bottom:20px">
+      <div class="basket-header">
+        <button class="icon-btn" id="basket-back-btn">
           <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
         </button>
-        <h2 id="menu-restaurant-name"></h2>
+        <h2>Your basket</h2>
+        <span class="basket-count-badge" id="basket-count-badge">0</span>
       </div>
-      <div id="menu-list"></div>
+      <div id="basket-restaurant-strip" class="basket-section-title" style="margin:10px 16px 0;background:transparent;border:none;padding:4px 0"></div>
+      <div class="basket-section" id="basket-items-section">
+        <div id="basket-items-body"></div>
+      </div>
+      <div class="basket-delivery-section">
+        <label>Delivery address</label>
+        <input type="text" id="basket-delivery-address" placeholder="e.g. 12 Oak St, Pretoria">
+      </div>
+      <div class="basket-delivery-section" style="margin-top:-4px">
+        <label>Order note <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)">(allergies, requests)</span></label>
+        <textarea id="basket-order-note" rows="2" placeholder="e.g. No nuts, extra sauce…" style="resize:none;line-height:1.5"></textarea>
+      </div>
+      <div class="basket-totals-section">
+        <div class="basket-totals-row"><span class="muted">Subtotal</span><strong id="basket-subtotal">R0.00</strong></div>
+        <div class="basket-totals-row"><span class="muted">Delivery fee</span><strong id="basket-fee">R25.00</strong></div>
+        <div class="basket-totals-row grand"><span>Total</span><span id="basket-total">R0.00</span></div>
+      </div>
+      <div class="basket-cta">
+        <button class="btn btn-primary btn-block" id="basket-checkout-btn" style="border-radius:100px;height:54px;font-size:1rem;font-weight:800">Place order</button>
+        <p class="error-msg" id="basket-error" style="text-align:center;margin-top:10px"></p>
+      </div>
     </div>
 
     <!-- ── View: Account ────────────────────────────────────── -->
@@ -331,16 +358,19 @@
   <!-- Item detail sheet -->
   <div id="item-sheet" style="display:none;position:fixed;inset:0;z-index:600">
     <div class="sheet-backdrop" id="item-sheet-backdrop" style="position:absolute;inset:0;background:rgba(0,0,0,0.45)"></div>
-    <div style="position:absolute;bottom:0;left:0;right:0;background:var(--card);border-radius:22px 22px 0 0;max-height:88vh;display:flex;flex-direction:column">
-      <div style="width:36px;height:4px;border-radius:2px;background:var(--border);margin:10px auto 0;flex-shrink:0"></div>
-      <div id="item-sheet-body" style="overflow-y:auto;padding:16px 20px 0"></div>
+    <div style="position:absolute;bottom:0;left:0;right:0;background:var(--card);border-radius:22px 22px 0 0;max-height:92vh;display:flex;flex-direction:column;overflow:hidden">
+      <!-- Photo header (filled by JS) -->
+      <div id="item-sheet-photo-wrap" class="item-photo-header">
+        <div class="item-sheet-handle"></div>
+      </div>
+      <div id="item-sheet-body" style="overflow-y:auto;padding:16px 20px 0;flex:1"></div>
       <div style="padding:14px 20px 28px;flex-shrink:0;border-top:1px solid var(--border);background:var(--card)">
         <div style="display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:14px">
-          <button id="item-sheet-dec" style="width:36px;height:36px;border-radius:50%;border:2px solid var(--border);background:var(--bg);font-size:1.3rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--ink)">−</button>
-          <span id="item-sheet-qty" style="font-size:1.1rem;font-weight:800;min-width:24px;text-align:center">1</span>
-          <button id="item-sheet-inc" style="width:36px;height:36px;border-radius:50%;border:none;background:var(--primary);font-size:1.3rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff">+</button>
+          <button id="item-sheet-dec" style="width:40px;height:40px;border-radius:50%;border:2px solid var(--border);background:var(--bg);font-size:1.3rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--ink)">−</button>
+          <span id="item-sheet-qty" style="font-size:1.15rem;font-weight:800;min-width:28px;text-align:center">1</span>
+          <button id="item-sheet-inc" style="width:40px;height:40px;border-radius:50%;border:none;background:var(--primary);font-size:1.3rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff">+</button>
         </div>
-        <button id="item-sheet-add" class="btn btn-primary btn-block" style="border-radius:100px;height:52px;font-size:1rem">Add to basket · R0</button>
+        <button id="item-sheet-add" class="btn btn-primary btn-block" style="border-radius:100px;height:54px;font-size:1rem;font-weight:800">Add to basket · R0</button>
       </div>
     </div>
   </div>
@@ -542,7 +572,7 @@
       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 
-    const ALL_VIEWS = ['view-profile-complete', 'view-address-setup', 'view-restaurants', 'view-menu', 'view-orders', 'view-account'];
+    const ALL_VIEWS = ['view-profile-complete', 'view-address-setup', 'view-restaurants', 'view-menu', 'view-basket', 'view-orders', 'view-account'];
     function showView(id) {
       ALL_VIEWS.forEach(v => { document.getElementById(v).style.display = v === id ? 'block' : 'none'; });
       if (id === 'view-address-setup' && addrMap) setTimeout(() => addrMap.resize(), 80);
@@ -920,31 +950,141 @@
       renderRestaurants();
     });
 
+    let _menuCategory = 'all';
+
     async function openRestaurant(id) {
       currentRestaurant = restaurants.find(r => r.id === id);
       if (!currentRestaurant?.is_open) return;
-      document.getElementById('menu-restaurant-name').textContent = currentRestaurant.name;
+      _menuCategory = 'all';
       const { data, error } = await sb.from('menu_items').select('*').eq('restaurant_id', id).eq('available', true);
       if (error) { console.error(error); return; }
       menuItems = data;
+      renderMenuView();
+      showView('view-menu');
+    }
+
+    function renderMenuView() {
+      const r = currentRestaurant;
+      const ratingStr = r.rating != null ? `★ ${Number(r.rating).toFixed(1)}` : null;
+      const timeStr = r.prep_time_minutes ? `~${r.prep_time_minutes} min` : (r.delivery_time || null);
+      const metaParts = [r.category || 'Restaurant', ratingStr, timeStr].filter(Boolean);
+
+      // Extract unique categories from item names heuristically
+      const cats = extractMenuCategories(r, menuItems);
+      const hasCats = cats.length > 1;
+
+      document.getElementById('menu-hero-area').innerHTML = `
+        <div class="menu-hero-wrap">
+          ${r.photo_url ? `<img src="${r.photo_url}" alt="${r.name}" loading="lazy">` : `<div style="width:100%;height:100%;background:${cardGradient(r.category)};display:flex;align-items:center;justify-content:center;font-size:4rem">${catEmoji(r.category)}</div>`}
+          <button class="menu-hero-back" id="menu-back-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          </button>
+        </div>
+        <div class="menu-info-strip">
+          <h2>${r.name}</h2>
+          <div class="menu-info-meta">
+            ${ratingStr ? `<span class="m-rating">${ratingStr}</span>` : ''}
+            ${timeStr ? `<span>${timeStr}</span>` : ''}
+            ${r.category ? `<span>${r.category}</span>` : ''}
+          </div>
+        </div>
+        ${hasCats ? `
+        <div class="menu-cat-tabs" id="menu-cat-tabs">
+          <button class="menu-cat-tab active" data-cat="all">All</button>
+          ${cats.map(c => `<button class="menu-cat-tab" data-cat="${c.key}">${c.label}</button>`).join('')}
+        </div>` : ''}`;
+
+      document.getElementById('menu-back-btn').addEventListener('click', () => showView('view-restaurants'));
+
+      if (hasCats) {
+        document.getElementById('menu-cat-tabs').addEventListener('click', e => {
+          const tab = e.target.closest('.menu-cat-tab');
+          if (!tab) return;
+          document.querySelectorAll('.menu-cat-tab').forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          _menuCategory = tab.dataset.cat;
+          renderMenuGrid();
+        });
+      }
+
+      renderMenuGrid();
+    }
+
+    function extractMenuCategories(restaurant, items) {
+      const catMap = {
+        'Burgers': ['burger','mc','quarter','nugget','fries','shake','milkshake','soft serve','apple pie'],
+        'Drinks': ['shake','milkshake','juice','coffee','drink','soda','water'],
+        'Desserts': ['soft serve','apple pie','ice cream','dessert','cake'],
+        'Pizza': ['pizza','margherita','pepperoni','bbq chicken','quattro'],
+        'Pasta': ['pasta','spaghetti','penne','lasagna','fettuccine','arrabiata','bolognese'],
+        'Sides': ['garlic bread','fries','salad','bread','starter','soup'],
+        'Dairy': ['milk','cheese','yoghurt','butter'],
+        'Bakery': ['bread','roll','bun','pastry','pie'],
+        'Fresh Produce': ['apple','orange','banana','tomato','onion','potato','vegetable','fruit'],
+        'Meat & Poultry': ['chicken','beef','pork','lamb','mince','steak','bacon'],
+        'Pantry': ['rice','oil','sugar','flour','salt','coffee','tea','chips','snack'],
+        'Beverages': ['juice','milk','water','soda','energy','drink'],
+      };
+      const cat = (restaurant.category || '').toLowerCase();
+      let groups;
+      if (cat.includes('grocer') || cat.includes('supermarket')) {
+        groups = ['Dairy','Bakery','Fresh Produce','Meat & Poultry','Pantry','Beverages'];
+      } else if (cat.includes('burger') || cat.includes('fast food')) {
+        groups = ['Burgers','Drinks','Desserts'];
+      } else if (cat.includes('pizza') || cat.includes('pasta') || cat.includes('italian')) {
+        groups = ['Pizza','Pasta','Sides'];
+      } else {
+        return [];
+      }
+      return groups.filter(g => {
+        const keys = catMap[g] || [];
+        return items.some(it => keys.some(k => it.name.toLowerCase().includes(k)));
+      }).map(g => ({ key: g.toLowerCase().replace(/[^a-z]/g,''), label: g }));
+    }
+
+    function itemMatchesCat(item, catKey) {
+      if (catKey === 'all') return true;
+      const name = item.name.toLowerCase();
+      const catMatchMap = {
+        burgers: ['burger','mc','quarter','nugget'],
+        drinks: ['shake','milkshake','juice','coffee','drink','soda'],
+        desserts: ['soft serve','apple pie','ice cream','dessert','cake'],
+        pizza: ['pizza','margherita','pepperoni','bbq chicken'],
+        pasta: ['pasta','spaghetti','penne','lasagna','arrabiata','bolognese'],
+        sides: ['garlic bread','fries','salad','bread','starter'],
+        dairy: ['milk','cheese','yoghurt','butter'],
+        bakery: ['bread','roll','bun','pastry','pie'],
+        freshproduce: ['apple','orange','banana','tomato','onion','potato','vegetable','fruit'],
+        meatpoultry: ['chicken','beef','pork','lamb','mince','steak','bacon','portions'],
+        pantry: ['rice','oil','sugar','flour','salt','coffee','tea','chips','snack'],
+        beverages: ['juice','milk','water','soda','energy','drink','coffee'],
+      };
+      const keys = catMatchMap[catKey] || [];
+      return keys.some(k => name.includes(k));
+    }
+
+    function renderMenuGrid() {
+      const filtered = menuItems.filter(it => itemMatchesCat(it, _menuCategory));
       const list = document.getElementById('menu-list');
-      list.innerHTML = `<div class="card" style="margin:0 20px 20px">` +
-        menuItems.map(item => `
-          <div class="menu-item-row" data-open="${item.id}" style="cursor:pointer">
-            <div class="menu-item-info">
-              <h4>${item.name}</h4>
-              <p>${item.description || ''}</p>
-              <div class="price">${money(item.price)}</div>
-            </div>
-            <button class="btn btn-primary btn-sm" data-open="${item.id}">Add</button>
-          </div>`).join('')
-        || `<div class="empty-state">No items on this menu yet.</div>`;
-      list.innerHTML += '</div>';
+      if (!filtered.length) {
+        list.innerHTML = `<div class="empty-state" style="padding:40px 20px">No items in this category.</div>`;
+        return;
+      }
+      list.innerHTML = `<div class="menu-grid">${filtered.map(item => `
+        <div class="menu-card" data-open="${item.id}">
+          <div class="menu-card-img-wrap">
+            ${item.photo_url ? `<img src="${item.photo_url}" alt="${item.name}" loading="lazy">` : `<div class="menu-card-img-emoji">${catEmoji(currentRestaurant?.category)}</div>`}
+          </div>
+          <div class="menu-card-body">
+            <p class="menu-card-name">${item.name}</p>
+            <p class="menu-card-price">R${Number(item.price).toFixed(2)}</p>
+          </div>
+          <button class="menu-card-add" data-open="${item.id}" aria-label="Add ${item.name}">+</button>
+        </div>`).join('')}</div>`;
 
       list.querySelectorAll('[data-open]').forEach(el => {
         el.addEventListener('click', () => openItemSheet(el.dataset.open));
       });
-      showView('view-menu');
     }
 
     // ── Item detail sheet ──────────────────────────────────────
@@ -965,10 +1105,14 @@
       const extras = _sheetItem.extras || [];
       const isGrocery = (currentRestaurant?.category || '').toLowerCase().includes('grocer');
 
+      // Photo header
+      const photoWrap = document.getElementById('item-sheet-photo-wrap');
+      photoWrap.innerHTML = `<div class="item-sheet-handle"></div>${_sheetItem.photo_url ? `<img src="${_sheetItem.photo_url}" alt="${_sheetItem.name}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:22px 22px 0 0">` : `<div class="item-photo-header-emoji">${catEmoji(currentRestaurant?.category)}</div>`}`;
+
       document.getElementById('item-sheet-body').innerHTML = `
-        <div style="font-weight:800;font-size:1.25rem;margin-bottom:6px">${_sheetItem.name}</div>
-        ${_sheetItem.description ? `<p style="color:var(--muted);font-size:0.85rem;margin:0 0 8px;line-height:1.5">${_sheetItem.description}</p>` : ''}
-        <div style="font-size:1.05rem;font-weight:700;margin-bottom:${extras.length ? 16 : 20}px">R${Number(_sheetItem.price).toFixed(2)}</div>
+        <div style="font-weight:800;font-size:1.2rem;margin-bottom:4px;line-height:1.3">${_sheetItem.name}</div>
+        <div style="font-size:1.1rem;font-weight:800;color:var(--primary);margin-bottom:${_sheetItem.description ? 8 : extras.length ? 16 : 20}px">R${Number(_sheetItem.price).toFixed(2)}</div>
+        ${_sheetItem.description ? `<p style="color:var(--muted);font-size:0.85rem;margin:0 0 ${extras.length ? 16 : 20}px;line-height:1.55">${_sheetItem.description}</p>` : ''}
         ${inCart ? `<div style="background:#fef9c3;border-radius:10px;padding:8px 12px;font-size:0.8rem;color:#854d0e;margin-bottom:14px">Already in basket · ${inCart.qty} added</div>` : ''}
 
         ${extras.length ? `
@@ -1020,7 +1164,7 @@
       });
 
       // Allergy toggle
-      document.getElementById('allergy-row').addEventListener('click', () => {
+      document.getElementById('allergy-row')?.addEventListener('click', () => {
         const panel = document.getElementById('allergy-panel');
         const chevron = document.getElementById('allergy-chevron');
         const open = panel.style.display === 'none';
@@ -1097,46 +1241,64 @@
       const fee = cart.length ? deliveryFee() : 0;
       const total = subtotal + fee;
 
+      // Floating bar
       document.getElementById('cart-bar').style.display = count ? 'flex' : 'none';
       document.getElementById('cart-bar-text').textContent = `${count} item${count === 1 ? '' : 's'} · ${money(subtotal)}`;
-      document.getElementById('cart-total-summary').textContent = money(total);
-      document.getElementById('cart-subtotal').textContent = money(subtotal);
-      document.getElementById('cart-fee').textContent = money(fee);
 
-      const body = document.getElementById('cart-body');
-      body.innerHTML = cart.map((c, idx) => `
-        <div class="cart-row" style="flex-direction:column;align-items:stretch;gap:6px">
-          <div style="display:flex;align-items:center;justify-content:space-between">
-            <div>
-              <div class="cart-item-name">${c.item.name}</div>
-              <div class="cart-item-price">${money(cartEntryPrice(c))} each${c.extras?.length ? ` · <span style="color:var(--muted);font-size:0.78rem">${c.extras.map(e=>e.name).join(', ')}</span>` : ''}${c.note ? ` · <em style="color:var(--muted)">${c.note}</em>` : ''}</div>
+      // Basket view counts + totals
+      const badge = document.getElementById('basket-count-badge');
+      if (badge) badge.textContent = count;
+      const bSubtotal = document.getElementById('basket-subtotal');
+      const bFee = document.getElementById('basket-fee');
+      const bTotal = document.getElementById('basket-total');
+      if (bSubtotal) bSubtotal.textContent = money(subtotal);
+      if (bFee) bFee.textContent = money(fee);
+      if (bTotal) bTotal.textContent = money(total);
+
+      // Restaurant strip
+      const strip = document.getElementById('basket-restaurant-strip');
+      if (strip && currentRestaurant) strip.textContent = `Ordering from ${currentRestaurant.name}`;
+
+      // Basket items
+      const basketBody = document.getElementById('basket-items-body');
+      if (basketBody) {
+        basketBody.innerHTML = cart.map((c, idx) => `
+          <div class="basket-item-row">
+            <div class="basket-item-thumb">
+              ${c.item.photo_url ? `<img src="${c.item.photo_url}" alt="${c.item.name}">` : catEmoji(currentRestaurant?.category)}
             </div>
-            <div class="qty-stepper">
-              <button data-dec="${idx}" title="${c.qty === 1 ? 'Remove' : 'Decrease'}">
-                ${c.qty === 1 ? ICON_TRASH_SM : '−'}
-              </button>
-              <span>${c.qty}</span>
-              <button data-inc="${idx}">+</button>
+            <div class="basket-item-info">
+              <p class="basket-item-name">${c.item.name}</p>
+              ${c.extras?.length ? `<p class="basket-item-extras">${c.extras.map(e=>e.name).join(', ')}</p>` : ''}
+              ${c.note ? `<p class="basket-item-extras">${c.note}</p>` : ''}
+              <div class="basket-item-stepper">
+                <button data-dec="${idx}" title="${c.qty === 1 ? 'Remove' : 'Decrease'}">${c.qty === 1 ? ICON_TRASH_SM : '−'}</button>
+                <span>${c.qty}</span>
+                <button data-inc="${idx}">+</button>
+              </div>
             </div>
-          </div>
-        </div>`).join('') || `<p class="muted" style="padding:16px 0">Your cart is empty.</p>`;
+            <div class="basket-item-price">${money(cartEntryPrice(c) * c.qty)}</div>
+          </div>`).join('') || `<p class="muted" style="padding:20px 16px">Your basket is empty.</p>`;
 
-      body.querySelectorAll('[data-inc]').forEach(b => b.addEventListener('click', () => changeQty(parseInt(b.dataset.inc), 1)));
-      body.querySelectorAll('[data-dec]').forEach(b => b.addEventListener('click', () => changeQty(parseInt(b.dataset.dec), -1)));
+        basketBody.querySelectorAll('[data-inc]').forEach(b => b.addEventListener('click', () => changeQty(parseInt(b.dataset.inc), 1)));
+        basketBody.querySelectorAll('[data-dec]').forEach(b => b.addEventListener('click', () => changeQty(parseInt(b.dataset.dec), -1)));
+      }
+
+      // Pre-fill delivery address
+      const savedStreet = currentAddress?.street_address || '';
+      const bdAddr = document.getElementById('basket-delivery-address');
+      if (bdAddr && !bdAddr.value && savedStreet) bdAddr.value = savedStreet;
     }
 
-    function openCart() {
-      document.getElementById('cart-panel').style.display = 'block';
-      document.getElementById('sheet-backdrop').style.display = 'block';
-    }
-    function closeCart() {
-      document.getElementById('cart-panel').style.display = 'none';
-      document.getElementById('sheet-backdrop').style.display = 'none';
+    let _basketReturnView = 'view-menu';
+    function openBasket() {
+      _basketReturnView = document.getElementById('view-menu').style.display !== 'none' ? 'view-menu' : 'view-restaurants';
+      renderCart();
+      showView('view-basket');
     }
 
-    document.getElementById('cart-btn').addEventListener('click', openCart);
-    document.getElementById('close-cart').addEventListener('click', closeCart);
-    document.getElementById('sheet-backdrop').addEventListener('click', closeCart);
+    document.getElementById('cart-btn').addEventListener('click', openBasket);
+    document.getElementById('basket-back-btn').addEventListener('click', () => showView(_basketReturnView));
     document.getElementById('back-to-restaurants').addEventListener('click', () => showView('view-restaurants'));
     document.getElementById('back-to-restaurants-2').addEventListener('click', () => showView('view-restaurants'));
 
@@ -1151,18 +1313,33 @@
       document.body.appendChild(form); form.submit();
     }
 
-    document.getElementById('checkout-btn').addEventListener('click', async () => {
-      const errorEl = document.getElementById('checkout-error');
+    async function doCheckout(addressEl, noteEl, errorEl, btn) {
       errorEl.textContent = '';
-      const address = document.getElementById('delivery-address').value.trim();
-      if (!cart.length) { errorEl.textContent = 'Your cart is empty.'; return; }
+      const address = addressEl.value.trim();
+      if (!cart.length) { errorEl.textContent = 'Your basket is empty.'; return; }
       if (!address) { errorEl.textContent = 'Please enter a delivery address.'; return; }
+
+      btn.disabled = true; btn.textContent = 'Placing order…';
 
       const subtotal = cart.reduce((s, c) => s + cartEntryPrice(c) * c.qty, 0);
       const fee = deliveryFee();
       const total = subtotal + fee;
+      const orderNote = (noteEl?.value || '').trim();
 
-      const orderNote = (document.getElementById('order-note')?.value || '').trim();
+      if (window.DEMO_MODE) {
+        const fakeOrder = {
+          id: 'demo-' + Date.now(),
+          status: 'accepted',
+          restaurant_id: currentRestaurant.id,
+          items: cart.map(c => ({ id: c.item.id, name: c.item.name, price: cartEntryPrice(c), qty: c.qty })),
+          subtotal, delivery_fee: fee, total, delivery_address: address,
+        };
+        cart = []; renderCart();
+        btn.disabled = false; btn.textContent = 'Place order';
+        openOrderTracking(fakeOrder.id);
+        return;
+      }
+
       const { data: order, error } = await sb.from('orders').insert({
         customer_id: profile.id, restaurant_id: currentRestaurant.id,
         items: cart.map(c => ({ id: c.item.id, name: c.item.name, price: cartEntryPrice(c), qty: c.qty, note: c.note || '', extras: c.extras || [] })),
@@ -1171,7 +1348,7 @@
         note: orderNote || null,
       }).select().single();
 
-      if (error) { errorEl.textContent = error.message; return; }
+      if (error) { errorEl.textContent = error.message; btn.disabled = false; btn.textContent = 'Place order'; return; }
 
       try {
         const { data: payment } = await sb.functions.invoke('create-payfast-payment', {
@@ -1182,8 +1359,28 @@
         console.warn('Payment function not available, continuing without redirect.', e);
       }
 
-      cart = []; renderCart(); closeCart();
+      cart = []; renderCart();
+      btn.disabled = false; btn.textContent = 'Place order';
       openOrderTracking(order.id);
+    }
+
+    document.getElementById('basket-checkout-btn').addEventListener('click', function() {
+      doCheckout(
+        document.getElementById('basket-delivery-address'),
+        document.getElementById('basket-order-note'),
+        document.getElementById('basket-error'),
+        this
+      );
+    });
+
+    // Legacy checkout-btn (hidden cart panel) — keep for safety
+    document.getElementById('checkout-btn')?.addEventListener('click', function() {
+      doCheckout(
+        document.getElementById('delivery-address'),
+        document.getElementById('order-note'),
+        document.getElementById('checkout-error'),
+        this
+      );
     });
 
     document.getElementById('bottom-nav').addEventListener('click', e => {
@@ -1224,12 +1421,12 @@
             const item = allItems[parseInt(btn.dataset.reorderItem)];
             if (!item) return;
             const existing = menuItems.find(m => m.id === item.id);
-            if (existing) { addToCart(existing.id, 1, ''); openCart(); }
+            if (existing) { addToCart(existing.id, 1, ''); openBasket(); }
             else {
               // item not in current menu — add directly from past order data
               const synthetic = { id: item.id, name: item.name, price: item.price, description: '' };
               if (!menuItems.find(m => m.id === synthetic.id)) menuItems.push(synthetic);
-              addToCart(synthetic.id, 1, ''); openCart();
+              addToCart(synthetic.id, 1, ''); openBasket();
             }
           });
         });
