@@ -7,9 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 </head>
 <body>
@@ -546,7 +544,7 @@
     const ALL_VIEWS = ['view-profile-complete', 'view-address-setup', 'view-restaurants', 'view-menu', 'view-orders', 'view-account'];
     function showView(id) {
       ALL_VIEWS.forEach(v => { document.getElementById(v).style.display = v === id ? 'block' : 'none'; });
-      if (id === 'view-address-setup' && addrMap) setTimeout(() => addrMap.invalidateSize(), 80);
+      if (id === 'view-address-setup' && addrMap) setTimeout(() => addrMap.resize(), 80);
       if (id === 'view-orders' && trackingMap) setTimeout(() => trackingMap.resize(), 80);
     }
 
@@ -640,19 +638,27 @@
     });
 
     async function initAddressMap() {
-      addrMap = L.map('addr-map', { zoomControl: true }).setView([addrLat, addrLng], 16);
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { attribution: '© OpenStreetMap © CARTO', maxZoom: 19 }).addTo(addrMap);
+      await loadMapbox();
+      mapboxgl.accessToken = MAPBOX_TOKEN;
+
+      addrMap = new mapboxgl.Map({
+        container: 'addr-map',
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center: [addrLng, addrLat],
+        zoom: 16,
+        attributionControl: false,
+      });
 
       if (window.DEMO_MODE) {
         addrLat = -25.7512; addrLng = 28.1884;
-        addrMap.setView([addrLat, addrLng], 16);
+        addrMap.jumpTo({ center: [addrLng, addrLat], zoom: 16 });
         document.getElementById('addr-street').textContent = '11 Flora Rd';
         document.getElementById('addr-city').textContent = 'Valhalla, Centurion, 0185, South Africa';
         document.getElementById('addr-house-num').value = '11';
       } else if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(async pos => {
           addrLat = pos.coords.latitude; addrLng = pos.coords.longitude;
-          addrMap.setView([addrLat, addrLng], 16);
+          addrMap.jumpTo({ center: [addrLng, addrLat], zoom: 16 });
           await reverseGeocode(addrLat, addrLng);
         }, () => reverseGeocode(addrLat, addrLng));
       } else {
