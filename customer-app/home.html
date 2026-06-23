@@ -499,6 +499,31 @@
     let searchText = '';
     let currentAddress = null;
     let addrMap = null;
+    // ── Mapbox (tracking map only — address map stays on Leaflet/OSM) ──
+    const MAPBOX_TOKEN = 'pk.eyJ1Ijoic2FtdWVsaHllcmEiLCJhIjoiY21xcTB3ZTFtMGM4cjJycXpwdzJjcjZybyJ9.CtfDvvXoS6_ueR6OMXyzhA';
+    let _mapboxLoaded = false;
+    let _mapboxLoading = null;
+    let _cachedRoute = null;    // { coords, durationMins } — reused until driver moves >50m
+    let _cacheFromLat = null;
+    let _cacheFromLng = null;
+    let _routeFetching = false; // blocks concurrent route fetches
+
+    function loadMapbox() {
+      if (_mapboxLoaded) return Promise.resolve();
+      if (_mapboxLoading) return _mapboxLoading;
+      _mapboxLoading = new Promise((resolve, reject) => {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css';
+        document.head.appendChild(link);
+        const s = document.createElement('script');
+        s.src = 'https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js';
+        s.onload = () => { _mapboxLoaded = true; resolve(); };
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
+      return _mapboxLoading;
+    }
     let addrLat = -25.7461;
     let addrLng = 28.1881;
     let selectedAddrType = 'house';
@@ -522,7 +547,7 @@
     function showView(id) {
       ALL_VIEWS.forEach(v => { document.getElementById(v).style.display = v === id ? 'block' : 'none'; });
       if (id === 'view-address-setup' && addrMap) setTimeout(() => addrMap.invalidateSize(), 80);
-      if (id === 'view-orders' && trackingMap) setTimeout(() => trackingMap.invalidateSize(), 80);
+      if (id === 'view-orders' && trackingMap) setTimeout(() => trackingMap.resize(), 80);
     }
 
     document.getElementById('avatar-edit-btn').addEventListener('click', () => document.getElementById('avatar-input').click());
@@ -1265,7 +1290,10 @@
     function closeTrackingOverlay() {
       document.getElementById('tracking-overlay').style.display = 'none';
       document.body.style.overflow = '';
-      if (trackingMap) { trackingMap.remove(); trackingMap = null; trackingMarker = null; routeLine = null; }
+      if (trackingMarker) { trackingMarker.remove(); trackingMarker = null; }
+      routeLine = null;
+      if (trackingMap) { trackingMap.remove(); trackingMap = null; }
+      _cachedRoute = null; _cacheFromLat = null; _cacheFromLng = null;
       if (driverChannel) { sb.removeChannel(driverChannel); driverChannel = null; }
       hideQRBlock();
     }
@@ -1379,80 +1407,91 @@
       card.style.display = 'block';
     }
 
-    function makeDriverIcon(type) {
-      const configs = {
-        car:  { bg: '#ff5722', svg: '<path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>' },
-        bike: { bg: '#1565c0', svg: '<circle cx="5.5" cy="17.5" r="3"/><circle cx="18.5" cy="17.5" r="3"/><path d="M5.5 17.5l4-7h5l2 4.5M14 5h2m-4 0l2 5.5" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/><path fill="white" d="M14 5a1 1 0 1 0 2 0 1 1 0 0 0-2 0z"/>' },
-        walk: { bg: '#2e7d32', svg: '<circle cx="12" cy="4.5" r="1.5" fill="white"/><path stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none" d="M12 7l-2.5 5.5 2 1.5M12 7l2 1 1.5 3.5M9.5 12.5l-1.5 5M14.5 8l1 5.5"/>' },
-      };
-      const { bg, svg } = configs[type] || configs.car;
-      return L.divIcon({
-        html: `<div style="background:${bg};width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(0,0,0,0.35);border:3px solid #fff"><svg viewBox="0 0 24 24" width="18" height="18">${svg}</svg></div>`,
-        className: '',
-        iconSize: [36, 36],
-        iconAnchor: [18, 18],
-      });
+    function makeMapboxDriverEl(type) {
+      const colors = { car: '#ff5722', bike: '#1565c0', walk: '#2e7d32' };
+      const el = document.createElement('div');
+      el.style.cssText = `width:36px;height:36px;border-radius:50%;background:${colors[type] || colors.bike};border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;`;
+      el.innerHTML = '<svg width="14" height="14" viewBox="0 0 14 14"><polygon points="7,1 12,13 7,9 2,13" fill="white"/></svg>';
+      return el;
     }
-    const CAR_ICON  = makeDriverIcon('car');
-    const BIKE_ICON = makeDriverIcon('bike');
-    const WALK_ICON = makeDriverIcon('walk');
 
     async function initTrackingMap(order) {
       trackedOrder = order;
-      if (trackingMap) { trackingMap.remove(); trackingMap = null; trackingMarker = null; routeLine = null; }
-      trackingMap = L.map('tracking-map-full', { zoomControl: false, attributionControl: false }).setView([order.delivery_lat || -25.75, order.delivery_lng || 28.19], 14);
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(trackingMap);
-      L.control.zoom({ position: 'bottomright' }).addTo(trackingMap);
+      if (trackingMap) {
+        if (trackingMarker) { trackingMarker.remove(); trackingMarker = null; }
+        routeLine = null;
+        trackingMap.remove(); trackingMap = null;
+      }
+      _cachedRoute = null; _cacheFromLat = null; _cacheFromLng = null;
 
-      setTimeout(() => trackingMap && trackingMap.invalidateSize(), 200);
+      await loadMapbox();
+      mapboxgl.accessToken = MAPBOX_TOKEN;
 
-      const dropIcon = L.divIcon({
-        html: `<div style="background:#1a1d29;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.3);border:3px solid #fff"><svg viewBox="0 0 24 24" fill="white" width="15" height="15"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></div>`,
-        className: '', iconSize: [32, 32], iconAnchor: [16, 32],
+      trackingMap = new mapboxgl.Map({
+        container: 'tracking-map-full',
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center: [order.delivery_lng || 28.19, order.delivery_lat || -25.75],
+        zoom: 14,
+        attributionControl: false,
       });
-      const pickupIcon = L.divIcon({
-        html: `<div style="background:#ff5722;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.3);border:3px solid #fff"><svg viewBox="0 0 24 24" fill="white" width="15" height="15"><path d="M16 7V5a4 4 0 0 0-8 0v2"/><rect x="3" y="7" width="18" height="14" rx="2"/></svg></div>`,
-        className: '', iconSize: [32, 32], iconAnchor: [16, 16],
-      });
+      trackingMap.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'bottom-right');
 
-      const boundsPoints = [];
-      if (order.delivery_lat && order.delivery_lng) {
-        L.marker([order.delivery_lat, order.delivery_lng], { icon: dropIcon }).addTo(trackingMap).bindPopup('Your address');
-        boundsPoints.push([order.delivery_lat, order.delivery_lng]);
-      }
-      if (order.restaurants?.lat && order.restaurants?.lng) {
-        L.marker([order.restaurants.lat, order.restaurants.lng], { icon: pickupIcon }).addTo(trackingMap).bindPopup(order.restaurants.name || 'Restaurant');
-        boundsPoints.push([order.restaurants.lat, order.restaurants.lng]);
-      }
-      if (boundsPoints.length > 1) {
-        trackingMap.fitBounds(boundsPoints, { padding: [55, 55] });
-      }
+      trackingMap.on('load', async () => {
+        const bounds = new mapboxgl.LngLatBounds();
+        let hasBounds = false;
 
-      const driverId = order.driver_id || (window.DEMO_MODE ? 'demo-driver' : null);
-      if (driverId) {
-        const { data: driverRow } = await sb.from('drivers').select('current_lat,current_lng').eq('id', driverId).maybeSingle();
-        if (driverRow?.current_lat) {
-          placeDriverOnMap(driverRow.current_lat, driverRow.current_lng, order);
+        if (order.delivery_lat && order.delivery_lng) {
+          const el = document.createElement('div');
+          el.style.cssText = 'width:28px;height:28px;border-radius:50%;background:#1a1d29;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.3)';
+          new mapboxgl.Marker({ element: el }).setLngLat([order.delivery_lng, order.delivery_lat]).addTo(trackingMap);
+          bounds.extend([order.delivery_lng, order.delivery_lat]);
+          hasBounds = true;
         }
-      }
+        if (order.restaurants?.lat && order.restaurants?.lng) {
+          const el = document.createElement('div');
+          el.style.cssText = 'width:28px;height:28px;border-radius:50%;background:#ff5a3c;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.3)';
+          new mapboxgl.Marker({ element: el }).setLngLat([order.restaurants.lng, order.restaurants.lat]).addTo(trackingMap);
+          bounds.extend([order.restaurants.lng, order.restaurants.lat]);
+          hasBounds = true;
+        }
+        if (hasBounds) trackingMap.fitBounds(bounds, { padding: 60, maxZoom: 16 });
 
-      if (window.DEMO_MODE) startDemoDriverSimulation(order);
+        const driverId = order.driver_id || (window.DEMO_MODE ? 'demo-driver' : null);
+        if (driverId) {
+          const { data: driverRow } = await sb.from('drivers').select('current_lat,current_lng').eq('id', driverId).maybeSingle();
+          if (driverRow?.current_lat) {
+            placeDriverOnMap(driverRow.current_lat, driverRow.current_lng, order);
+          }
+        }
+
+        if (window.DEMO_MODE) startDemoDriverSimulation(order);
+      });
     }
 
     async function fetchRoadRoute(fromLat, fromLng, toLat, toLng) {
+      if (_routeFetching) return { coords: [[fromLng, fromLat], [toLng, toLat]], durationMins: null };
+      if (_cachedRoute && _cacheFromLat != null && haversineKm(_cacheFromLat, _cacheFromLng, fromLat, fromLng) < 0.05) {
+        return _cachedRoute;
+      }
+      _routeFetching = true;
       try {
         const url = `https://router.project-osrm.org/route/v1/driving/${fromLng},${fromLat};${toLng},${toLat}?overview=full&geometries=geojson`;
         const res = await fetch(url);
         const data = await res.json();
         const route = data.routes?.[0];
         if (route?.geometry?.coordinates?.length > 1) {
-          return {
-            coords: route.geometry.coordinates.map(([lng, lat]) => [lat, lng]),
-            durationMins: Math.round(route.duration / 60),
-          };
+          const coords = route.geometry.coordinates; // [lng, lat] arrays — Mapbox-native
+          const durationMins = Math.round(route.duration / 60);
+          _cachedRoute = { coords, durationMins };
+          _cacheFromLat = fromLat; _cacheFromLng = fromLng;
+          return _cachedRoute;
         }
-      } catch (_) {}
-      return { coords: [[fromLat, fromLng], [toLat, toLng]], durationMins: null };
+        return { coords: [[fromLng, fromLat], [toLng, toLat]], durationMins: null };
+      } catch (_) {
+        return { coords: [[fromLng, fromLat], [toLng, toLat]], durationMins: null };
+      } finally {
+        _routeFetching = false;
+      }
     }
 
     function setETA(durationMins) {
@@ -1465,32 +1504,48 @@
       el.textContent = `Arrives ${fmt(arrival)} – ${fmt(late)}`;
     }
 
-    function placeDriverOnMap(lat, lng, order, icon, precomputedRoute) {
-      const latlng = [lat, lng];
-      if (!trackingMarker) {
-        trackingMarker = L.marker(latlng, { icon: icon || BIKE_ICON, zIndexOffset: 1000 }).addTo(trackingMap).bindPopup('Your driver');
+    function drawRouteOnMap(coords) {
+      if (!trackingMap || !trackingMap.isStyleLoaded()) return;
+      const geojson = { type: 'Feature', geometry: { type: 'LineString', coordinates: coords } };
+      if (routeLine) {
+        trackingMap.getSource('route').setData(geojson);
       } else {
-        trackingMarker.setLatLng(latlng);
-        if (icon) trackingMarker.setIcon(icon);
+        trackingMap.addSource('route', { type: 'geojson', data: geojson });
+        trackingMap.addLayer({ id: 'route-line', type: 'line', source: 'route', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': '#ff5a3c', 'line-width': 5, 'line-opacity': 0.9 } });
+        routeLine = true;
+      }
+    }
+
+    function placeDriverOnMap(lat, lng, order, iconType, precomputedRoute) {
+      if (!trackingMap) return;
+      const lngLat = [lng, lat];
+
+      if (!trackingMarker) {
+        trackingMarker = new mapboxgl.Marker({ element: makeMapboxDriverEl(iconType || 'bike') }).setLngLat(lngLat).addTo(trackingMap);
+      } else {
+        trackingMarker.setLngLat(lngLat);
+        if (iconType) {
+          const colors = { car: '#ff5722', bike: '#1565c0', walk: '#2e7d32' };
+          const el = trackingMarker.getElement();
+          if (el) el.style.background = colors[iconType] || colors.bike;
+        }
       }
 
       if (precomputedRoute) {
-        if (!routeLine) {
-          routeLine = L.polyline(precomputedRoute, { color: '#ff5a3c', weight: 5, opacity: 0.9 }).addTo(trackingMap);
-        }
-        trackingMap.panTo(latlng, { animate: true, duration: 0.8 });
+        drawRouteOnMap(precomputedRoute);
+        trackingMap.panTo(lngLat);
         return;
       }
 
-      if (!order?.delivery_lat) { trackingMap.panTo(latlng); return; }
+      if (!order?.delivery_lat) { trackingMap.panTo(lngLat); return; }
       fetchRoadRoute(lat, lng, order.delivery_lat, order.delivery_lng).then(({ coords, durationMins }) => {
         if (!trackingMap) return;
-        if (!routeLine) {
-          routeLine = L.polyline(coords, { color: '#ff5a3c', weight: 5, opacity: 0.9 }).addTo(trackingMap);
-        } else {
-          routeLine.setLatLngs(coords);
+        drawRouteOnMap(coords);
+        if (coords.length > 1) {
+          const b = new mapboxgl.LngLatBounds();
+          coords.forEach(c => b.extend(c));
+          trackingMap.fitBounds(b, { padding: 60 });
         }
-        if (coords.length > 1) trackingMap.fitBounds(coords, { padding: [60, 60] });
         setETA(durationMins);
       });
     }
@@ -1567,9 +1622,12 @@
       setETA(durationMins);
 
       // Draw the full route on the map immediately
-      if (routeLine) { routeLine.remove(); routeLine = null; }
-      routeLine = L.polyline(routeCoords, { color: '#ff5a3c', weight: 5, opacity: 0.9 }).addTo(trackingMap);
-      if (routeCoords.length > 1) trackingMap.fitBounds(routeCoords, { padding: [60, 60] });
+      drawRouteOnMap(routeCoords);
+      if (routeCoords.length > 1) {
+        const b = new mapboxgl.LngLatBounds();
+        routeCoords.forEach(c => b.extend(c));
+        trackingMap.fitBounds(b, { padding: 60 });
+      }
 
       const total = routeCoords.length;
       let step = 0;
@@ -1586,22 +1644,22 @@
           return;
         }
 
-        const [lat, lng] = routeCoords[step];
+        const [cLng, cLat] = routeCoords[step]; // OSRM returns [lng, lat]
         const progress = step / total;
 
         // Phase labels based on progress through route
-        let icon, emoji, text;
-        if (progress < 0.08)      { icon = WALK_ICON; emoji = '🚶'; text = 'Driver is collecting your order'; }
-        else if (progress < 0.88) { icon = BIKE_ICON; emoji = '🚲'; text = 'Driver is cycling to you'; }
-        else                       { icon = WALK_ICON; emoji = '🚶'; text = 'Driver is almost at your door'; }
+        let iconType, emoji, text;
+        if (progress < 0.08)      { iconType = 'walk'; emoji = '🚶'; text = 'Driver is collecting your order'; }
+        else if (progress < 0.88) { iconType = 'bike'; emoji = '🚲'; text = 'Driver is cycling to you'; }
+        else                       { iconType = 'walk'; emoji = '🚶'; text = 'Driver is almost at your door'; }
 
         // Update driver position in shared demo store
         const store = JSON.parse(localStorage.getItem('extro_demo_store_v1') || '{}');
         const d = (store.drivers || []).find(d => d.id === 'demo-driver');
-        if (d) { d.current_lat = lat; d.current_lng = lng; d.updated_at = new Date().toISOString(); }
+        if (d) { d.current_lat = cLat; d.current_lng = cLng; d.updated_at = new Date().toISOString(); }
         localStorage.setItem('extro_demo_store_v1', JSON.stringify(store));
 
-        placeDriverOnMap(lat, lng, order, icon, routeCoords);
+        placeDriverOnMap(cLat, cLng, order, iconType, routeCoords);
         setDriverStatusLabel(emoji, text);
         step++;
       }
