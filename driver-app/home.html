@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 </head>
 <style>
   .onboard-header { padding:18px 20px 0; display:flex; align-items:center; justify-content:space-between; }
@@ -176,7 +177,7 @@
       <div class="earn-div"></div>
       <div class="earn-item">
         <span class="earn-label">Rating</span>
-        <span class="earn-value">⭐ 4.9</span>
+        <span class="earn-value" id="earn-rating">—</span>
       </div>
     </div>
   </div>
@@ -320,6 +321,23 @@
   </div>
 </div>
 
+<!-- ── QR Scanner modal ───────────────────────────────────────── -->
+<div id="qr-scanner-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:500;flex-direction:column;align-items:center;justify-content:center;padding:24px">
+  <div style="width:100%;max-width:360px;text-align:center">
+    <h3 style="color:#fff;font-size:1.1rem;font-weight:800;margin:0 0 8px">Scan delivery QR code</h3>
+    <p style="color:#9ca3af;font-size:0.83rem;margin:0 0 16px">Point camera at the customer's QR code to confirm delivery</p>
+    <div style="position:relative;width:100%;border-radius:16px;overflow:hidden;background:#000">
+      <video id="qr-video" style="width:100%;display:block" playsinline></video>
+      <canvas id="qr-canvas" style="display:none"></canvas>
+      <div style="position:absolute;inset:0;pointer-events:none;display:flex;align-items:center;justify-content:center">
+        <div style="width:200px;height:200px;border:3px solid #ff5a3c;border-radius:16px;box-shadow:0 0 0 9999px rgba(0,0,0,0.45)"></div>
+      </div>
+    </div>
+    <p id="qr-status" style="color:#facc15;font-size:0.85rem;margin:14px 0 0;min-height:1.2em">Initialising camera…</p>
+    <button class="btn btn-outline" style="margin-top:16px;width:100%;color:#fff;border-color:#4b5563" onclick="closeQRScanner()">Cancel</button>
+  </div>
+</div>
+
 <script src="js/demo-mock.js?v=3"></script>
 <script src="js/supabase-client.js"></script>
 <script src="js/auth.js"></script>
@@ -394,16 +412,20 @@
   // ── Earnings (header strip) ────────────────────────────────────
   async function loadEarnings() {
     const today = new Date(); today.setHours(0, 0, 0, 0);
-    const { data } = await sb.from('orders').select('delivery_fee,created_at').eq('driver_id', profile.id).eq('status', 'delivered');
+    const { data } = await sb.from('orders').select('delivery_fee,created_at,driver_rating').eq('driver_id', profile.id).eq('status', 'delivered');
     const todayOrders = (data || []).filter(o => new Date(o.created_at) >= today);
     todayEarnings = todayOrders.reduce((s, o) => s + (Number(o.delivery_fee) || 0), 0);
     todayCount = todayOrders.length;
-    renderEarnings();
+    const rated = (data || []).filter(o => o.driver_rating != null);
+    const avgRating = rated.length ? (rated.reduce((s, o) => s + o.driver_rating, 0) / rated.length) : null;
+    renderEarnings(avgRating);
   }
 
-  function renderEarnings() {
+  function renderEarnings(avgRating) {
     document.getElementById('earn-today').textContent = `R${todayEarnings.toFixed(0)}`;
     document.getElementById('earn-count').textContent = todayCount;
+    const ratingEl = document.getElementById('earn-rating');
+    if (ratingEl) ratingEl.textContent = avgRating != null ? `⭐ ${avgRating.toFixed(1)}` : '—';
   }
 
   // ── Wallet tab ─────────────────────────────────────────────────
@@ -834,6 +856,14 @@
   }
 
   async function advanceOrder() {
+    if (activeOrder.status === 'picked_up') {
+      openQRScanner();
+    } else {
+      await doAdvanceOrder();
+    }
+  }
+
+  async function doAdvanceOrder() {
     const next = NEXT_STATUS[activeOrder.status];
     await sb.from('orders').update({ status: next, updated_at: new Date().toISOString() }).eq('id', activeOrder.id);
     sb.functions.invoke('order-notify', { body: { order_id: activeOrder.id } }).catch(() => {});
@@ -852,6 +882,67 @@
     } else {
       renderActiveOrder();
     }
+  }
+
+  // ── QR Scanner ─────────────────────────────────────────────────
+  let qrStream = null;
+  let qrRafId = null;
+
+  function openQRScanner() {
+    document.getElementById('qr-scanner-modal').style.display = 'flex';
+    document.getElementById('qr-status').textContent = 'Initialising camera…';
+    const video = document.getElementById('qr-video');
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+      .then(stream => {
+        qrStream = stream;
+        video.srcObject = stream;
+        video.play();
+        video.addEventListener('loadedmetadata', startQRScan, { once: true });
+        document.getElementById('qr-status').textContent = 'Scanning…';
+      })
+      .catch(() => {
+        document.getElementById('qr-status').textContent = 'Camera access denied. Please allow camera and try again.';
+      });
+  }
+
+  function startQRScan() {
+    const video = document.getElementById('qr-video');
+    const canvas = document.getElementById('qr-canvas');
+    const ctx = canvas.getContext('2d');
+
+    function tick() {
+      if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(imgData.data, imgData.width, imgData.height, { inversionAttempts: 'dontInvert' });
+        if (code) {
+          handleQRScan(code.data);
+          return;
+        }
+      }
+      qrRafId = requestAnimationFrame(tick);
+    }
+    qrRafId = requestAnimationFrame(tick);
+  }
+
+  function handleQRScan(value) {
+    const expected = `extro:${activeOrder.id}`;
+    if (value === expected) {
+      closeQRScanner();
+      doAdvanceOrder();
+    } else {
+      document.getElementById('qr-status').textContent = 'Wrong QR code — scan the customer\'s code for this order.';
+      qrRafId = requestAnimationFrame(() => startQRScan());
+    }
+  }
+
+  function closeQRScanner() {
+    if (qrRafId) { cancelAnimationFrame(qrRafId); qrRafId = null; }
+    if (qrStream) { qrStream.getTracks().forEach(t => t.stop()); qrStream = null; }
+    document.getElementById('qr-video').srcObject = null;
+    document.getElementById('qr-scanner-modal').style.display = 'none';
   }
 
   // ── Map ────────────────────────────────────────────────────────

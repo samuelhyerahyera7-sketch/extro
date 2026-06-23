@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 </head>
 <body>
   <div class="app-shell">
@@ -361,7 +362,7 @@
     </div>
     <div style="display:flex;align-items:center;gap:5px;padding:2px 18px 12px;color:var(--success);font-size:0.8rem;font-weight:600;border-bottom:1px solid var(--border)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-      Delivery in ~30 minutes
+      Delivery time varies by restaurant
     </div>
     <div class="cart-body" id="cart-body"></div>
     <div class="cart-footer">
@@ -387,6 +388,21 @@
       </div>
       <button class="btn btn-primary btn-block" id="checkout-btn" style="border-radius:100px;height:52px;font-size:1rem">Go to checkout</button>
       <p class="error-msg" id="checkout-error"></p>
+    </div>
+  </div>
+
+  <!-- ── Driver rating modal ─────────────────────────────────── -->
+  <div id="rating-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:700;align-items:flex-end;justify-content:center">
+    <div style="background:var(--card);border-radius:22px 22px 0 0;padding:28px 24px 40px;width:100%;max-width:480px;text-align:center">
+      <div style="font-size:2.5rem;margin-bottom:10px">🎉</div>
+      <h3 style="font-size:1.15rem;font-weight:800;margin:0 0 6px">Order delivered!</h3>
+      <p style="color:var(--muted);font-size:0.88rem;margin:0 0 22px">How was your driver?</p>
+      <div id="rating-stars" style="display:flex;justify-content:center;gap:10px;margin-bottom:20px">
+        ${[1,2,3,4,5].map(n => `<button data-star="${n}" onclick="setRatingStar(${n})" style="font-size:2rem;background:none;border:none;cursor:pointer;transition:transform 0.15s;opacity:0.35">★</button>`).join('')}
+      </div>
+      <p id="rating-error" style="color:var(--danger,#e11d48);font-size:0.8rem;min-height:1em;margin:0 0 12px"></p>
+      <button class="btn btn-primary btn-block" id="rating-submit-btn" style="border-radius:100px;height:50px;font-size:1rem">Submit rating</button>
+      <button class="btn btn-outline btn-block" onclick="closeRatingModal()" style="margin-top:8px;border-radius:100px">Skip</button>
     </div>
   </div>
 
@@ -421,10 +437,12 @@
     function money(n) { return `R${Number(n).toFixed(2)}`; }
     function deliveryFee() { return DELIVERY_FEE; }
 
-    function seedNum(id, min, max) {
-      let hash = 0;
-      for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
-      return min + (hash % (max - min + 1));
+    function haversineKm(lat1, lng1, lat2, lng2) {
+      const R = 6371;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLng = (lng2 - lng1) * Math.PI / 180;
+      const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 
     const ALL_VIEWS = ['view-profile-complete', 'view-address-setup', 'view-restaurants', 'view-menu', 'view-orders', 'view-account'];
@@ -667,24 +685,27 @@
       });
 
       grid.innerHTML = filtered.map(r => {
-        const rating = r.rating ?? (seedNum(r.id, 38, 49) / 10);
-        const time = r.delivery_time || `${seedNum(r.id, 20, 40)}–${seedNum(r.id, 35, 55)} min`;
-        const dist = r.distance != null ? r.distance.toFixed(1) : (seedNum(r.id, 8, 35) / 10).toFixed(1);
+        const ratingStr = r.rating != null ? `★ ${Number(r.rating).toFixed(1)}` : null;
+        const timeStr = r.prep_time_minutes ? `~${r.prep_time_minutes} min` : (r.delivery_time || null);
+        const distKm = (r.lat && r.lng && currentAddress?.lat && currentAddress?.lng)
+          ? haversineKm(currentAddress.lat, currentAddress.lng, r.lat, r.lng).toFixed(1) + ' km'
+          : null;
         const bg = cardGradient(r.category);
         const closed = !r.is_open;
+        const metaParts = [r.category || 'Restaurant', distKm].filter(Boolean);
         return `
         <div class="rc ${closed ? 'rc-closed' : ''}" data-id="${r.id}">
           <div class="rc-img" style="background:${bg}">
             ${r.photo_url ? `<img src="${r.photo_url}" alt="${r.name}" loading="lazy">` : `<span class="rc-emoji">${catEmoji(r.category)}</span>`}
             <div class="rc-img-badges">
-              <span class="rc-badge-rating">★ ${Number(rating).toFixed(1)}</span>
-              ${closed ? '<span class="rc-badge-time" style="bottom:8px;right:8px;background:rgba(0,0,0,0.55);color:#fff">Closed</span>' : `<span class="rc-badge-time">${time}</span>`}
+              ${ratingStr ? `<span class="rc-badge-rating">${ratingStr}</span>` : ''}
+              ${closed ? '<span class="rc-badge-time" style="bottom:8px;right:8px;background:rgba(0,0,0,0.55);color:#fff">Closed</span>' : (timeStr ? `<span class="rc-badge-time">${timeStr}</span>` : '')}
             </div>
             <button class="rc-heart" onclick="event.stopPropagation()">♡</button>
           </div>
           <div class="rc-body">
             <p class="rc-name">${r.name}</p>
-            <p class="rc-meta">${r.category || 'Restaurant'} · ${dist} km</p>
+            <p class="rc-meta">${metaParts.join(' · ')}</p>
           </div>
         </div>`;
       }).join('') || `<div class="empty-state" style="padding:20px">No restaurants match.</div>`;
@@ -1166,7 +1187,13 @@
         const badge = list.querySelector('.badge');
         if (badge) { badge.className = `badge badge-${order.status}`; badge.textContent = order.status.replace('_', ' '); }
         list.querySelectorAll('.status-step').forEach((el, i) => el.classList.toggle('active', i <= idx));
-        if (order.status === 'delivered') setDriverStatusLabel('✅', 'Order delivered!');
+        if (order.status === 'delivered') {
+          setDriverStatusLabel('✅', 'Order delivered!');
+          hideQRBlock();
+          openRatingModal(order.id, order.driver_id);
+        } else if (order.status === 'picked_up') {
+          showQRBlock(order.id);
+        }
         return;
       }
 
@@ -1182,6 +1209,10 @@
           <div class="status-track">
             ${steps.map((s, i) => `<div class="status-step ${i <= idx ? 'active' : ''}">${s.replace('_', ' ')}</div>`).join('')}
           </div>
+          <div id="qr-block" style="display:${order.status === 'picked_up' ? 'block' : 'none'};text-align:center;padding:16px 0 8px">
+            <p style="font-size:0.82rem;color:var(--muted);margin:0 0 10px">Show this QR code to your driver to confirm delivery</p>
+            <canvas id="order-qr-canvas" style="border-radius:12px"></canvas>
+          </div>
           ${showDriver ? `
           <div id="driver-status-label" style="display:flex;align-items:center;gap:8px;margin-top:14px;padding:10px 14px;background:var(--bg);border-radius:10px;font-size:0.82rem;font-weight:600;color:var(--ink)">
             <span id="driver-status-icon" style="font-size:1.1rem">🚲</span>
@@ -1189,6 +1220,8 @@
           </div>
           <div id="tracking-map" style="height:260px;border-radius:12px;margin-top:8px;overflow:hidden"></div>` : ''}
         </div>`;
+
+      if (order.status === 'picked_up') showQRBlock(order.id);
 
       if (showDriver) initTrackingMap(order);
     }
@@ -1300,6 +1333,58 @@
       if (iconEl) iconEl.textContent = icon;
       if (textEl) textEl.textContent = text;
     }
+
+    function showQRBlock(orderId) {
+      const block = document.getElementById('qr-block');
+      const canvas = document.getElementById('order-qr-canvas');
+      if (!block || !canvas) return;
+      block.style.display = 'block';
+      if (typeof QRCode !== 'undefined') {
+        QRCode.toCanvas(canvas, `extro:${orderId}`, { width: 180, margin: 2 }, () => {});
+      }
+    }
+
+    function hideQRBlock() {
+      const block = document.getElementById('qr-block');
+      if (block) block.style.display = 'none';
+    }
+
+    // ── Rating modal ───────────────────────────────────────────
+    let _ratingOrderId = null;
+    let _ratingDriverId = null;
+    let _selectedStar = 0;
+
+    function openRatingModal(orderId, driverId) {
+      if (!driverId) return;
+      _ratingOrderId = orderId;
+      _ratingDriverId = driverId;
+      _selectedStar = 0;
+      document.querySelectorAll('#rating-stars button').forEach(b => b.style.opacity = '0.35');
+      document.getElementById('rating-error').textContent = '';
+      document.getElementById('rating-modal').style.display = 'flex';
+    }
+
+    function closeRatingModal() {
+      document.getElementById('rating-modal').style.display = 'none';
+      _ratingOrderId = null; _ratingDriverId = null; _selectedStar = 0;
+    }
+
+    function setRatingStar(n) {
+      _selectedStar = n;
+      document.querySelectorAll('#rating-stars button').forEach(b => {
+        b.style.opacity = parseInt(b.dataset.star) <= n ? '1' : '0.35';
+        b.style.transform = parseInt(b.dataset.star) === n ? 'scale(1.2)' : 'scale(1)';
+      });
+    }
+
+    document.getElementById('rating-submit-btn').addEventListener('click', async () => {
+      if (!_selectedStar) { document.getElementById('rating-error').textContent = 'Please select a star rating.'; return; }
+      const btn = document.getElementById('rating-submit-btn');
+      btn.disabled = true; btn.textContent = 'Saving…';
+      await sb.from('orders').update({ driver_rating: _selectedStar }).eq('id', _ratingOrderId);
+      btn.disabled = false; btn.textContent = 'Submit rating';
+      closeRatingModal();
+    });
 
     async function startDemoDriverSimulation(order) {
       if (window._demoSimInterval) { clearInterval(window._demoSimInterval); window._demoSimInterval = null; }
