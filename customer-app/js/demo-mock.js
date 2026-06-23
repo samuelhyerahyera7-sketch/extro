@@ -15,53 +15,320 @@
     avatar_url: null,
   };
 
-  const STORE_KEY = 'extro_demo_store_v1';
+  const STORE_KEY = 'extro_demo_store_v2';
   function seed() {
     const t = new Date().toISOString();
     return {
       restaurants: [
-        { id: 'r1', owner_id: 'demo-restaurant', name: "Mama's Kitchen",  category: 'Home-style',  address: '12 Oak St, Pretoria',         lat: -25.746, lng: 28.188, is_open: true,  rating: 4.8, delivery_time: '25–40 min', distance: 1.2, photo_url: 'https://images.unsplash.com/photo-1547592180-85f173990554?w=400&h=240&fit=crop', created_at: t },
-        { id: 'r2', owner_id: 'demo-r2',        name: 'Burger Republic',  category: 'Burgers',     address: '5 Church St, Centurion',      lat: -25.861, lng: 28.189, is_open: true,  rating: 4.5, delivery_time: '20–35 min', distance: 2.4, photo_url: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&h=240&fit=crop', created_at: t },
-        { id: 'r3', owner_id: 'demo-r3',        name: 'Pizza Palace',     category: 'Pizza',       address: '88 Boom St, Pretoria CBD',    lat: -25.754, lng: 28.191, is_open: true,  rating: 4.3, delivery_time: '30–45 min', distance: 3.1, photo_url: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&h=240&fit=crop', created_at: t },
-        { id: 'r4', owner_id: 'demo-r4',        name: 'Sushi Express',    category: 'Sushi',       address: '22 Waterkloof Rd, Pretoria',  lat: -25.779, lng: 28.233, is_open: true,  rating: 4.7, delivery_time: '35–50 min', distance: 4.8, photo_url: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=400&h=240&fit=crop', created_at: t },
-        { id: 'r5', owner_id: 'demo-r5',        name: 'Kota Corner',      category: 'Street Food', address: '3 Vilakazi St, Soweto',       lat: -25.797, lng: 28.121, is_open: true,  rating: 4.9, delivery_time: '15–25 min', distance: 0.8, photo_url: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&h=240&fit=crop', created_at: t },
-        { id: 'r6', owner_id: 'demo-r6',        name: 'Green Bowl',       category: 'Healthy',     address: '17 Menlyn Park, Pretoria East',lat: -25.782, lng: 28.277, is_open: false, rating: 4.4, delivery_time: '30–45 min', distance: 5.3, photo_url: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400&h=240&fit=crop', created_at: t },
+        {
+          id: 'r1', owner_id: 'demo-r1',
+          name: "Sam's Cafe",
+          category: 'Burgers',
+          address: 'Shop 42, Mall @ Reds, Wierdapark, Centurion',
+          lat: -25.8742, lng: 28.1889,
+          is_open: true, rating: 4.6,
+          delivery_time: '35–50 min', distance: 13.6,
+          photo_url: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&h=240&fit=crop',
+          created_at: t,
+        },
+        {
+          id: 'r2', owner_id: 'demo-r2',
+          name: "Leo's Cafe",
+          category: 'Pizza',
+          address: 'Shop 114, Centurion Mall, Centurion Drive, Centurion',
+          lat: -25.8651, lng: 28.1899,
+          is_open: true, rating: 4.4,
+          delivery_time: '40–55 min', distance: 12.7,
+          photo_url: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400&h=240&fit=crop',
+          created_at: t,
+        },
+        {
+          id: 'r3', owner_id: 'demo-r3',
+          name: 'Hyera Supermarket',
+          category: 'Groceries',
+          address: 'Castlegate Shopping Centre, John Vorster Drive, Centurion',
+          lat: -25.8557, lng: 28.1618,
+          is_open: true, rating: 4.5,
+          delivery_time: '45–60 min', distance: 11.6,
+          photo_url: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&h=240&fit=crop',
+          created_at: t,
+        },
       ],
       menu_items: [
-        // Mama's Kitchen
-        { id: 'm1',  restaurant_id: 'r1', name: 'Pap & Wors',           description: 'Traditional maize pap with grilled boerewors and chakalaka',    price: 75,  available: true, photo_url: 'https://images.unsplash.com/photo-1574484284002-952d92456975?w=320&h=200&fit=crop', created_at: t },
-        { id: 'm2',  restaurant_id: 'r1', name: 'Chicken Stew & Rice',  description: 'Slow-cooked chicken in rich tomato and onion gravy',             price: 85,  available: true, photo_url: 'https://images.unsplash.com/photo-1600891964092-4316c288032e?w=320&h=200&fit=crop', created_at: t },
-        { id: 'm3',  restaurant_id: 'r1', name: 'Vetkoek & Mince',      description: 'Deep-fried dough filled with spiced beef mince',                 price: 55,  available: true, photo_url: 'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=320&h=200&fit=crop', created_at: t },
-        { id: 'm4',  restaurant_id: 'r1', name: 'Samp & Beans',         description: 'Slow-cooked samp with sugar beans and smoked pork',              price: 65,  available: true, photo_url: 'https://images.unsplash.com/photo-1585325701956-60dd9c8553bc?w=320&h=200&fit=crop', created_at: t },
-        // Burger Republic
-        { id: 'm5',  restaurant_id: 'r2', name: 'Classic Smash Burger', description: 'Double smash patty, American cheese, pickles, special sauce',    price: 115, available: true, photo_url: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=320&h=200&fit=crop', created_at: t, extras: [{ name: 'Extra cheese', price: 15 }, { name: 'Streaky bacon', price: 20 }, { name: 'Avocado', price: 18 }, { name: 'Jalapeños', price: 10 }] },
-        { id: 'm6',  restaurant_id: 'r2', name: 'BBQ Bacon Stack',      description: 'Triple patty, streaky bacon, BBQ sauce, crispy onion rings',     price: 145, available: true, photo_url: 'https://images.unsplash.com/photo-1553979459-d2229ba7433b?w=320&h=200&fit=crop', created_at: t, extras: [{ name: 'Extra patty', price: 35 }, { name: 'Extra cheese', price: 15 }, { name: 'Caramelised onions', price: 12 }] },
-        { id: 'm7',  restaurant_id: 'r2', name: 'Loaded Cheese Fries',  description: 'Golden fries smothered in cheese sauce, jalapeños, spring onion', price: 65, available: true, photo_url: 'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=320&h=200&fit=crop', created_at: t, extras: [{ name: 'Bacon bits', price: 20 }, { name: 'Extra cheese sauce', price: 12 }] },
-        { id: 'm8',  restaurant_id: 'r2', name: 'Chicken Burger',       description: 'Crispy fried chicken, coleslaw, chipotle mayo, brioche bun',     price: 105, available: true, photo_url: 'https://images.unsplash.com/photo-1606755962773-d324e0a13086?w=320&h=200&fit=crop', created_at: t, extras: [{ name: 'Extra chicken patty', price: 40 }, { name: 'Avocado', price: 18 }, { name: 'Jalapeños', price: 10 }] },
-        // Pizza Palace
-        { id: 'm9',  restaurant_id: 'r3', name: 'Margherita',           description: 'San Marzano tomato, buffalo mozzarella, fresh basil, EVOO',      price: 95,  available: true, photo_url: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=320&h=200&fit=crop', created_at: t, extras: [{ name: 'Extra mozzarella', price: 20 }, { name: 'Add pepperoni', price: 25 }, { name: 'Add mushrooms', price: 15 }, { name: 'Chilli flakes', price: 5 }] },
-        { id: 'm10', restaurant_id: 'r3', name: 'Pepperoni Feast',      description: 'Double pepperoni, mozzarella, chilli flakes, tomato base',       price: 120, available: true, photo_url: 'https://images.unsplash.com/photo-1628840042765-356cda07504e?w=320&h=200&fit=crop', created_at: t, extras: [{ name: 'Extra pepperoni', price: 25 }, { name: 'Extra cheese', price: 20 }, { name: 'BBQ drizzle', price: 10 }] },
-        { id: 'm11', restaurant_id: 'r3', name: 'BBQ Chicken Pizza',    description: 'Pulled chicken, BBQ sauce, red onion, mozzarella',               price: 125, available: true, photo_url: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=320&h=200&fit=crop', created_at: t, extras: [{ name: 'Extra chicken', price: 30 }, { name: 'Add pineapple', price: 10 }, { name: 'Extra BBQ sauce', price: 8 }] },
-        // Sushi Express
-        { id: 'm12', restaurant_id: 'r4', name: 'Spicy Tuna Roll (8pc)',description: 'Fresh tuna, sriracha mayo, cucumber, sesame seeds',              price: 135, available: true, photo_url: 'https://images.unsplash.com/photo-1559410545-0bdcd187e0a6?w=320&h=200&fit=crop', created_at: t },
-        { id: 'm13', restaurant_id: 'r4', name: 'Salmon Nigiri (6pc)', description: 'Premium Atlantic salmon on hand-pressed sushi rice',              price: 145, available: true, photo_url: 'https://images.unsplash.com/photo-1611143669185-af224c5e3252?w=320&h=200&fit=crop', created_at: t },
-        { id: 'm14', restaurant_id: 'r4', name: 'Prawn Tempura Roll',  description: 'Crispy tempura prawn, avo, cucumber, unagi sauce',               price: 155, available: true, photo_url: 'https://images.unsplash.com/photo-1617196034183-421b4040ed20?w=320&h=200&fit=crop', created_at: t },
-        // Kota Corner
-        { id: 'm15', restaurant_id: 'r5', name: 'Original Kota',       description: 'Quarter loaf, polony, cheese, atchar, egg and chips',             price: 45,  available: true, photo_url: 'https://images.unsplash.com/photo-1604908550534-e6e4d3effd70?w=320&h=200&fit=crop', created_at: t },
-        { id: 'm16', restaurant_id: 'r5', name: 'Kota Special',        description: 'Quarter loaf, steak, cheese, fried egg, atchar, slap chips',     price: 75,  available: true, photo_url: 'https://images.unsplash.com/photo-1553979459-d2229ba7433b?w=320&h=200&fit=crop', created_at: t },
-        { id: 'm17', restaurant_id: 'r5', name: 'Bunny Chow',          description: 'Half loaf filled with spicy Durban-style chicken curry',          price: 85,  available: true, photo_url: 'https://images.unsplash.com/photo-1574484284002-952d92456975?w=320&h=200&fit=crop', created_at: t },
-        // Green Bowl
-        { id: 'm18', restaurant_id: 'r6', name: 'Açaí Power Bowl',     description: 'Açaí base, banana, granola, berries, honey drizzle',             price: 95,  available: true, photo_url: 'https://images.unsplash.com/photo-1590301157890-4810ed352733?w=320&h=200&fit=crop', created_at: t },
-        { id: 'm19', restaurant_id: 'r6', name: 'Harvest Grain Bowl',  description: 'Quinoa, roasted veg, feta, hummus, tahini dressing',              price: 110, available: true, photo_url: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=320&h=200&fit=crop', created_at: t },
+        // ── Sam's Cafe (Burgers) ────────────────────────────────────────
+        {
+          id: 'm1', restaurant_id: 'r1',
+          name: 'Big Sam Burger',
+          description: 'Two beef patties, special sauce, lettuce, cheese, pickles and onion on a sesame bun',
+          price: 64.90, available: true,
+          photo_url: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=320&h=200&fit=crop',
+          created_at: t,
+          extras: [
+            { name: 'Extra patty', price: 20 },
+            { name: 'Extra cheese', price: 10 },
+            { name: 'Bacon', price: 18 },
+          ],
+        },
+        {
+          id: 'm2', restaurant_id: 'r1',
+          name: 'Sam\'s McChicken',
+          description: 'Crispy fried chicken fillet, mayonnaise and shredded lettuce on a toasted bun',
+          price: 54.90, available: true,
+          photo_url: 'https://images.unsplash.com/photo-1562802378-063ec186a863?w=320&h=200&fit=crop',
+          created_at: t,
+          extras: [
+            { name: 'Extra mayo', price: 5 },
+            { name: 'Add cheese', price: 10 },
+            { name: 'Jalapeños', price: 8 },
+          ],
+        },
+        {
+          id: 'm3', restaurant_id: 'r1',
+          name: 'Quarter Pounder',
+          description: 'A quarter-pound beef patty with onions, pickles, mustard, ketchup and cheese',
+          price: 74.90, available: true,
+          photo_url: 'https://images.unsplash.com/photo-1553979459-d2229ba7433b?w=320&h=200&fit=crop',
+          created_at: t,
+          extras: [
+            { name: 'Double patty', price: 30 },
+            { name: 'Extra cheese', price: 10 },
+            { name: 'Bacon', price: 18 },
+          ],
+        },
+        {
+          id: 'm4', restaurant_id: 'r1',
+          name: 'Chicken McNuggets (10pc)',
+          description: 'Crispy golden chicken nuggets. Choose your dipping sauce: BBQ, Sweet & Sour or Tomato',
+          price: 64.90, available: true,
+          photo_url: 'https://images.unsplash.com/photo-1598679253544-2c97992403ea?w=320&h=200&fit=crop',
+          created_at: t,
+          extras: [
+            { name: 'Extra dipping sauce', price: 6 },
+          ],
+        },
+        {
+          id: 'm5', restaurant_id: 'r1',
+          name: 'Large Fries',
+          description: 'Golden crispy fries, lightly salted. A Sam\'s Cafe classic',
+          price: 34.90, available: true,
+          photo_url: 'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=320&h=200&fit=crop',
+          created_at: t,
+          extras: [
+            { name: 'Cheese sauce', price: 12 },
+            { name: 'Peri-peri spice', price: 4 },
+          ],
+        },
+        {
+          id: 'm6', restaurant_id: 'r1',
+          name: 'Strawberry Milkshake',
+          description: 'Thick and creamy milkshake made with real strawberry flavouring. Available in chocolate and vanilla too',
+          price: 44.90, available: true,
+          photo_url: 'https://images.unsplash.com/photo-1572490122747-3a3c4f9d9cda?w=320&h=200&fit=crop',
+          created_at: t,
+        },
+        {
+          id: 'm7', restaurant_id: 'r1',
+          name: 'Soft Serve Cone',
+          description: 'Classic creamy vanilla soft serve in a crispy waffle cone',
+          price: 18.90, available: true,
+          photo_url: 'https://images.unsplash.com/photo-1560008581-09826d1de69e?w=320&h=200&fit=crop',
+          created_at: t,
+        },
+        {
+          id: 'm8', restaurant_id: 'r1',
+          name: 'Apple Pie',
+          description: 'Warm baked pastry filled with cinnamon-spiced apple. A Sam\'s favourite since day one',
+          price: 22.90, available: true,
+          photo_url: 'https://images.unsplash.com/photo-1568624650859-7c1a7d2dfe2f?w=320&h=200&fit=crop',
+          created_at: t,
+        },
+
+        // ── Leo's Cafe (Pizza & Pasta) ──────────────────────────────────
+        {
+          id: 'm9', restaurant_id: 'r2',
+          name: 'Margherita (Medium)',
+          description: 'Classic tomato base, buffalo mozzarella and fresh basil on a thin, hand-stretched crust',
+          price: 109.90, available: true,
+          photo_url: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=320&h=200&fit=crop',
+          created_at: t,
+          extras: [
+            { name: 'Extra mozzarella', price: 20 },
+            { name: 'Add pepperoni', price: 25 },
+            { name: 'Add mushrooms', price: 15 },
+            { name: 'Chilli oil drizzle', price: 8 },
+          ],
+        },
+        {
+          id: 'm10', restaurant_id: 'r2',
+          name: 'Pepperoni Feast (Medium)',
+          description: 'Loaded with double pepperoni, mozzarella and a rich tomato base. A Leo\'s bestseller',
+          price: 129.90, available: true,
+          photo_url: 'https://images.unsplash.com/photo-1628840042765-356cda07504e?w=320&h=200&fit=crop',
+          created_at: t,
+          extras: [
+            { name: 'Extra pepperoni', price: 25 },
+            { name: 'Extra cheese', price: 20 },
+            { name: 'BBQ drizzle', price: 10 },
+          ],
+        },
+        {
+          id: 'm11', restaurant_id: 'r2',
+          name: 'BBQ Chicken (Medium)',
+          description: 'Succulent chicken strips, red onion, mixed peppers, BBQ sauce and mozzarella',
+          price: 139.90, available: true,
+          photo_url: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=320&h=200&fit=crop',
+          created_at: t,
+          extras: [
+            { name: 'Extra chicken', price: 30 },
+            { name: 'Add pineapple', price: 10 },
+            { name: 'Extra BBQ sauce', price: 8 },
+          ],
+        },
+        {
+          id: 'm12', restaurant_id: 'r2',
+          name: 'Spaghetti Bolognese',
+          description: 'Al dente spaghetti in a slow-cooked beef and pork mince ragù, finished with parmesan',
+          price: 119.90, available: true,
+          photo_url: 'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=320&h=200&fit=crop',
+          created_at: t,
+          extras: [
+            { name: 'Extra parmesan', price: 12 },
+            { name: 'Garlic bread side', price: 39.90 },
+          ],
+        },
+        {
+          id: 'm13', restaurant_id: 'r2',
+          name: 'Penne Arrabiata',
+          description: 'Penne pasta in a spicy tomato, garlic and chilli sauce, topped with fresh herbs',
+          price: 109.90, available: true,
+          photo_url: 'https://images.unsplash.com/photo-1555949258-eb67b1ef0ceb?w=320&h=200&fit=crop',
+          created_at: t,
+          extras: [
+            { name: 'Add chicken', price: 35 },
+            { name: 'Add prawns', price: 55 },
+            { name: 'Extra parmesan', price: 12 },
+          ],
+        },
+        {
+          id: 'm14', restaurant_id: 'r2',
+          name: 'Beef Lasagna',
+          description: 'Layers of pasta sheets, rich beef ragù, béchamel and melted mozzarella, oven baked',
+          price: 139.90, available: true,
+          photo_url: 'https://images.unsplash.com/photo-1574894709920-11b28e7367e3?w=320&h=200&fit=crop',
+          created_at: t,
+          extras: [
+            { name: 'Side salad', price: 39.90 },
+            { name: 'Garlic bread side', price: 39.90 },
+          ],
+        },
+        {
+          id: 'm15', restaurant_id: 'r2',
+          name: 'Garlic Bread (4 slices)',
+          description: 'Toasted ciabatta slathered with herb butter and roasted garlic. Perfect to share',
+          price: 39.90, available: true,
+          photo_url: 'https://images.unsplash.com/photo-1573140247632-f8fd74997d5c?w=320&h=200&fit=crop',
+          created_at: t,
+          extras: [
+            { name: 'Add mozzarella', price: 20 },
+          ],
+        },
+
+        // ── Hyera Supermarket (Groceries) ───────────────────────────────
+        {
+          id: 'm16', restaurant_id: 'r3',
+          name: 'Full Cream Milk 2L',
+          description: 'Clover Fresh full cream pasteurised milk. Rich and creamy. Best before on pack',
+          price: 29.99, available: true,
+          photo_url: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=320&h=200&fit=crop',
+          created_at: t,
+        },
+        {
+          id: 'm17', restaurant_id: 'r3',
+          name: 'Albany Superior White Bread 700g',
+          description: 'Soft, sliced white bread. Great for sandwiches, toast and more. No preservatives',
+          price: 20.99, available: true,
+          photo_url: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=320&h=200&fit=crop',
+          created_at: t,
+        },
+        {
+          id: 'm18', restaurant_id: 'r3',
+          name: 'Free Range Eggs 6pk',
+          description: 'Farm-fresh, free range eggs. Grade A large. Rich golden yolks. Proudly South African',
+          price: 32.99, available: true,
+          photo_url: 'https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?w=320&h=200&fit=crop',
+          created_at: t,
+        },
+        {
+          id: 'm19', restaurant_id: 'r3',
+          name: 'Chicken Portions 1kg',
+          description: 'Fresh IQF chicken mixed portions. No added hormones. Reared on South African farms',
+          price: 84.99, available: true,
+          photo_url: 'https://images.unsplash.com/photo-1604503468506-a8da13d11560?w=320&h=200&fit=crop',
+          created_at: t,
+        },
+        {
+          id: 'm20', restaurant_id: 'r3',
+          name: 'Pink Lady Apples 1kg',
+          description: 'Crisp, sweet and tangy Pink Lady apples. Sourced from the Western Cape. Perfect snack',
+          price: 34.99, available: true,
+          photo_url: 'https://images.unsplash.com/photo-1568702846914-96b305d2aaeb?w=320&h=200&fit=crop',
+          created_at: t,
+        },
+        {
+          id: 'm21', restaurant_id: 'r3',
+          name: 'Clover Gouda Cheese 400g',
+          description: 'Mild and creamy Gouda-style sliced cheese. Perfect for sandwiches, melting and snacking',
+          price: 64.99, available: true,
+          photo_url: 'https://images.unsplash.com/photo-1486297678162-eb2a19b0a2d0?w=320&h=200&fit=crop',
+          created_at: t,
+        },
+        {
+          id: 'm22', restaurant_id: 'r3',
+          name: 'Tastic Parboiled Rice 2kg',
+          description: 'South Africa\'s favourite rice. Light, fluffy and never sticky. Every grain separate',
+          price: 44.99, available: true,
+          photo_url: 'https://images.unsplash.com/photo-1536304929831-ee1ca9d44906?w=320&h=200&fit=crop',
+          created_at: t,
+        },
+        {
+          id: 'm23', restaurant_id: 'r3',
+          name: 'Sunfoil Sunflower Oil 750ml',
+          description: 'Pure sunflower oil with light, clean taste. Suitable for frying, baking and dressing',
+          price: 44.99, available: true,
+          photo_url: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=320&h=200&fit=crop',
+          created_at: t,
+        },
+        {
+          id: 'm24', restaurant_id: 'r3',
+          name: 'Dannon Orange Juice 1.5L',
+          description: '100% pure squeezed orange juice. No added sugar, no concentrate. Chilled and fresh',
+          price: 34.99, available: true,
+          photo_url: 'https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?w=320&h=200&fit=crop',
+          created_at: t,
+        },
+        {
+          id: 'm25', restaurant_id: 'r3',
+          name: 'Simba Chips Assorted 100g',
+          description: 'South Africa\'s iconic crisps. Available in Original, BBQ, Salt & Vinegar and Cheese & Onion',
+          price: 19.99, available: true,
+          photo_url: 'https://images.unsplash.com/photo-1566478989037-eec170784d0b?w=320&h=200&fit=crop',
+          created_at: t,
+        },
+        {
+          id: 'm26', restaurant_id: 'r3',
+          name: 'Ricoffy Coffee 250g',
+          description: 'South Africa\'s number one coffee. Rich and smooth blend of coffee and chicory',
+          price: 54.99, available: true,
+          photo_url: 'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=320&h=200&fit=crop',
+          created_at: t,
+        },
       ],
       drivers: [
-        { id: 'demo-driver', vehicle_type: 'car', is_online: true, current_lat: -25.75, current_lng: 28.19, updated_at: t },
+        { id: 'demo-driver', vehicle_type: 'car', is_online: true, current_lat: -25.75, current_lng: 28.19, updated_at: new Date().toISOString() },
       ],
-      orders: [
-        { id: 'order-demo-1', customer_id: 'demo-customer', restaurant_id: 'r2', driver_id: 'demo-driver', status: 'picked_up', payment_status: 'paid', items: [{ name: 'Classic Smash Burger', price: 115, qty: 1 }, { name: 'Loaded Cheese Fries', price: 65, qty: 1 }], subtotal: 180, total: 205, delivery_fee: 25, delivery_address: '11 Flora Rd, Valhalla, Centurion', delivery_lat: -25.7512, delivery_lng: 28.1884, created_at: t },
-      ],
+      orders: [],
       addresses: [
-        { id: 'addr-demo', customer_id: 'demo-customer', street_address: '11 Flora Rd, Valhalla, Centurion', lat: -25.7512, lng: 28.1884, is_default: true, type: 'home', created_at: t },
+        { id: 'addr-demo', customer_id: 'demo-customer', street_address: '11 Flora Rd, Valhalla, Centurion', lat: -25.7512, lng: 28.1884, is_default: true, type: 'home', label: 'Home', created_at: t },
       ],
       subscriptions: [],
     };
@@ -129,7 +396,6 @@
           rows.push(row); return row;
         });
         saveStore(store);
-        // Simulate driver picking up the order after a short delay
         if (this.table === 'orders') {
           const orderId = inserted[0].id;
           setTimeout(() => {
