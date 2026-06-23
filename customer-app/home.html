@@ -643,7 +643,7 @@
 
       addrMap = new mapboxgl.Map({
         container: 'addr-map',
-        style: 'mapbox://styles/mapbox/streets-v12',
+        style: 'mapbox://styles/mapbox/navigation-day-v1',
         center: [addrLng, addrLat],
         zoom: 16,
         attributionControl: false,
@@ -1435,7 +1435,7 @@
 
       trackingMap = new mapboxgl.Map({
         container: 'tracking-map-full',
-        style: 'mapbox://styles/mapbox/streets-v12',
+        style: 'mapbox://styles/mapbox/navigation-day-v1',
         center: [order.delivery_lng || 28.19, order.delivery_lat || -25.75],
         zoom: 14,
         attributionControl: false,
