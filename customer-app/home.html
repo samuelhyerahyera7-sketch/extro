@@ -152,6 +152,7 @@
         <textarea id="addr-instructions" class="addr-instructions-box" rows="3" placeholder="e.g. Ring the bell after drop-off, leave next to the door, call upon arrival…&#10;&#10;Do not add order changes or requests here."></textarea>
 
         <button class="btn btn-primary btn-block" id="addr-save-btn" style="border-radius:100px;height:52px;font-size:1rem;margin-top:16px;font-weight:700">Save Address</button>
+        <p class="addr-save-error" id="addr-save-error"></p>
       </div>
     </div>
 
@@ -609,7 +610,18 @@
       if (!addrMap) initAddressMap();
     });
 
+    document.getElementById('adjust-pin-btn').addEventListener('click', () => {
+      if (!addrMap) return;
+      addrMap.flyTo({ center: addrMap.getCenter(), zoom: Math.max(addrMap.getZoom(), 17) });
+    });
+
     document.getElementById('addr-save-btn').addEventListener('click', async () => {
+      const btn = document.getElementById('addr-save-btn');
+      const errEl = document.getElementById('addr-save-error');
+      errEl.textContent = '';
+      const streetRaw = document.getElementById('addr-street').textContent.replace('Detecting location…', '').trim();
+      if (!streetRaw) { errEl.textContent = 'Move the map to pin your address first.'; return; }
+
       const houseNum = document.getElementById('addr-house-num').value.trim();
       const entryCode = document.getElementById('addr-entry-code').value.trim();
       const label = document.getElementById('addr-label').value.trim() || 'Home';
@@ -620,21 +632,36 @@
         entryCode ? `Entry code: ${entryCode}` : '',
         note,
       ].filter(Boolean).join(' • ');
-      const streetRaw = document.getElementById('addr-street').textContent.replace('Detecting location…', '').trim();
       const street = houseNum ? houseNum + ' ' + streetRaw.replace(/^\d+\s*/, '') : streetRaw;
 
-      const { data, error } = await sb.from('addresses').insert({
-        customer_id: profile.id, label, address_type: selectedAddrType,
-        street_address: street || streetRaw, house_number: houseNum,
-        delivery_instructions: instructions, lat: addrLat, lng: addrLng, is_default: true,
-      }).select().single();
+      if (window.DEMO_MODE) {
+        currentAddress = { street_address: street, label, address_type: selectedAddrType, lat: addrLat, lng: addrLng };
+        updateLocationBar();
+        document.getElementById('delivery-address').value = street;
+        await loadRestaurants();
+        showView('view-restaurants');
+        return;
+      }
 
-      if (error) { console.error(error); return; }
-      currentAddress = data;
-      updateLocationBar();
-      document.getElementById('delivery-address').value = currentAddress.street_address || '';
-      await loadRestaurants();
-      showView('view-restaurants');
+      btn.disabled = true;
+      btn.textContent = 'Saving…';
+      try {
+        await sb.from('addresses').update({ is_default: false }).eq('customer_id', profile.id);
+        const { data, error } = await sb.from('addresses').insert({
+          customer_id: profile.id, label, address_type: selectedAddrType,
+          street_address: street, house_number: houseNum,
+          delivery_instructions: instructions, lat: addrLat, lng: addrLng, is_default: true,
+        }).select().single();
+        if (error) { errEl.textContent = 'Could not save address. Please try again.'; console.error(error); return; }
+        currentAddress = data;
+        updateLocationBar();
+        document.getElementById('delivery-address').value = currentAddress.street_address || '';
+        await loadRestaurants();
+        showView('view-restaurants');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Save Address';
+      }
     });
 
     async function initAddressMap() {
