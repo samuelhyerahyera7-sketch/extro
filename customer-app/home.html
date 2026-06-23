@@ -674,17 +674,18 @@
 
     async function reverseGeocode(lat, lng) {
       try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`);
+        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${MAPBOX_TOKEN}&types=address&country=za&limit=1`;
+        const res = await fetch(url);
         const d = await res.json();
-        const road = d.address?.road || d.address?.pedestrian || '';
-        const house = d.address?.house_number || '';
-        const city = d.address?.city || d.address?.town || d.address?.suburb || '';
-        const state = d.address?.state || '';
-        const postcode = d.address?.postcode || '';
-        const country = d.address?.country || '';
-        document.getElementById('addr-street').textContent = `${house} ${road}`.trim() || 'Unknown road';
-        document.getElementById('addr-city').textContent = [city, state, postcode, country].filter(Boolean).join(', ');
-        if (house) document.getElementById('addr-house-num').value = house;
+        const feature = d.features?.[0];
+        if (!feature) throw new Error('no result');
+        const parts = feature.place_name.split(', ');
+        const street = parts[0] || '';
+        const rest = parts.slice(1).join(', ');
+        document.getElementById('addr-street').textContent = street || 'Unknown road';
+        document.getElementById('addr-city').textContent = rest;
+        const houseMatch = street.match(/^(\d+[a-zA-Z]?)\s/);
+        if (houseMatch) document.getElementById('addr-house-num').value = houseMatch[1];
       } catch {
         document.getElementById('addr-street').textContent = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
       }
@@ -705,25 +706,30 @@
       box.style.display = 'block';
       box.innerHTML = '<div style="padding:12px 14px;color:var(--muted);font-size:0.85rem">Searching…</div>';
       try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&addressdetails=1&limit=5&countrycodes=za`);
-        const results = await res.json();
+        const proximity = `${addrLng},${addrLat}`;
+        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?access_token=${MAPBOX_TOKEN}&country=za&limit=5&proximity=${proximity}&types=address,place,locality,neighborhood`;
+        const res = await fetch(url);
+        const data = await res.json();
+        const results = data.features || [];
         if (!results.length) {
           box.innerHTML = '<div style="padding:12px 14px;color:var(--muted);font-size:0.85rem">No results found.</div>';
           return;
         }
-        box.innerHTML = results.map((r, i) => `
-          <div data-idx="${i}" style="padding:11px 14px;border-bottom:1px solid var(--border);cursor:pointer;font-size:0.85rem;line-height:1.4">
-            <strong style="font-size:0.88rem">${r.address?.road || r.address?.pedestrian || r.name || ''}</strong>
-            ${r.address?.suburb || r.address?.city || r.address?.town ? `<br><span style="color:var(--muted)">${[r.address?.suburb, r.address?.city || r.address?.town, r.address?.postcode].filter(Boolean).join(', ')}</span>` : ''}
-          </div>`).join('');
+        box.innerHTML = results.map((r, i) => {
+          const parts = r.place_name.split(', ');
+          const main = parts[0];
+          const sub = parts.slice(1).join(', ');
+          return `<div data-idx="${i}" style="padding:11px 14px;border-bottom:1px solid var(--border);cursor:pointer;font-size:0.85rem;line-height:1.4">
+            <strong style="font-size:0.88rem">${main}</strong>${sub ? `<br><span style="color:var(--muted)">${sub}</span>` : ''}
+          </div>`;
+        }).join('');
         box.querySelectorAll('[data-idx]').forEach(el => {
           el.addEventListener('mouseenter', () => el.style.background = '#f9fafb');
           el.addEventListener('mouseleave', () => el.style.background = '');
           el.addEventListener('click', () => {
             const r = results[parseInt(el.dataset.idx)];
-            addrLat = parseFloat(r.lat);
-            addrLng = parseFloat(r.lon);
-            addrMap.setView([addrLat, addrLng], 17);
+            [addrLng, addrLat] = r.center;
+            addrMap.jumpTo({ center: [addrLng, addrLat], zoom: 17 });
             reverseGeocode(addrLat, addrLng);
             document.getElementById('addr-search').value = '';
             box.style.display = 'none';
