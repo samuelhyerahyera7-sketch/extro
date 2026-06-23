@@ -885,3 +885,10 @@ a { color: var(--primary); text-decoration: none; }
 .basket-cta {
   padding: 8px 16px 36px;
 }
+
+/* Onboarding flow */
+.ob-dot { height: 4px; flex: 1; border-radius: 2px; background: var(--border); transition: background 0.25s; }
+.ob-dot--on { background: var(--ink); }
+.ob-input { width: 100%; padding: 15px 14px; border: 2px solid var(--border); border-radius: 14px; font-size: 1rem; font-family: inherit; color: var(--ink); background: #fff; outline: none; box-sizing: border-box; }
+.ob-input:focus { border-color: var(--ink); }
+.ob-back-btn { width: 52px; height: 52px; border-radius: 50%; border: 2px solid var(--border); background: #fff; font-size: 1.3rem; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--ink); }

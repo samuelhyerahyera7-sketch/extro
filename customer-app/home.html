@@ -13,33 +13,126 @@
 <body>
   <div class="app-shell">
 
-    <!-- ── View: Profile completion ─────────────────────────── -->
-    <div id="view-profile-complete" style="display:none">
-      <div class="profile-setup-wrap">
-        <h2 style="font-size:1.2rem;font-weight:800;text-transform:uppercase;margin:0 0 28px">Please complete the form</h2>
+    <!-- ── View: Onboarding (new registrations) ──────────────── -->
+    <div id="view-profile-complete" style="display:none;background:#fff;min-height:100vh">
 
-        <div class="avatar-upload" id="avatar-upload-wrap">
-          <div class="avatar-circle" id="avatar-preview">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="40" height="40">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-            </svg>
-          </div>
-          <input type="file" id="avatar-input" accept="image/*" style="display:none">
-          <button class="avatar-edit-btn" id="avatar-edit-btn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13">
-              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-              <circle cx="12" cy="13" r="4"/>
-            </svg>
-          </button>
+      <!-- Progress dots -->
+      <div id="ob-progress" style="display:flex;gap:6px;padding:52px 24px 0">
+        <div class="ob-dot ob-dot--on"></div>
+        <div class="ob-dot"></div>
+        <div class="ob-dot"></div>
+        <div class="ob-dot"></div>
+        <div class="ob-dot"></div>
+      </div>
+
+      <!-- Step 1: Confirm info -->
+      <div id="ob-step-1" style="display:flex;flex-direction:column;padding:28px 24px 32px;min-height:82vh">
+        <h1 style="font-size:1.9rem;font-weight:900;line-height:1.2;color:var(--ink);margin:0">Confirm your<br>information</h1>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:28px">
+          <input id="ob-first" type="text" placeholder="First name" class="ob-input">
+          <input id="ob-last" type="text" placeholder="Last name" class="ob-input">
         </div>
-        <p style="text-align:center;color:var(--muted);font-size:0.82rem;margin:10px 0 28px">Add the profile image</p>
+        <div style="display:flex;margin-top:10px;border:2px solid var(--border);border-radius:14px;overflow:hidden">
+          <div style="display:flex;align-items:center;padding:0 14px;gap:6px;background:#f8f8f8;border-right:2px solid var(--border);flex-shrink:0">
+            <span style="font-size:1.3rem">🇿🇦</span>
+            <span style="font-size:0.9rem;font-weight:700;color:var(--muted)">+27</span>
+          </div>
+          <input id="ob-phone" type="tel" placeholder="81 375 6494" style="flex:1;padding:15px 14px;border:none;outline:none;font-size:1rem;font-family:inherit;color:var(--ink);background:#fff">
+        </div>
+        <p style="font-size:0.78rem;color:var(--muted);line-height:1.6;margin:16px 0 0">By continuing, you agree to receive calls or texts, including by autodialler, for authentication and service updates from Extro and its affiliates.</p>
+        <p class="error-msg" id="ob-err-1" style="margin-top:10px"></p>
+        <div style="flex:1"></div>
+        <div style="display:flex;justify-content:flex-end;margin-top:24px">
+          <button id="ob-next-1" style="background:var(--ink);color:#fff;border:none;border-radius:100px;padding:16px 32px;font-size:1rem;font-weight:700;cursor:pointer;font-family:inherit">Next →</button>
+        </div>
+      </div>
 
-        <div class="form-group"><label>First name</label><input id="p-first-name" placeholder="Sam"></div>
-        <div class="form-group"><label>Last name</label><input id="p-last-name" placeholder="Hyera"></div>
-        <div class="form-group"><label>Email</label><input id="p-email" type="email" placeholder="you@example.com"></div>
+      <!-- Step 2: OTP verify -->
+      <div id="ob-step-2" style="display:none;flex-direction:column;padding:28px 24px 32px;min-height:82vh">
+        <h1 style="font-size:1.9rem;font-weight:900;line-height:1.2;color:var(--ink);margin:0">Enter the<br>code</h1>
+        <p id="ob-otp-desc" style="color:var(--muted);margin:14px 0 28px;font-size:0.93rem;line-height:1.5">We sent a 6-digit code to your number.</p>
+        <input id="ob-otp" type="number" inputmode="numeric" placeholder="000000" style="width:100%;text-align:center;font-size:2.4rem;font-weight:900;letter-spacing:0.25em;border:2px solid var(--border);border-radius:14px;padding:20px 0;box-sizing:border-box;outline:none;font-family:inherit;color:var(--ink);background:#fff">
+        <p style="text-align:center;margin-top:18px;color:var(--muted);font-size:0.88rem">Didn't get it? <button id="ob-resend" style="background:none;border:none;color:var(--primary);font-weight:700;cursor:pointer;font-size:0.88rem;font-family:inherit;padding:0">Resend</button></p>
+        <p class="error-msg" id="ob-err-2" style="margin-top:10px"></p>
+        <div style="flex:1"></div>
+        <div style="display:flex;justify-content:space-between;margin-top:24px">
+          <button id="ob-back-2" class="ob-back-btn">←</button>
+          <button id="ob-verify" style="background:var(--ink);color:#fff;border:none;border-radius:100px;padding:16px 32px;font-size:1rem;font-weight:700;cursor:pointer;font-family:inherit">Verify →</button>
+        </div>
+      </div>
 
-        <button class="btn btn-primary btn-block" id="profile-save-btn" style="border-radius:100px;height:52px;font-size:1rem;margin-top:8px">Complete</button>
-        <p class="error-msg" id="profile-error"></p>
+      <!-- Step 3: Terms & Conditions -->
+      <div id="ob-step-3" style="display:none;flex-direction:column;padding:28px 24px 32px;min-height:82vh">
+        <h1 style="font-size:1.9rem;font-weight:900;line-height:1.2;color:var(--ink);margin:0">Terms &<br>Conditions</h1>
+        <div style="margin-top:24px;overflow-y:auto;background:#f8f8f8;border-radius:16px;padding:20px;font-size:0.86rem;color:var(--muted);line-height:1.75;max-height:46vh;flex-shrink:0">
+          <p><strong style="color:var(--ink)">1. Service</strong><br>Extro connects you with local restaurants and stores for delivery and pickup.</p>
+          <p><strong style="color:var(--ink)">2. Account</strong><br>You are responsible for keeping your account details accurate. Never share your OTP with anyone.</p>
+          <p><strong style="color:var(--ink)">3. Orders</strong><br>Orders are confirmed upon payment. Cancellations may carry a fee once food preparation has started.</p>
+          <p><strong style="color:var(--ink)">4. Delivery</strong><br>Delivery times are estimates. Extro is not liable for delays caused by traffic or restaurant preparation.</p>
+          <p><strong style="color:var(--ink)">5. Privacy</strong><br>Your personal information is processed in accordance with our Privacy Policy. We do not sell your data.</p>
+          <p><strong style="color:var(--ink)">6. Conduct</strong><br>Abusive behaviour toward drivers or restaurant staff will result in account suspension.</p>
+        </div>
+        <p class="error-msg" id="ob-err-3" style="margin-top:10px"></p>
+        <div style="flex:1"></div>
+        <div style="display:flex;justify-content:space-between;margin-top:24px">
+          <button id="ob-back-3" class="ob-back-btn">←</button>
+          <button id="ob-accept-tc" style="background:var(--ink);color:#fff;border:none;border-radius:100px;padding:16px 24px;font-size:1rem;font-weight:700;cursor:pointer;font-family:inherit">Accept & continue →</button>
+        </div>
+      </div>
+
+      <!-- Step 4: Payment options -->
+      <div id="ob-step-4" style="display:none;flex-direction:column;padding:28px 24px 32px;min-height:82vh">
+        <h1 style="font-size:1.9rem;font-weight:900;line-height:1.2;color:var(--ink);margin:0">Payment<br>options</h1>
+        <p style="color:var(--muted);margin:14px 0 24px;font-size:0.93rem">Choose how you'd like to pay for your orders.</p>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;align-items:center;gap:14px;padding:18px;border:2px solid var(--primary);border-radius:16px;background:#fff8f6">
+            <div style="width:46px;height:46px;border-radius:12px;background:#fef3f2;display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0">💵</div>
+            <div style="flex:1">
+              <div style="font-weight:700;font-size:0.94rem">Cash on delivery</div>
+              <div style="font-size:0.8rem;color:var(--muted);margin-top:3px">Pay the driver when your order arrives</div>
+            </div>
+            <div style="width:24px;height:24px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:14px;padding:18px;border:2px solid var(--border);border-radius:16px;opacity:0.5">
+            <div style="width:46px;height:46px;border-radius:12px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0">💳</div>
+            <div style="flex:1">
+              <div style="font-weight:700;font-size:0.94rem">Card payment</div>
+              <div style="font-size:0.8rem;color:var(--muted);margin-top:3px">Coming soon</div>
+            </div>
+            <span style="font-size:0.72rem;font-weight:700;background:#f1f5f9;color:var(--muted);border-radius:99px;padding:4px 10px;flex-shrink:0">Soon</span>
+          </div>
+        </div>
+        <div style="flex:1"></div>
+        <div style="display:flex;justify-content:space-between;margin-top:24px">
+          <button id="ob-back-4" class="ob-back-btn">←</button>
+          <button id="ob-continue-4" style="background:var(--ink);color:#fff;border:none;border-radius:100px;padding:16px 32px;font-size:1rem;font-weight:700;cursor:pointer;font-family:inherit">Continue →</button>
+        </div>
+      </div>
+
+      <!-- Step 5: Deals & updates -->
+      <div id="ob-step-5" style="display:none;flex-direction:column;padding:28px 24px 32px;min-height:82vh">
+        <h1 style="font-size:1.9rem;font-weight:900;line-height:1.2;color:var(--ink);margin:0">Deals &<br>updates</h1>
+        <p style="color:var(--muted);margin:14px 0 28px;font-size:0.93rem">Stay in the loop on exclusive discounts and order updates.</p>
+        <div style="display:flex;flex-direction:column;gap:18px">
+          <div style="display:flex;align-items:flex-start;gap:14px">
+            <div style="width:46px;height:46px;border-radius:12px;background:#fef9c3;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0">🏷️</div>
+            <div><div style="font-weight:700;font-size:0.93rem">Exclusive deals</div><div style="font-size:0.82rem;color:var(--muted);margin-top:4px;line-height:1.55">First access to flash sales and promo codes from your favourite restaurants.</div></div>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:14px">
+            <div style="width:46px;height:46px;border-radius:12px;background:#dcfce7;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0">🛵</div>
+            <div><div style="font-weight:700;font-size:0.93rem">Live order updates</div><div style="font-size:0.82rem;color:var(--muted);margin-top:4px;line-height:1.55">Know exactly where your food is with real-time tracking.</div></div>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:14px">
+            <div style="width:46px;height:46px;border-radius:12px;background:#ede9fe;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0">🆕</div>
+            <div><div style="font-weight:700;font-size:0.93rem">New on Extro</div><div style="font-size:0.82rem;color:var(--muted);margin-top:4px;line-height:1.55">Be the first to know when new restaurants join the platform.</div></div>
+          </div>
+        </div>
+        <p class="error-msg" id="ob-err-5" style="margin-top:16px"></p>
+        <div style="flex:1"></div>
+        <button id="ob-finish" class="btn btn-primary btn-block" style="border-radius:100px;height:56px;font-size:1rem;font-weight:700;margin-top:24px">Get started</button>
+        <button id="ob-skip-5" style="background:none;border:none;color:var(--muted);font-size:0.88rem;padding:16px;cursor:pointer;font-family:inherit;text-decoration:underline;width:100%">Skip for now</button>
       </div>
     </div>
 
@@ -579,35 +672,112 @@
       if (id === 'view-orders' && trackingMap) setTimeout(() => trackingMap.resize(), 80);
     }
 
-    document.getElementById('avatar-edit-btn').addEventListener('click', () => document.getElementById('avatar-input').click());
-    document.getElementById('avatar-input').addEventListener('change', async e => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const url = URL.createObjectURL(file);
-      document.getElementById('avatar-preview').innerHTML = `<img src="${url}" alt="avatar">`;
-      if (!window.DEMO_MODE) {
-        const { data, error } = await sb.storage.from('avatars').upload(`${profile.id}/avatar`, file, { upsert: true });
-        if (!error) {
-          const { data: { publicUrl } } = sb.storage.from('avatars').getPublicUrl(data.path);
-          await sb.from('profiles').update({ avatar_url: publicUrl }).eq('id', profile.id);
-          profile.avatar_url = publicUrl;
-        }
+    // ─── Onboarding step flow ──────────────────────────────────
+    let _obPhone = '';
+    let _obEditMode = false;
+    let _obSkipOtp = false;
+
+    function obShowStep(n) {
+      for (let i = 1; i <= 5; i++) {
+        const el = document.getElementById(`ob-step-${i}`);
+        if (el) el.style.display = i === n ? 'flex' : 'none';
       }
+      document.querySelectorAll('#ob-progress .ob-dot').forEach((d, i) => {
+        d.style.background = i < n ? 'var(--ink)' : 'var(--border)';
+      });
+    }
+
+    document.getElementById('ob-next-1').addEventListener('click', async () => {
+      const btn = document.getElementById('ob-next-1');
+      const firstName = document.getElementById('ob-first').value.trim();
+      const rawPhone = document.getElementById('ob-phone').value.trim().replace(/\s/g, '');
+      const errEl = document.getElementById('ob-err-1');
+      if (!firstName) { errEl.textContent = 'Please enter your first name.'; return; }
+      if (!rawPhone) { errEl.textContent = 'Please enter your phone number.'; return; }
+      errEl.textContent = '';
+
+      let formatted = rawPhone;
+      if (formatted.startsWith('0')) formatted = '+27' + formatted.slice(1);
+      else if (!formatted.startsWith('+')) formatted = '+27' + formatted;
+      _obPhone = formatted;
+
+      if (_obEditMode) {
+        const lastName = document.getElementById('ob-last').value.trim();
+        btn.disabled = true; btn.textContent = 'Saving…';
+        const { error } = await sb.from('profiles').update({
+          first_name: firstName, last_name: lastName,
+          full_name: `${firstName} ${lastName}`.trim(), phone: _obPhone,
+        }).eq('id', profile.id);
+        btn.disabled = false; btn.textContent = 'Save →';
+        if (error) { errEl.textContent = error.message; return; }
+        profile.first_name = firstName; profile.last_name = lastName; profile.phone = _obPhone;
+        showView('view-account'); loadAccount();
+        return;
+      }
+
+      if (_obSkipOtp) { obShowStep(3); return; }
+
+      btn.disabled = true; btn.textContent = 'Sending…';
+      const { error } = await sendPhoneOtp(_obPhone);
+      btn.disabled = false; btn.textContent = 'Next →';
+      if (error) {
+        const raw = error.message || '';
+        if (raw.toLowerCase().includes('unverified') || raw.toLowerCase().includes('twilio')) {
+          errEl.textContent = 'SMS could not be delivered to this number. Try a different number.';
+        } else {
+          errEl.textContent = raw || 'Could not send code. Please try again.';
+        }
+        return;
+      }
+      document.getElementById('ob-otp-desc').textContent = `We sent a 6-digit code to ${_obPhone}.`;
+      obShowStep(2);
     });
 
-    document.getElementById('profile-save-btn').addEventListener('click', async () => {
-      const firstName = document.getElementById('p-first-name').value.trim();
-      const lastName = document.getElementById('p-last-name').value.trim();
-      const errorEl = document.getElementById('profile-error');
-      if (!firstName) { errorEl.textContent = 'First name is required.'; return; }
-      errorEl.textContent = '';
+    document.getElementById('ob-back-2').addEventListener('click', () => obShowStep(1));
+
+    document.getElementById('ob-resend').addEventListener('click', async () => {
+      if (!_obPhone) return;
+      document.getElementById('ob-err-2').textContent = '';
+      document.getElementById('ob-resend').textContent = 'Sending…';
+      await sendPhoneOtp(_obPhone);
+      document.getElementById('ob-resend').textContent = 'Resend';
+    });
+
+    document.getElementById('ob-verify').addEventListener('click', async () => {
+      const btn = document.getElementById('ob-verify');
+      const token = document.getElementById('ob-otp').value.toString().trim();
+      const errEl = document.getElementById('ob-err-2');
+      if (token.length < 4) { errEl.textContent = 'Please enter the code.'; return; }
+      btn.disabled = true; btn.textContent = 'Verifying…';
+      const { error } = await verifyPhoneOtp(_obPhone, token);
+      btn.disabled = false; btn.textContent = 'Verify →';
+      if (error) { errEl.textContent = error.message || 'Invalid code. Please try again.'; return; }
+      obShowStep(3);
+    });
+
+    document.getElementById('ob-back-3').addEventListener('click', () => _obSkipOtp ? obShowStep(1) : obShowStep(2));
+    document.getElementById('ob-accept-tc').addEventListener('click', () => obShowStep(4));
+    document.getElementById('ob-back-4').addEventListener('click', () => obShowStep(3));
+    document.getElementById('ob-continue-4').addEventListener('click', () => obShowStep(5));
+
+    async function finishOnboarding() {
+      const btn = document.getElementById('ob-finish');
+      const errEl = document.getElementById('ob-err-5');
+      const firstName = document.getElementById('ob-first').value.trim();
+      const lastName = document.getElementById('ob-last').value.trim();
+      btn.disabled = true; btn.textContent = 'Setting up your account…';
       const { error } = await sb.from('profiles').update({
-        first_name: firstName, last_name: lastName, full_name: `${firstName} ${lastName}`.trim(),
+        first_name: firstName, last_name: lastName,
+        full_name: `${firstName} ${lastName}`.trim(), phone: _obPhone || null,
       }).eq('id', profile.id);
-      if (error) { errorEl.textContent = error.message; return; }
+      btn.disabled = false; btn.textContent = 'Get started';
+      if (error) { errEl.textContent = error.message; return; }
       profile.first_name = firstName; profile.last_name = lastName;
       await ensureDeliveryAddress();
-    });
+    }
+
+    document.getElementById('ob-finish').addEventListener('click', finishOnboarding);
+    document.getElementById('ob-skip-5').addEventListener('click', finishOnboarding);
 
     document.getElementById('addr-type-row').addEventListener('click', e => {
       const item = e.target.closest('.addr-type-item');
@@ -1964,10 +2134,14 @@
       if (!addrMap) initAddressMap();
     });
     document.getElementById('acct-edit-btn').addEventListener('click', () => {
+      _obEditMode = true;
+      _obSkipOtp = true;
+      document.getElementById('ob-first').value = profile.first_name || '';
+      document.getElementById('ob-last').value = profile.last_name || '';
+      const ph = profile.phone || '';
+      document.getElementById('ob-phone').value = ph.startsWith('+27') ? '0' + ph.slice(3) : ph;
+      obShowStep(1);
       showView('view-profile-complete');
-      document.getElementById('p-first-name').value = profile.first_name || '';
-      document.getElementById('p-last-name').value = profile.last_name || '';
-      document.getElementById('p-email').value = profile.email || '';
     });
 
     async function ensureDeliveryAddress() {
@@ -1996,18 +2170,27 @@
 
     (async () => {
       try {
-        console.log('[init] step 1 start');
         profile = await requireRole('customer');
         window._p = profile;
-        console.log('[init] step 2 profile:', profile?.id);
         if (!profile) return;
         if (!profile.first_name && !window.DEMO_MODE) {
+          // Pre-fill name from auth metadata (Google OAuth sets given_name/family_name)
+          const { data: { user } } = await sb.auth.getUser();
+          const meta = user?.user_metadata || {};
+          document.getElementById('ob-first').value = meta.given_name || (meta.full_name || meta.name || '').split(' ')[0] || '';
+          document.getElementById('ob-last').value = meta.family_name || (meta.full_name || meta.name || '').split(' ').slice(1).join(' ') || '';
+          // Phone OTP users already have a verified phone — skip the OTP step
+          if (user?.phone) {
+            _obSkipOtp = true;
+            _obPhone = user.phone;
+            document.getElementById('ob-phone').value = user.phone.startsWith('+27') ? '0' + user.phone.slice(3) : user.phone;
+          }
+          _obEditMode = false;
+          obShowStep(1);
           showView('view-profile-complete');
           return;
         }
-        console.log('[init] step 3 ensureDeliveryAddress');
         await ensureDeliveryAddress();
-        console.log('[init] step 5 done');
       } catch(e) {
         console.error('INIT ERROR:', e.message, e.stack);
       }
