@@ -174,14 +174,14 @@
     </div>
 
     <!-- ── View: Address setup ───────────────────────────────── -->
-    <div id="view-address-setup" style="display:none">
+    <div id="view-address-setup" style="display:none;padding-bottom:88px">
+
+      <!-- Header -->
       <div class="sticky-subheader">
         <button class="icon-btn" id="addr-back-btn" style="display:none">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
-            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
         </button>
-        <h2>Address info</h2>
+        <h2>Address details</h2>
       </div>
 
       <!-- Address search -->
@@ -193,6 +193,7 @@
         <div id="addr-suggestions" style="position:absolute;left:20px;right:20px;background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:1100;overflow:hidden;display:none"></div>
       </div>
 
+      <!-- Map -->
       <div class="addr-map-wrap">
         <div id="addr-map"></div>
         <div class="addr-center-pin">
@@ -203,86 +204,149 @@
         </div>
         <button id="adjust-pin-btn" style="position:absolute;bottom:14px;left:50%;transform:translateX(-50%);background:#fff;border:none;border-radius:100px;padding:8px 18px;font-size:0.82rem;font-weight:700;color:var(--ink);box-shadow:0 2px 12px rgba(0,0,0,0.18);cursor:pointer;font-family:inherit;z-index:999;display:flex;align-items:center;gap:6px">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M12 22s7-7.58 7-12a7 7 0 1 0-14 0c0 4.42 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg>
-          Adjust pin
+          Edit pin
         </button>
       </div>
 
-      <div class="addr-detail-section">
-        <h3 class="addr-street-line" id="addr-street">Detecting location…</h3>
-        <p class="addr-city-line" id="addr-city"></p>
+      <!-- Detected address -->
+      <div style="padding:14px 20px;background:#fff;border-bottom:1px solid var(--border)">
+        <div class="addr-street-line" id="addr-street">Detecting location…</div>
+        <div class="addr-city-line" id="addr-city"></div>
+      </div>
 
-        <div class="addr-type-row" id="addr-type-row">
-          <div class="addr-type-item active" data-type="house">
-            <div class="addr-type-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" width="24" height="24">
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
-              </svg>
-            </div>
-            <span>House</span>
-          </div>
-          <div class="addr-type-item" data-type="flat">
-            <div class="addr-type-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" width="24" height="24">
-                <rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 6h2M9 10h2M13 6h2M13 10h2M9 14h2M13 14h2"/>
-              </svg>
-            </div>
-            <span>Flat/<br>Apartment</span>
-          </div>
-          <div class="addr-type-item" data-type="townhouse">
-            <div class="addr-type-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" width="24" height="24">
-                <path d="M2 6l6-4 6 4v14H2V6z"/><path d="M14 10l6-4 2 1.5V20h-8V10z"/><path d="M8 20v-4h4v4"/>
-              </svg>
-            </div>
-            <span>Townhouse/<br>Complex</span>
-          </div>
-          <div class="addr-type-item" data-type="office">
-            <div class="addr-type-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" width="24" height="24">
-                <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
-              </svg>
-            </div>
-            <span>Office</span>
-          </div>
-          <div class="addr-type-item" data-type="hotel">
-            <div class="addr-type-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" width="24" height="24">
-                <path d="M3 3h18v13H3z"/><path d="M8 21V16"/><path d="M16 21V16"/><path d="M8 16h8"/><path d="M3 16h18"/>
-              </svg>
-            </div>
-            <span>Hotel/<br>B&amp;B</span>
-          </div>
+      <!-- Building type selector row -->
+      <div id="addr-type-trigger" style="display:flex;align-items:center;padding:16px 20px;background:#fff;border-bottom:1px solid var(--border);cursor:pointer">
+        <div id="addr-type-icon-display" style="width:40px;height:40px;border-radius:10px;background:#f7f8fa;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-right:14px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
         </div>
+        <div style="flex:1">
+          <div style="font-size:0.74rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:2px">Building type</div>
+          <div id="addr-type-text-display" style="font-size:0.97rem;font-weight:700;color:var(--ink)">House</div>
+        </div>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" style="color:var(--muted)"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
 
-        <!-- Apt/Suite + Entry code side by side -->
-        <div style="display:flex;gap:10px;margin-bottom:12px">
-          <div class="floating-input-group" style="flex:1;margin-bottom:0">
-            <label>Apt / Unit no.</label>
-            <input id="addr-house-num" placeholder="e.g. 11">
+      <!-- Hidden addr-type-row (JS reads .addr-type-item.active) -->
+      <div id="addr-type-row" style="display:none">
+        <div class="addr-type-item active" data-type="house"></div>
+        <div class="addr-type-item" data-type="flat"></div>
+        <div class="addr-type-item" data-type="townhouse"></div>
+        <div class="addr-type-item" data-type="office"></div>
+        <div class="addr-type-item" data-type="hotel"></div>
+        <div class="addr-type-item" data-type="other"></div>
+      </div>
+
+      <!-- Additional details -->
+      <div style="background:#fff;border-bottom:1px solid var(--border);padding:16px 20px">
+        <div style="font-size:0.74rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px">Additional details</div>
+        <input id="addr-house-num" placeholder="e.g. house number or name" style="width:100%;padding:13px 14px;border:1.5px solid var(--border);border-radius:12px;font-size:0.95rem;font-family:inherit;color:var(--ink);outline:none;box-sizing:border-box;background:#f7f8fa">
+        <input id="addr-entry-code" placeholder="Entry code (optional)" style="width:100%;padding:13px 14px;border:1.5px solid var(--border);border-radius:12px;font-size:0.95rem;font-family:inherit;color:var(--ink);outline:none;box-sizing:border-box;background:#f7f8fa;margin-top:10px">
+      </div>
+
+      <!-- Section break -->
+      <div style="height:8px;background:var(--bg)"></div>
+
+      <!-- Drop-off options -->
+      <div style="background:#fff;border-bottom:1px solid var(--border);padding:16px 20px">
+        <div style="font-size:1rem;font-weight:800;color:var(--ink);margin-bottom:14px">Drop-off options</div>
+        <button id="dropoff-hand" onclick="setDropoff('hand')" style="display:flex;align-items:center;gap:14px;width:100%;padding:12px 0;border:none;background:none;cursor:pointer;text-align:left;font-family:inherit;border-bottom:1px solid var(--border)">
+          <div style="width:38px;height:38px;border-radius:10px;background:#f0fdf4;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
           </div>
-          <div class="floating-input-group" style="flex:1;margin-bottom:0">
-            <label>Entry code (Optional)</label>
-            <input id="addr-entry-code" placeholder="e.g. #1234">
+          <div style="flex:1">
+            <div style="font-size:0.95rem;font-weight:700;color:var(--ink)">Hand it to me</div>
+            <div style="font-size:0.8rem;color:var(--muted);margin-top:2px">Driver hands the order directly to you</div>
           </div>
+          <svg id="check-hand" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><polyline points="20 6 9 17 4 12"/></svg>
+        </button>
+        <button id="dropoff-door" onclick="setDropoff('door')" style="display:flex;align-items:center;gap:14px;width:100%;padding:12px 0;border:none;background:none;cursor:pointer;text-align:left;font-family:inherit">
+          <div style="width:38px;height:38px;border-radius:10px;background:#eff6ff;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><line x1="12" y1="22" x2="12" y2="12"/></svg>
+          </div>
+          <div style="flex:1">
+            <div style="font-size:0.95rem;font-weight:700;color:var(--ink)">Leave at my door</div>
+            <div style="font-size:0.8rem;color:var(--muted);margin-top:2px">Driver leaves the order at your door</div>
+          </div>
+          <svg id="check-door" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" style="display:none"><polyline points="20 6 9 17 4 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Instructions for delivery person -->
+      <div style="background:#fff;border-bottom:1px solid var(--border);padding:16px 20px">
+        <div style="font-size:0.74rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px">Instructions for delivery person</div>
+        <textarea id="addr-instructions" rows="3" placeholder="e.g. Please knock instead of using the doorbell" style="width:100%;padding:13px 14px;border:1.5px solid var(--border);border-radius:12px;font-size:0.92rem;font-family:inherit;color:var(--ink);outline:none;box-sizing:border-box;resize:none;background:#f7f8fa;line-height:1.5"></textarea>
+      </div>
+
+      <!-- Section break -->
+      <div style="height:8px;background:var(--bg)"></div>
+
+      <!-- Address label -->
+      <div style="background:#fff;padding:16px 20px 20px">
+        <div style="font-size:0.74rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px">Address label</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="addr-label-pill active" data-label="Home">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            Home
+          </button>
+          <button class="addr-label-pill" data-label="Work">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+            Work
+          </button>
+          <button class="addr-label-pill" data-label="Other">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M12 22s7-7.58 7-12a7 7 0 1 0-14 0c0 4.42 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg>
+            Other
+          </button>
         </div>
+        <!-- Hidden inputs kept for JS compatibility -->
+        <input id="addr-label" type="hidden" value="Home">
+        <button id="addr-label-clear" style="display:none"></button>
+      </div>
 
-        <div class="floating-input-group">
-          <label>Address label (Optional)</label>
-          <input id="addr-label" placeholder="e.g. Home, Work, Gym" value="Home">
-          <button class="floating-clear" id="addr-label-clear">×</button>
+      <p class="addr-save-error" id="addr-save-error" style="padding:0 20px"></p>
+
+      <!-- Fixed save button -->
+      <div style="position:fixed;bottom:0;left:0;right:0;padding:12px 20px 28px;background:#fff;border-top:1px solid var(--border);z-index:100">
+        <button id="addr-save-btn" style="width:100%;height:54px;border-radius:14px;background:var(--ink);color:#fff;border:none;font-size:1rem;font-weight:700;cursor:pointer;font-family:inherit">Save and continue</button>
+      </div>
+    </div>
+
+    <!-- Building type bottom sheet -->
+    <div id="addr-building-sheet" style="display:none;position:fixed;inset:0;z-index:500">
+      <div id="addr-building-backdrop" style="position:absolute;inset:0;background:rgba(0,0,0,0.5)"></div>
+      <div style="position:absolute;bottom:0;left:0;right:0;background:#fff;border-radius:24px 24px 0 0;overflow:hidden">
+        <div style="text-align:center;padding:16px 20px 8px">
+          <div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 14px"></div>
+          <div style="font-size:1.1rem;font-weight:800;color:var(--ink)">Choose building type</div>
+          <div style="font-size:0.85rem;color:var(--muted);margin-top:4px">Help couriers find you</div>
         </div>
-
-        <!-- Drop-off options -->
-        <h3 style="font-size:0.95rem;font-weight:700;margin:20px 0 10px;color:var(--ink)">Drop-off options</h3>
-        <div style="display:flex;background:#f3f4f6;border-radius:100px;padding:4px;margin-bottom:16px">
-          <button id="dropoff-hand" onclick="setDropoff('hand')" style="flex:1;padding:9px;border:none;border-radius:100px;font-size:0.85rem;font-weight:700;cursor:pointer;background:var(--ink);color:#fff;font-family:inherit;transition:all 0.15s">Hand it to me</button>
-          <button id="dropoff-door" onclick="setDropoff('door')" style="flex:1;padding:9px;border:none;border-radius:100px;font-size:0.85rem;font-weight:700;cursor:pointer;background:transparent;color:var(--muted);font-family:inherit;transition:all 0.15s">Leave at my door</button>
+        <div id="addr-building-list">
+          <button class="addr-building-row active" data-type="house">
+            <div class="addr-building-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+            <div class="addr-building-text"><div class="addr-building-name">House</div><div class="addr-building-sub">Single or multi-family home</div></div>
+            <svg class="addr-building-check" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><polyline points="20 6 9 17 4 12"/></svg>
+          </button>
+          <button class="addr-building-row" data-type="flat">
+            <div class="addr-building-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 6h2M9 10h2M13 6h2M13 10h2M9 14h2M13 14h2"/></svg></div>
+            <div class="addr-building-text"><div class="addr-building-name">Flat</div><div class="addr-building-sub">Multi-unit residential building</div></div>
+            <svg class="addr-building-check" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" style="display:none"><polyline points="20 6 9 17 4 12"/></svg>
+          </button>
+          <button class="addr-building-row" data-type="office">
+            <div class="addr-building-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg></div>
+            <div class="addr-building-text"><div class="addr-building-name">Office</div><div class="addr-building-sub">Workplace with entry restrictions</div></div>
+            <svg class="addr-building-check" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" style="display:none"><polyline points="20 6 9 17 4 12"/></svg>
+          </button>
+          <button class="addr-building-row" data-type="hotel">
+            <div class="addr-building-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M7 15h2M11 15h2M15 15h2"/></svg></div>
+            <div class="addr-building-text"><div class="addr-building-name">Hotel</div><div class="addr-building-sub">Lodging, motel or resort</div></div>
+            <svg class="addr-building-check" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" style="display:none"><polyline points="20 6 9 17 4 12"/></svg>
+          </button>
+          <button class="addr-building-row" data-type="other" style="border-bottom:none">
+            <div class="addr-building-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="M12 22s7-7.58 7-12a7 7 0 1 0-14 0c0 4.42 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg></div>
+            <div class="addr-building-text"><div class="addr-building-name">Other</div><div class="addr-building-sub">Hospital, park, outdoors, etc</div></div>
+            <svg class="addr-building-check" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" style="display:none"><polyline points="20 6 9 17 4 12"/></svg>
+          </button>
         </div>
-
-        <textarea id="addr-instructions" class="addr-instructions-box" rows="3" placeholder="e.g. Ring the bell after drop-off, leave next to the door, call upon arrival…&#10;&#10;Do not add order changes or requests here."></textarea>
-
-        <button class="btn btn-primary btn-block" id="addr-save-btn" style="border-radius:100px;height:52px;font-size:1rem;margin-top:16px;font-weight:700">Save Address</button>
-        <p class="addr-save-error" id="addr-save-error"></p>
+        <div style="height:env(safe-area-inset-bottom, 16px);min-height:16px"></div>
       </div>
     </div>
 
@@ -818,25 +882,54 @@
     document.getElementById('ob-finish').addEventListener('click', finishOnboarding);
     document.getElementById('ob-skip-5').addEventListener('click', finishOnboarding);
 
-    document.getElementById('addr-type-row').addEventListener('click', e => {
-      const item = e.target.closest('.addr-type-item');
-      if (!item) return;
-      document.querySelectorAll('.addr-type-item').forEach(i => i.classList.remove('active'));
-      item.classList.add('active');
-      selectedAddrType = item.dataset.type;
+    // Building type sheet
+    const _buildingMeta = {
+      house:     { label: 'House',  svgPath: '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>' },
+      flat:      { label: 'Flat',   svgPath: '<rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 6h2M9 10h2M13 6h2M13 10h2M9 14h2M13 14h2"/>' },
+      office:    { label: 'Office', svgPath: '<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>' },
+      hotel:     { label: 'Hotel',  svgPath: '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M7 15h2M11 15h2M15 15h2"/>' },
+      other:     { label: 'Other',  svgPath: '<path d="M12 22s7-7.58 7-12a7 7 0 1 0-14 0c0 4.42 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/>' },
+      townhouse: { label: 'Townhouse', svgPath: '<path d="M2 6l6-4 6 4v14H2V6z"/><path d="M14 10l6-4 2 1.5V20h-8V10z"/>' },
+    };
+
+    function selectBuildingType(type) {
+      selectedAddrType = type;
+      const meta = _buildingMeta[type] || _buildingMeta.house;
+      document.getElementById('addr-type-text-display').textContent = meta.label;
+      document.getElementById('addr-type-icon-display').innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="22" height="22">${meta.svgPath}</svg>`;
+      document.querySelectorAll('.addr-type-item').forEach(i => i.classList.toggle('active', i.dataset.type === type));
+      document.querySelectorAll('.addr-building-row').forEach(row => {
+        row.classList.toggle('active', row.dataset.type === type);
+        row.querySelector('.addr-building-check').style.display = row.dataset.type === type ? 'block' : 'none';
+      });
+      document.getElementById('addr-building-sheet').style.display = 'none';
+    }
+
+    document.getElementById('addr-type-trigger').addEventListener('click', () => {
+      document.getElementById('addr-building-sheet').style.display = 'block';
+    });
+    document.getElementById('addr-building-backdrop').addEventListener('click', () => {
+      document.getElementById('addr-building-sheet').style.display = 'none';
+    });
+    document.getElementById('addr-building-list').addEventListener('click', e => {
+      const row = e.target.closest('.addr-building-row');
+      if (row) selectBuildingType(row.dataset.type);
     });
 
-    document.getElementById('addr-label-clear').addEventListener('click', () => { document.getElementById('addr-label').value = ''; });
+    // Address label pills
+    document.querySelectorAll('.addr-label-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        document.querySelectorAll('.addr-label-pill').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        document.getElementById('addr-label').value = pill.dataset.label;
+      });
+    });
 
     let selectedDropoff = 'hand';
     function setDropoff(mode) {
       selectedDropoff = mode;
-      const hand = document.getElementById('dropoff-hand');
-      const door = document.getElementById('dropoff-door');
-      hand.style.background = mode === 'hand' ? 'var(--ink)' : 'transparent';
-      hand.style.color = mode === 'hand' ? '#fff' : 'var(--muted)';
-      door.style.background = mode === 'door' ? 'var(--ink)' : 'transparent';
-      door.style.color = mode === 'door' ? '#fff' : 'var(--muted)';
+      document.getElementById('check-hand').style.display = mode === 'hand' ? 'block' : 'none';
+      document.getElementById('check-door').style.display = mode === 'door' ? 'block' : 'none';
     }
 
     document.getElementById('addr-back-btn').addEventListener('click', () => {

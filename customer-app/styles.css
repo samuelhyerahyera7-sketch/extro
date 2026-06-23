@@ -899,3 +899,14 @@ a { color: var(--primary); text-decoration: none; }
 .ob-btn-primary:hover { background: var(--primary-dark); }
 .ob-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
 .ob-btn-back { background: #fff; border: 2px solid var(--border); border-radius: 100px; padding: 14px 22px; font-size: 0.95rem; font-weight: 600; cursor: pointer; color: var(--muted); font-family: inherit; }
+
+/* Address redesign */
+.addr-label-pill { display:inline-flex; align-items:center; gap:6px; padding:10px 16px; border:2px solid var(--border); border-radius:100px; background:#fff; font-size:0.88rem; font-weight:600; color:var(--muted); cursor:pointer; font-family:inherit; transition:all 0.15s; }
+.addr-label-pill.active { background:var(--ink); color:#fff; border-color:var(--ink); }
+.addr-building-row { display:flex; align-items:center; gap:14px; width:100%; padding:16px 20px; border:none; background:#fff; border-bottom:1px solid var(--border); cursor:pointer; text-align:left; font-family:inherit; }
+.addr-building-row:hover { background:#f7f8fa; }
+.addr-building-icon { width:40px; height:40px; border-radius:10px; background:#f7f8fa; display:flex; align-items:center; justify-content:center; flex-shrink:0; color:var(--ink); }
+.addr-building-text { flex:1; }
+.addr-building-name { font-size:0.97rem; font-weight:700; color:var(--ink); }
+.addr-building-sub { font-size:0.8rem; color:var(--muted); margin-top:2px; }
+.addr-building-check { flex-shrink:0; }
