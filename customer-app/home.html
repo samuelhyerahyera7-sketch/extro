@@ -174,7 +174,7 @@
     </div>
 
     <!-- ── View: Address setup ───────────────────────────────── -->
-    <div id="view-address-setup" style="display:none;padding-bottom:88px">
+    <div id="view-address-setup" style="display:none;flex-direction:column;height:100dvh;overflow:hidden;background:#fff">
 
       <!-- Header -->
       <div class="sticky-subheader">
@@ -207,6 +207,9 @@
           Edit pin
         </button>
       </div>
+
+      <!-- Scrollable detail area (map stays fixed above) -->
+      <div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:88px">
 
       <!-- Detected address -->
       <div style="padding:14px 20px;background:#fff;border-bottom:1px solid var(--border)">
@@ -304,9 +307,11 @@
 
       <p class="addr-save-error" id="addr-save-error" style="padding:0 20px"></p>
 
+      </div><!-- end scrollable detail area -->
+
       <!-- Fixed save button -->
-      <div style="position:fixed;bottom:0;left:0;right:0;padding:12px 20px 28px;background:#fff;border-top:1px solid var(--border);z-index:100">
-        <button id="addr-save-btn" style="width:100%;height:54px;border-radius:14px;background:var(--ink);color:#fff;border:none;font-size:1rem;font-weight:700;cursor:pointer;font-family:inherit">Save and continue</button>
+      <div style="position:absolute;bottom:0;left:0;right:0;padding:12px 20px 28px;background:#fff;border-top:1px solid var(--border);z-index:100">
+        <button id="addr-save-btn" style="width:100%;height:54px;border-radius:14px;background:var(--primary);color:#fff;border:none;font-size:1rem;font-weight:700;cursor:pointer;font-family:inherit">Save and continue</button>
       </div>
     </div>
 
@@ -769,7 +774,8 @@
     const ALL_VIEWS = ['view-profile-complete', 'view-address-setup', 'view-restaurants', 'view-menu', 'view-basket', 'view-orders', 'view-account'];
     function showView(id) {
       ALL_VIEWS.forEach(v => {
-        document.getElementById(v).style.display = v === id ? (v === 'view-profile-complete' ? 'flex' : 'block') : 'none';
+        const _flexViews = ['view-profile-complete', 'view-address-setup'];
+      document.getElementById(v).style.display = v === id ? (_flexViews.includes(v) ? 'flex' : 'block') : 'none';
       });
       if (id === 'view-address-setup' && addrMap) setTimeout(() => addrMap.resize(), 80);
       if (id === 'view-orders' && trackingMap) setTimeout(() => trackingMap.resize(), 80);
