@@ -334,8 +334,15 @@
       setAuthMethod(authMethod === 'phone' ? 'email' : 'phone');
     });
 
-    document.getElementById('google-btn').addEventListener('click', () => {
-      alert('Google sign-in coming soon!');
+    document.getElementById('google-btn').addEventListener('click', async () => {
+      const { error } = await sb.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: window.location.origin + '/home.html' }
+      });
+      if (error) {
+        const errorEl = document.getElementById('email-error');
+        errorEl.textContent = 'Google sign-in is not yet enabled. Please use email or phone.';
+      }
     });
 
     async function requestCode() {
@@ -360,7 +367,17 @@
       }
 
       btn.disabled = false; btn.textContent = 'Continue';
-      if (error) { errorEl.textContent = error.message; return; }
+      if (error) {
+        const raw = error.message || '';
+        if (!raw || raw === '{}' || raw === '[object Object]' || raw.toLowerCase().includes('rate limit') || raw.toLowerCase().includes('email rate')) {
+          errorEl.textContent = 'Could not send a code right now. Please wait a minute and try again, or sign in with Google.';
+        } else if (raw.toLowerCase().includes('unverified') || raw.toLowerCase().includes('twilio')) {
+          errorEl.textContent = 'SMS could not be delivered to this number. Please use email or Google to sign in instead.';
+        } else {
+          errorEl.textContent = raw;
+        }
+        return;
+      }
       document.getElementById('step-email').style.display = 'none';
       document.getElementById('step-otp').style.display = 'block';
       document.querySelectorAll('.otp-box')[0].focus();
