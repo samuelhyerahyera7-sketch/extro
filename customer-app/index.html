@@ -337,7 +337,7 @@
     document.getElementById('google-btn').addEventListener('click', async () => {
       const { error } = await sb.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: window.location.origin + '/customer-app/home' }
+        options: { redirectTo: window.location.origin + '/home' }
       });
       if (error) {
         const errorEl = document.getElementById('email-error');
