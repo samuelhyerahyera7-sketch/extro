@@ -226,7 +226,7 @@
           name: 'Garlic Bread (4 slices)',
           description: 'Toasted ciabatta slathered with herb butter and roasted garlic. Perfect to share',
           price: 39.90, available: true,
-          photo_url: 'https://images.unsplash.com/photo-1573140247632-f8fd74997d5c?w=320&h=200&fit=crop',
+          photo_url: 'https://images.unsplash.com/photo-1586511925558-a4c6376fe65f?w=320&h=200&fit=crop',
           created_at: t,
           extras: [
             { name: 'Add mozzarella', price: 20 },
