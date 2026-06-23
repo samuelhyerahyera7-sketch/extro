@@ -1299,8 +1299,8 @@
 
     document.getElementById('cart-btn').addEventListener('click', openBasket);
     document.getElementById('basket-back-btn').addEventListener('click', () => showView(_basketReturnView));
-    document.getElementById('back-to-restaurants').addEventListener('click', () => showView('view-restaurants'));
-    document.getElementById('back-to-restaurants-2').addEventListener('click', () => showView('view-restaurants'));
+    document.getElementById('back-to-restaurants')?.addEventListener('click', () => showView('view-restaurants'));
+    document.getElementById('back-to-restaurants-2')?.addEventListener('click', () => showView('view-restaurants'));
 
     function submitPayfastForm(url, fields) {
       const form = document.createElement('form');
