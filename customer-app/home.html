@@ -411,8 +411,29 @@
         <span id="tracking-eta-text">Estimating arrival…</span>
       </div>
 
-      <!-- Progress bar -->
-      <div id="tracking-progress-bar" style="display:flex;gap:5px;margin-bottom:20px"></div>
+      <!-- Phase stepper -->
+      <div style="display:flex;align-items:flex-start;margin-bottom:22px">
+
+        <div style="display:flex;flex-direction:column;align-items:center;flex:0 0 auto;width:64px">
+          <div id="ts-bubble-1" style="width:46px;height:46px;border-radius:50%;background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-size:1.3rem;transition:background 0.3s">🍳</div>
+          <div id="ts-label-1" style="font-size:0.68rem;font-weight:700;color:#9ca3af;margin-top:5px;text-align:center;line-height:1.2">Preparing</div>
+        </div>
+
+        <div id="ts-line-1" style="flex:1;height:3px;background:#e5e7eb;margin-top:23px;border-radius:2px;transition:background 0.3s"></div>
+
+        <div style="display:flex;flex-direction:column;align-items:center;flex:0 0 auto;width:64px">
+          <div id="ts-bubble-2" style="width:46px;height:46px;border-radius:50%;background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-size:1.3rem;transition:background 0.3s">📦</div>
+          <div id="ts-label-2" style="font-size:0.68rem;font-weight:700;color:#9ca3af;margin-top:5px;text-align:center;line-height:1.2">Collecting</div>
+        </div>
+
+        <div id="ts-line-2" style="flex:1;height:3px;background:#e5e7eb;margin-top:23px;border-radius:2px;transition:background 0.3s"></div>
+
+        <div style="display:flex;flex-direction:column;align-items:center;flex:0 0 auto;width:64px">
+          <div id="ts-bubble-3" style="width:46px;height:46px;border-radius:50%;background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-size:1.3rem;transition:background 0.3s">🚲</div>
+          <div id="ts-label-3" style="font-size:0.68rem;font-weight:700;color:#9ca3af;margin-top:5px;text-align:center;line-height:1.2">On the way</div>
+        </div>
+
+      </div>
 
       <!-- Driver card (shown once driver assigned) -->
       <div id="tracking-driver-card" style="display:none;margin-bottom:16px;padding:14px;background:#f9fafb;border-radius:16px">
@@ -1250,25 +1271,70 @@
     }
 
     function renderTrackingSheet(order) {
-      const steps = ['pending', 'accepted', 'preparing', 'ready', 'picked_up', 'delivered'];
-      const idx = steps.indexOf(order.status);
-
       const headings = {
-        pending:    'Waiting for restaurant…',
-        accepted:   'Restaurant accepted your order',
-        preparing:  'Your food is being prepared 🍳',
-        ready:      'Order ready — driver collecting',
-        picked_up:  "On the way! 🚲",
-        delivered:  'Delivered! 🎉',
+        pending:   'Waiting for restaurant…',
+        accepted:  'Restaurant accepted your order',
+        preparing: 'Your food is being prepared',
+        ready:     'Order ready — driver collecting',
+        picked_up: 'On the way to you!',
+        delivered: 'Delivered! 🎉',
       };
       const heading = document.getElementById('tracking-status-heading');
       if (heading) heading.textContent = headings[order.status] || order.status;
 
-      const bar = document.getElementById('tracking-progress-bar');
-      if (bar) {
-        bar.innerHTML = steps.map((s, i) =>
-          `<div style="flex:1;height:5px;border-radius:3px;background:${i <= idx ? '#ff5a3c' : '#e5e7eb'};transition:background 0.3s"></div>`
-        ).join('');
+      // Phase stepper: 1=Preparing 2=Collecting 3=On the way
+      const phaseMap = {
+        pending:   1, accepted: 1, preparing: 1,
+        ready:     2,
+        picked_up: 3,
+        delivered: 4,
+      };
+      const activePhase = phaseMap[order.status] ?? 1;
+      const ORANGE = '#ff5a3c', GREY = '#e5e7eb', DONE = '#16a34a';
+      const CHECK = '✓';
+
+      function setBubble(n, state) {
+        const emojis = { 1: '🍳', 2: '📦', 3: '🚲' };
+        const labels = { 1: 'Preparing', 2: 'Collecting', 3: 'On the way' };
+        const bubble = document.getElementById(`ts-bubble-${n}`);
+        const label  = document.getElementById(`ts-label-${n}`);
+        if (!bubble) return;
+        if (state === 'done') {
+          bubble.style.background = DONE;
+          bubble.style.fontSize = '1.1rem';
+          bubble.textContent = CHECK;
+          bubble.style.color = '#fff';
+          if (label) { label.style.color = DONE; }
+        } else if (state === 'active') {
+          bubble.style.background = ORANGE;
+          bubble.style.fontSize = '1.3rem';
+          bubble.textContent = emojis[n];
+          bubble.style.color = '';
+          if (label) { label.style.color = ORANGE; }
+        } else {
+          bubble.style.background = GREY;
+          bubble.style.fontSize = '1.3rem';
+          bubble.textContent = emojis[n];
+          bubble.style.color = '';
+          if (label) { label.style.color = '#9ca3af'; }
+        }
+      }
+
+      function setLine(n, active) {
+        const line = document.getElementById(`ts-line-${n}`);
+        if (line) line.style.background = active ? ORANGE : GREY;
+      }
+
+      if (activePhase >= 4) {
+        // delivered — all done
+        setBubble(1, 'done'); setBubble(2, 'done'); setBubble(3, 'done');
+        setLine(1, true); setLine(2, true);
+      } else {
+        for (let n = 1; n <= 3; n++) {
+          setBubble(n, n < activePhase ? 'done' : n === activePhase ? 'active' : 'idle');
+        }
+        setLine(1, activePhase > 1);
+        setLine(2, activePhase > 2);
       }
 
       if (order.status === 'picked_up') {
