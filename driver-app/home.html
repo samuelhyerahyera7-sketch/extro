@@ -188,6 +188,13 @@
         <h2 class="section-title" style="margin:0">Current delivery</h2>
       </div>
       <div id="active-order-card"></div>
+      <div id="route-info" style="display:none;margin:0 20px 8px;background:#1a1d29;color:#fff;border-radius:12px;padding:10px 16px;display:flex;align-items:center;gap:10px;font-size:0.82rem;font-weight:600">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#ff5a3c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span id="route-eta">Calculating route…</span>
+        <span style="color:#6b7280;margin:0 2px">·</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+        <span id="route-dist" style="color:#9ca3af"></span>
+      </div>
       <div id="active-map" class="active-map"></div>
     </div>
 
@@ -327,6 +334,8 @@
   let pickupMarker = null;
   let dropMarker = null;
   let routePolyline = null;
+  let routeLayer = null;
+  let routeUpdateTimer = null;
   let poolChannel = null;
   let knownPoolIds = new Set();
   let driverLat = null;
@@ -850,8 +859,9 @@
     if (!activeMap) {
       const lat = driverLat ?? o.restaurants?.lat ?? -25.75;
       const lng = driverLng ?? o.restaurants?.lng ?? 28.19;
-      activeMap = L.map('active-map', { zoomControl: true }).setView([lat, lng], 14);
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { attribution: '© OpenStreetMap © CARTO', maxZoom: 19 }).addTo(activeMap);
+      activeMap = L.map('active-map', { zoomControl: false, attributionControl: false }).setView([lat, lng], 14);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(activeMap);
+      L.control.zoom({ position: 'bottomright' }).addTo(activeMap);
     } else { activeMap.invalidateSize(); }
 
     if (driverLat && driverLng && !driverMarker)
@@ -860,7 +870,9 @@
       pickupMarker = L.marker([o.restaurants.lat, o.restaurants.lng], { icon: PICKUP_ICON }).addTo(activeMap).bindPopup(`Pickup: ${o.restaurants.name || 'Restaurant'}`);
     if (o.delivery_lat && o.delivery_lng && !dropMarker)
       dropMarker = L.marker([o.delivery_lat, o.delivery_lng], { icon: DROP_ICON }).addTo(activeMap).bindPopup(`Drop-off: ${o.delivery_address || ''}`);
+
     fitMapBounds();
+    updateRoute();
   }
 
   function updateDriverMarker() {
@@ -869,24 +881,81 @@
       driverMarker = L.marker([driverLat, driverLng], { icon: DRIVER_ICON, zIndexOffset: 1000 }).addTo(activeMap).bindPopup('You');
     else driverMarker.setLatLng([driverLat, driverLng]);
     fitMapBounds();
+    scheduleRouteUpdate();
   }
 
   function fitMapBounds() {
     if (!activeMap) return;
+    const relevant = activeOrder?.status === 'picked_up'
+      ? [driverMarker, dropMarker]
+      : [driverMarker, pickupMarker];
+    const points = relevant.filter(Boolean).map(m => m.getLatLng());
+    if (points.length > 1) activeMap.fitBounds(L.latLngBounds(points), { padding: [60, 60], maxZoom: 16, animate: true });
+    else if (points.length === 1) activeMap.panTo(points[0], { animate: true });
+  }
+
+  async function fetchRoute(fromLat, fromLng, toLat, toLng) {
+    try {
+      const url = `https://router.project-osrm.org/route/v1/driving/${fromLng},${fromLat};${toLng},${toLat}?overview=full&geometries=geojson`;
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data.code === 'Ok' ? data.routes[0] : null;
+    } catch (_) { return null; }
+  }
+
+  async function updateRoute() {
+    if (!activeMap || !activeOrder) return;
     const src  = driverMarker?.getLatLng();
-    const dest = activeOrder?.status === 'picked_up' ? dropMarker?.getLatLng() : (pickupMarker?.getLatLng() ?? dropMarker?.getLatLng());
-    if (src && dest) {
-      if (!routePolyline) routePolyline = L.polyline([src, dest], { color: '#ff5722', weight: 3, dashArray: '8 6', opacity: 0.85 }).addTo(activeMap);
-      else routePolyline.setLatLngs([src, dest]);
+    const dest = activeOrder.status === 'picked_up' ? dropMarker?.getLatLng() : pickupMarker?.getLatLng();
+    if (!src || !dest) return;
+
+    // Show info bar immediately with loading state
+    const infoEl = document.getElementById('route-info');
+    if (infoEl) infoEl.style.display = 'flex';
+    const etaEl  = document.getElementById('route-eta');
+    const distEl = document.getElementById('route-dist');
+    if (etaEl) etaEl.textContent = 'Calculating…';
+    if (distEl) distEl.textContent = '';
+
+    // Clear old route layers
+    if (routeLayer)    { activeMap.removeLayer(routeLayer);    routeLayer = null; }
+    if (routePolyline) { activeMap.removeLayer(routePolyline); routePolyline = null; }
+
+    const route = await fetchRoute(src.lat, src.lng, dest.lat, dest.lng);
+    if (route?.geometry) {
+      routeLayer = L.geoJSON(route.geometry, {
+        style: { color: '#ff5a3c', weight: 5, opacity: 0.9, lineCap: 'round', lineJoin: 'round' },
+      }).addTo(activeMap);
+
+      const km   = (route.distance / 1000).toFixed(1);
+      const mins = Math.round(route.duration / 60);
+      if (etaEl)  etaEl.textContent  = `~${mins} min`;
+      if (distEl) distEl.textContent = `${km} km`;
+
+      // Fit to actual route bounds
+      activeMap.fitBounds(routeLayer.getBounds(), { padding: [60, 60], maxZoom: 16, animate: true });
+    } else {
+      // Fallback: straight dashed line
+      routePolyline = L.polyline([src, dest], { color: '#ff5a3c', weight: 4, dashArray: '10 8', opacity: 0.8 }).addTo(activeMap);
+      if (etaEl)  etaEl.textContent  = 'Route unavailable';
+      if (distEl) distEl.textContent = '';
+      fitMapBounds();
     }
-    const points = [driverMarker, pickupMarker, dropMarker].filter(Boolean).map(m => m.getLatLng());
-    if (points.length > 1) activeMap.fitBounds(L.latLngBounds(points), { padding: [54, 54], maxZoom: 16 });
-    else if (points.length === 1) activeMap.panTo(points[0]);
+  }
+
+  function scheduleRouteUpdate() {
+    // Debounce: only re-fetch route after driver has been still for 8 s
+    clearTimeout(routeUpdateTimer);
+    routeUpdateTimer = setTimeout(updateRoute, 8000);
   }
 
   function teardownMap() {
+    clearTimeout(routeUpdateTimer);
     if (activeMap) { activeMap.remove(); activeMap = null; }
-    driverMarker = pickupMarker = dropMarker = routePolyline = null;
+    driverMarker = pickupMarker = dropMarker = routePolyline = routeLayer = null;
+    const infoEl = document.getElementById('route-info');
+    if (infoEl) infoEl.style.display = 'none';
   }
 
   // ── Helpers ────────────────────────────────────────────────────
