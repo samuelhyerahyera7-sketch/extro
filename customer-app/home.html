@@ -391,6 +391,58 @@
     </div>
   </div>
 
+  <!-- ── Full-screen tracking overlay ──────────────────────────── -->
+  <div id="tracking-overlay" style="display:none;position:fixed;inset:0;z-index:400;background:#e8e8e8">
+    <!-- Map fills the whole screen -->
+    <div id="tracking-map-full" style="position:absolute;inset:0;z-index:1"></div>
+
+    <!-- Close button -->
+    <button onclick="closeTrackingOverlay()" style="position:absolute;top:16px;left:16px;z-index:30;width:46px;height:46px;border-radius:50%;background:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 14px rgba(0,0,0,0.2)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+
+    <!-- Bottom sheet -->
+    <div style="position:absolute;bottom:0;left:0;right:0;background:#fff;border-radius:24px 24px 0 0;z-index:20;padding:12px 20px 48px;max-height:60vh;overflow-y:auto;box-shadow:0 -4px 32px rgba(0,0,0,0.13)">
+      <div style="width:36px;height:4px;border-radius:2px;background:#e5e7eb;margin:0 auto 18px"></div>
+
+      <h2 id="tracking-status-heading" style="font-size:1.2rem;font-weight:800;margin:0 0 5px;color:#1a1d29">Preparing your order…</h2>
+      <div style="font-size:0.86rem;color:#6b7280;margin:0 0 16px;display:flex;align-items:center;gap:5px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span id="tracking-eta-text">Estimating arrival…</span>
+      </div>
+
+      <!-- Progress bar -->
+      <div id="tracking-progress-bar" style="display:flex;gap:5px;margin-bottom:20px"></div>
+
+      <!-- Driver card (shown once driver assigned) -->
+      <div id="tracking-driver-card" style="display:none;margin-bottom:16px;padding:14px;background:#f9fafb;border-radius:16px">
+        <div style="display:flex;align-items:center;gap:14px">
+          <div id="tracking-driver-avatar" style="width:52px;height:52px;border-radius:50%;background:var(--primary);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:700;color:#fff">?</div>
+          <div style="flex:1;min-width:0">
+            <div id="tracking-driver-name" style="font-weight:700;font-size:0.95rem">Driver</div>
+            <div id="tracking-driver-vehicle" style="font-size:0.8rem;color:#6b7280;margin-top:2px">🚲 Bicycle</div>
+          </div>
+        </div>
+        <div style="margin-top:12px;display:flex;gap:10px">
+          <div style="flex:1;padding:10px 6px;background:#fff;border-radius:12px;text-align:center;border:1.5px solid #e5e7eb">
+            <div style="font-size:1.2rem;margin-bottom:2px">💬</div>
+            <div style="font-size:0.75rem;font-weight:600;color:#374151">Message</div>
+          </div>
+          <div style="flex:1;padding:10px 6px;background:#fff;border-radius:12px;text-align:center;border:1.5px solid #e5e7eb">
+            <div style="font-size:1.2rem;margin-bottom:2px">📞</div>
+            <div style="font-size:0.75rem;font-weight:600;color:#374151">Call</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- QR code block (shown when picked_up) -->
+      <div id="qr-block" style="display:none;text-align:center;margin-bottom:16px;padding:16px;background:#f9fafb;border-radius:16px;border:1.5px solid #e5e7eb">
+        <p style="font-size:0.82rem;color:#6b7280;margin:0 0 12px;font-weight:500">Show this code to your driver to confirm delivery</p>
+        <canvas id="order-qr-canvas" style="border-radius:10px"></canvas>
+      </div>
+    </div>
+  </div>
+
   <!-- ── Driver rating modal ─────────────────────────────────── -->
   <div id="rating-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:700;align-items:flex-end;justify-content:center">
     <div style="background:var(--card);border-radius:22px 22px 0 0;padding:28px 24px 40px;width:100%;max-width:480px;text-align:center">
@@ -1162,68 +1214,103 @@
     }
 
     async function openOrderTracking(orderId) {
-      showView('view-orders');
+      // Show full-screen overlay
+      document.getElementById('tracking-overlay').style.display = 'block';
+      document.body.style.overflow = 'hidden';
+
       const { data: order } = await sb.from('orders').select('*, restaurants(name,lat,lng)').eq('id', orderId).single();
-      renderTracking(order);
+      if (!order) return;
+
+      renderTrackingSheet(order);
+      initTrackingMap(order);
+
+      if (order.driver_id) {
+        fetchDriverInfo(order.driver_id).then(renderDriverCard);
+        subscribeDriverLocation(order.driver_id);
+      }
 
       sb.channel(`order-${orderId}`)
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${orderId}` }, payload => {
-          renderTracking({ ...order, ...payload.new });
-          if (payload.new.driver_id) subscribeDriverLocation(payload.new.driver_id);
+          const updated = { ...order, ...payload.new };
+          renderTrackingSheet(updated);
+          if (payload.new.driver_id && !order.driver_id) {
+            fetchDriverInfo(payload.new.driver_id).then(renderDriverCard);
+            subscribeDriverLocation(payload.new.driver_id);
+          }
         })
         .subscribe();
-
-      if (order.driver_id) subscribeDriverLocation(order.driver_id);
     }
 
-    function renderTracking(order) {
+    function closeTrackingOverlay() {
+      document.getElementById('tracking-overlay').style.display = 'none';
+      document.body.style.overflow = '';
+      if (trackingMap) { trackingMap.remove(); trackingMap = null; trackingMarker = null; routeLine = null; }
+      if (driverChannel) { sb.removeChannel(driverChannel); driverChannel = null; }
+      hideQRBlock();
+    }
+
+    function renderTrackingSheet(order) {
       const steps = ['pending', 'accepted', 'preparing', 'ready', 'picked_up', 'delivered'];
       const idx = steps.indexOf(order.status);
-      const list = document.getElementById('orders-list');
-      const existingMap = document.getElementById('tracking-map');
 
-      // If same order and map already exists: update only status parts — don't destroy the map
-      if (_renderOrderId === order.id && existingMap) {
-        const badge = list.querySelector('.badge');
-        if (badge) { badge.className = `badge badge-${order.status}`; badge.textContent = order.status.replace('_', ' '); }
-        list.querySelectorAll('.status-step').forEach((el, i) => el.classList.toggle('active', i <= idx));
-        if (order.status === 'delivered') {
-          setDriverStatusLabel('✅', 'Order delivered!');
-          hideQRBlock();
-          openRatingModal(order.id, order.driver_id);
-        } else if (order.status === 'picked_up') {
-          showQRBlock(order.id);
-        }
-        return;
+      const headings = {
+        pending:    'Waiting for restaurant…',
+        accepted:   'Restaurant accepted your order',
+        preparing:  'Your food is being prepared 🍳',
+        ready:      'Order ready — driver collecting',
+        picked_up:  "On the way! 🚲",
+        delivered:  'Delivered! 🎉',
+      };
+      const heading = document.getElementById('tracking-status-heading');
+      if (heading) heading.textContent = headings[order.status] || order.status;
+
+      const bar = document.getElementById('tracking-progress-bar');
+      if (bar) {
+        bar.innerHTML = steps.map((s, i) =>
+          `<div style="flex:1;height:5px;border-radius:3px;background:${i <= idx ? '#ff5a3c' : '#e5e7eb'};transition:background 0.3s"></div>`
+        ).join('');
       }
 
-      _renderOrderId = order.id;
-      const showDriver = !!(order.driver_id) || window.DEMO_MODE;
+      if (order.status === 'picked_up') {
+        showQRBlock(order.id);
+      } else {
+        hideQRBlock();
+      }
 
-      list.innerHTML = `
-        <div class="card">
-          <div class="row-between">
-            <strong>${order.restaurants?.name || 'Order'}</strong>
-            <span class="badge badge-${order.status}">${order.status.replace('_', ' ')}</span>
-          </div>
-          <div class="status-track">
-            ${steps.map((s, i) => `<div class="status-step ${i <= idx ? 'active' : ''}">${s.replace('_', ' ')}</div>`).join('')}
-          </div>
-          <div id="qr-block" style="display:${order.status === 'picked_up' ? 'block' : 'none'};text-align:center;padding:16px 0 8px">
-            <p style="font-size:0.82rem;color:var(--muted);margin:0 0 10px">Show this QR code to your driver to confirm delivery</p>
-            <canvas id="order-qr-canvas" style="border-radius:12px"></canvas>
-          </div>
-          ${showDriver ? `
-          <div id="driver-status-label" style="display:flex;align-items:center;gap:8px;margin-top:14px;padding:10px 14px;background:var(--bg);border-radius:10px;font-size:0.82rem;font-weight:600;color:var(--ink)">
-            <span id="driver-status-icon" style="font-size:1.1rem">🚲</span>
-            <span id="driver-status-text">Driver is collecting your order</span>
-          </div>
-          <div id="tracking-map" style="height:260px;border-radius:12px;margin-top:8px;overflow:hidden"></div>` : ''}
-        </div>`;
+      if (order.status === 'delivered') {
+        openRatingModal(order.id, order.driver_id);
+      }
+    }
 
-      if (order.status === 'picked_up') showQRBlock(order.id);
+    async function fetchDriverInfo(driverId) {
+      const [{ data: prof }, { data: drv }] = await Promise.all([
+        sb.from('profiles').select('full_name,first_name,avatar_url').eq('id', driverId).maybeSingle(),
+        sb.from('drivers').select('vehicle_type,avatar_url').eq('id', driverId).maybeSingle(),
+      ]);
+      return {
+        name: prof?.full_name || prof?.first_name || 'Your driver',
+        avatar: drv?.avatar_url || prof?.avatar_url || null,
+        vehicle: drv?.vehicle_type || 'bicycle',
+      };
+    }
 
-      if (showDriver) initTrackingMap(order);
+    function renderDriverCard(info) {
+      if (!info) return;
+      const card = document.getElementById('tracking-driver-card');
+      const avatarEl = document.getElementById('tracking-driver-avatar');
+      const nameEl = document.getElementById('tracking-driver-name');
+      const vehicleEl = document.getElementById('tracking-driver-vehicle');
+      if (!card) return;
+
+      const vehicleEmoji = { car: '🚗', motorbike: '🛵', bicycle: '🚲' }[info.vehicle] || '🚲';
+      const vehicleLabel = { car: 'Car', motorbike: 'Motorbike', bicycle: 'Bicycle' }[info.vehicle] || 'Bicycle';
+
+      if (avatarEl) avatarEl.innerHTML = info.avatar
+        ? `<img src="${info.avatar}" style="width:100%;height:100%;object-fit:cover">`
+        : (info.name[0] || '?').toUpperCase();
+      if (nameEl) nameEl.textContent = info.name;
+      if (vehicleEl) vehicleEl.textContent = `${vehicleEmoji} ${vehicleLabel}`;
+      card.style.display = 'block';
     }
 
     function makeDriverIcon(type) {
@@ -1247,8 +1334,9 @@
     async function initTrackingMap(order) {
       trackedOrder = order;
       if (trackingMap) { trackingMap.remove(); trackingMap = null; trackingMarker = null; routeLine = null; }
-      trackingMap = L.map('tracking-map').setView([order.delivery_lat || -25.75, order.delivery_lng || 28.19], 14);
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { attribution: '© OpenStreetMap © CARTO', maxZoom: 19 }).addTo(trackingMap);
+      trackingMap = L.map('tracking-map-full', { zoomControl: false, attributionControl: false }).setView([order.delivery_lat || -25.75, order.delivery_lng || 28.19], 14);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(trackingMap);
+      L.control.zoom({ position: 'bottomright' }).addTo(trackingMap);
 
       setTimeout(() => trackingMap && trackingMap.invalidateSize(), 200);
 
@@ -1290,10 +1378,25 @@
         const url = `https://router.project-osrm.org/route/v1/driving/${fromLng},${fromLat};${toLng},${toLat}?overview=full&geometries=geojson`;
         const res = await fetch(url);
         const data = await res.json();
-        const coords = data.routes?.[0]?.geometry?.coordinates;
-        if (coords?.length > 1) return coords.map(([lng, lat]) => [lat, lng]);
+        const route = data.routes?.[0];
+        if (route?.geometry?.coordinates?.length > 1) {
+          return {
+            coords: route.geometry.coordinates.map(([lng, lat]) => [lat, lng]),
+            durationMins: Math.round(route.duration / 60),
+          };
+        }
       } catch (_) {}
-      return [[fromLat, fromLng], [toLat, toLng]];
+      return { coords: [[fromLat, fromLng], [toLat, toLng]], durationMins: null };
+    }
+
+    function setETA(durationMins) {
+      const el = document.getElementById('tracking-eta-text');
+      if (!el) return;
+      if (durationMins == null) { el.textContent = 'Estimating arrival…'; return; }
+      const arrival = new Date(Date.now() + durationMins * 60000);
+      const fmt = t => t.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' });
+      const late = new Date(arrival.getTime() + 5 * 60000);
+      el.textContent = `Arrives ${fmt(arrival)} – ${fmt(late)}`;
     }
 
     function placeDriverOnMap(lat, lng, order, icon, precomputedRoute) {
@@ -1306,32 +1409,29 @@
       }
 
       if (precomputedRoute) {
-        // Use road-following route provided by caller (demo simulation)
         if (!routeLine) {
-          routeLine = L.polyline(precomputedRoute, { color: '#ff5722', weight: 4, opacity: 0.85 }).addTo(trackingMap);
+          routeLine = L.polyline(precomputedRoute, { color: '#ff5a3c', weight: 5, opacity: 0.9 }).addTo(trackingMap);
         }
         trackingMap.panTo(latlng, { animate: true, duration: 0.8 });
         return;
       }
 
-      // Live mode: fetch road route async
       if (!order?.delivery_lat) { trackingMap.panTo(latlng); return; }
-      fetchRoadRoute(lat, lng, order.delivery_lat, order.delivery_lng).then(routeCoords => {
+      fetchRoadRoute(lat, lng, order.delivery_lat, order.delivery_lng).then(({ coords, durationMins }) => {
         if (!trackingMap) return;
         if (!routeLine) {
-          routeLine = L.polyline(routeCoords, { color: '#ff5722', weight: 4, opacity: 0.85 }).addTo(trackingMap);
+          routeLine = L.polyline(coords, { color: '#ff5a3c', weight: 5, opacity: 0.9 }).addTo(trackingMap);
         } else {
-          routeLine.setLatLngs(routeCoords);
+          routeLine.setLatLngs(coords);
         }
-        if (routeCoords.length > 1) trackingMap.fitBounds(routeCoords, { padding: [50, 50] });
+        if (coords.length > 1) trackingMap.fitBounds(coords, { padding: [60, 60] });
+        setETA(durationMins);
       });
     }
 
-    function setDriverStatusLabel(icon, text) {
-      const iconEl = document.getElementById('driver-status-icon');
-      const textEl = document.getElementById('driver-status-text');
-      if (iconEl) iconEl.textContent = icon;
-      if (textEl) textEl.textContent = text;
+    function setDriverStatusLabel(emoji, text) {
+      const heading = document.getElementById('tracking-status-heading');
+      if (heading && text) heading.textContent = `${emoji} ${text}`;
     }
 
     function showQRBlock(orderId) {
@@ -1397,12 +1497,13 @@
       setDriverStatusLabel('🚶', 'Driver is collecting your order');
 
       // Fetch the real road route from restaurant → delivery address
-      const routeCoords = await fetchRoadRoute(startLat, startLng, endLat, endLng);
+      const { coords: routeCoords, durationMins } = await fetchRoadRoute(startLat, startLng, endLat, endLng);
+      setETA(durationMins);
 
       // Draw the full route on the map immediately
       if (routeLine) { routeLine.remove(); routeLine = null; }
-      routeLine = L.polyline(routeCoords, { color: '#ff5722', weight: 4, opacity: 0.85 }).addTo(trackingMap);
-      if (routeCoords.length > 1) trackingMap.fitBounds(routeCoords, { padding: [50, 50] });
+      routeLine = L.polyline(routeCoords, { color: '#ff5a3c', weight: 5, opacity: 0.9 }).addTo(trackingMap);
+      if (routeCoords.length > 1) trackingMap.fitBounds(routeCoords, { padding: [60, 60] });
 
       const total = routeCoords.length;
       let step = 0;
