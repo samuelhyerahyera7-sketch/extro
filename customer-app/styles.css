@@ -887,8 +887,15 @@ a { color: var(--primary); text-decoration: none; }
 }
 
 /* Onboarding flow */
-.ob-dot { height: 4px; flex: 1; border-radius: 2px; background: var(--border); transition: background 0.25s; }
-.ob-dot--on { background: var(--ink); }
-.ob-input { width: 100%; padding: 15px 14px; border: 2px solid var(--border); border-radius: 14px; font-size: 1rem; font-family: inherit; color: var(--ink); background: #fff; outline: none; box-sizing: border-box; }
-.ob-input:focus { border-color: var(--ink); }
-.ob-back-btn { width: 52px; height: 52px; border-radius: 50%; border: 2px solid var(--border); background: #fff; font-size: 1.3rem; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--ink); }
+.ob-dot { height: 5px; flex: 1; border-radius: 3px; background: var(--border); transition: background 0.3s; }
+.ob-dot--on { background: var(--primary); }
+.ob-title { font-size: 1.85rem; font-weight: 900; line-height: 1.2; color: var(--ink); margin: 0; }
+.ob-input { width: 100%; padding: 14px 14px; border: 2px solid var(--border); border-radius: 14px; font-size: 1rem; font-family: inherit; color: var(--ink); background: #fff; outline: none; box-sizing: border-box; transition: border-color 0.2s; }
+.ob-input:focus { border-color: var(--primary); }
+.ob-phone-wrap { display: flex; border: 2px solid var(--border); border-radius: 14px; overflow: hidden; transition: border-color 0.2s; }
+.ob-phone-wrap:focus-within { border-color: var(--primary); }
+.ob-phone-flag { display: flex; align-items: center; padding: 0 14px; gap: 7px; background: #f7f8fa; border-right: 2px solid var(--border); flex-shrink: 0; }
+.ob-btn-primary { background: var(--primary); color: #fff; border: none; border-radius: 100px; padding: 16px 28px; font-size: 1rem; font-weight: 700; cursor: pointer; font-family: inherit; transition: background 0.2s; }
+.ob-btn-primary:hover { background: var(--primary-dark); }
+.ob-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+.ob-btn-back { background: #fff; border: 2px solid var(--border); border-radius: 100px; padding: 14px 22px; font-size: 0.95rem; font-weight: 600; cursor: pointer; color: var(--muted); font-family: inherit; }
