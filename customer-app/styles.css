@@ -314,11 +314,11 @@ a { color: var(--primary); text-decoration: none; }
 .cart-bar {
   position: fixed; bottom: calc(72px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%);
   width: calc(100% - 40px); max-width: calc(var(--shell-width) - 40px);
-  background: var(--ink); color: #fff; border-radius: 14px;
-  padding: 14px 18px; display: flex; align-items: center; justify-content: space-between;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.25); z-index: 40; font-size: 0.88rem; font-weight: 600;
+  background: var(--ink); color: #fff; border-radius: 100px;
+  padding: 14px 24px; display: flex; align-items: center; justify-content: center; gap: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25); z-index: 40; font-size: 0.95rem; font-weight: 700;
+  border: none; cursor: pointer; font-family: inherit;
 }
-.cart-bar .btn-primary { background: var(--primary); }
 
 /* ── Driver header (status + online switch) ───────────────── */
 .driver-header { padding: 18px 20px; border-bottom: 1px solid var(--border); }
@@ -760,14 +760,32 @@ a { color: var(--primary); text-decoration: none; }
   -webkit-box-orient: vertical; overflow: hidden;
 }
 .menu-card-price { font-size: 0.9rem; font-weight: 800; margin: 0; }
-.menu-card-add {
+.menu-card-btn-wrap {
   position: absolute; bottom: 8px; right: 8px;
+}
+.menu-card-add {
   width: 32px; height: 32px; border-radius: 50%;
   background: var(--primary); color: #fff; border: none;
   font-size: 1.4rem; font-weight: 700;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer; box-shadow: 0 2px 8px rgba(255,66,20,0.35);
   padding-bottom: 1px; line-height: 1;
+}
+.menu-card-stepper {
+  display: flex; align-items: center;
+  background: var(--primary); border-radius: 100px;
+  box-shadow: 0 2px 8px rgba(255,66,20,0.35);
+  overflow: hidden; height: 32px;
+}
+.mcst-btn {
+  width: 30px; height: 32px; border: none; background: none;
+  color: #fff; font-size: 1.15rem; font-weight: 700;
+  cursor: pointer; padding: 0; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+}
+.menu-card-stepper span {
+  color: #fff; font-size: 0.85rem; font-weight: 800;
+  min-width: 20px; text-align: center;
 }
 
 /* ── Item sheet photo header ──────────────────────────────── */

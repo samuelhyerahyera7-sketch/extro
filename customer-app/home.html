@@ -540,13 +540,10 @@
       </button>
     </nav>
 
-    <div class="cart-bar" id="cart-bar" style="display:none">
-      <span id="cart-bar-text">0 items</span>
-      <button class="btn btn-primary btn-sm" id="cart-btn">
-        View cart
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-      </button>
-    </div>
+    <button class="cart-bar" id="cart-bar" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+      <span id="cart-bar-text">View basket · 0</span>
+    </button>
   </div>
 
   <!-- Item detail sheet -->
@@ -1365,7 +1362,39 @@
       return keys.some(k => name.includes(k));
     }
 
+    let _isGrocery = false;
+
+    function menuCardAddBtn(itemId) {
+      const qty = cart.reduce((s, c) => String(c.item.id) === String(itemId) ? s + c.qty : s, 0);
+      if (_isGrocery && qty > 0) {
+        return `<div class="menu-card-stepper"><button class="mcst-btn mcst-dec" data-item="${itemId}">−</button><span>${qty}</span><button class="mcst-btn mcst-inc" data-item="${itemId}">+</button></div>`;
+      }
+      return `<button class="menu-card-add">+</button>`;
+    }
+
+    function groceryQty(itemId, delta) {
+      const idx = cart.findIndex(c => String(c.item.id) === String(itemId));
+      if (idx >= 0) {
+        cart[idx].qty += delta;
+        if (cart[idx].qty <= 0) cart.splice(idx, 1);
+      } else if (delta > 0) {
+        const item = menuItems.find(i => String(i.id) === String(itemId));
+        if (item) cart.push({ item, qty: 1, note: '', extras: [] });
+      }
+      renderCart();
+      const wrap = document.querySelector(`.menu-card-btn-wrap[data-item="${itemId}"]`);
+      if (wrap) wrap.innerHTML = menuCardAddBtn(itemId);
+    }
+
+    function refreshGroceryBtns() {
+      if (!_isGrocery) return;
+      document.querySelectorAll('.menu-card-btn-wrap[data-item]').forEach(wrap => {
+        wrap.innerHTML = menuCardAddBtn(wrap.dataset.item);
+      });
+    }
+
     function renderMenuGrid() {
+      _isGrocery = (currentRestaurant?.category || '').toLowerCase().includes('grocer');
       const filtered = menuItems.filter(it => itemMatchesCat(it, _menuCategory));
       const list = document.getElementById('menu-list');
       if (!filtered.length) {
@@ -1381,15 +1410,23 @@
             <p class="menu-card-name">${item.name}</p>
             <p class="menu-card-price">R${Number(item.price).toFixed(2)}</p>
           </div>
-          <button class="menu-card-add" data-open="${item.id}" aria-label="Add ${item.name}">+</button>
+          <div class="menu-card-btn-wrap" data-item="${item.id}">${menuCardAddBtn(item.id)}</div>
         </div>`).join('')}</div>`;
 
-      list.querySelectorAll('.menu-card').forEach(el => {
-        el.addEventListener('click', () => openItemSheet(el.dataset.open));
-      });
-      list.querySelectorAll('.menu-card-add').forEach(el => {
-        el.addEventListener('click', e => { e.stopPropagation(); openItemSheet(el.dataset.open); });
-      });
+      list.onclick = e => {
+        const wrap = e.target.closest('.menu-card-btn-wrap');
+        if (wrap) {
+          e.stopPropagation();
+          const id = wrap.dataset.item;
+          if (e.target.closest('.mcst-dec')) { groceryQty(e.target.closest('.mcst-dec').dataset.item, -1); return; }
+          if (e.target.closest('.mcst-inc')) { groceryQty(e.target.closest('.mcst-inc').dataset.item, 1); return; }
+          if (_isGrocery) { groceryQty(id, 1); return; }
+          openItemSheet(id);
+          return;
+        }
+        const card = e.target.closest('.menu-card');
+        if (card) openItemSheet(card.dataset.open);
+      };
     }
 
     // ── Item detail sheet ──────────────────────────────────────
@@ -1548,7 +1585,7 @@
 
       // Floating bar
       document.getElementById('cart-bar').style.display = count ? 'flex' : 'none';
-      document.getElementById('cart-bar-text').textContent = `${count} item${count === 1 ? '' : 's'} · ${money(subtotal)}`;
+      document.getElementById('cart-bar-text').textContent = `View basket · ${count}`;
 
       // Basket view counts + totals
       const badge = document.getElementById('basket-count-badge');
@@ -1593,6 +1630,7 @@
       const savedStreet = currentAddress?.street_address || '';
       const bdAddr = document.getElementById('basket-delivery-address');
       if (bdAddr && !bdAddr.value && savedStreet) bdAddr.value = savedStreet;
+      refreshGroceryBtns();
     }
 
     let _basketReturnView = 'view-menu';
@@ -1602,7 +1640,7 @@
       showView('view-basket');
     }
 
-    document.getElementById('cart-btn').addEventListener('click', openBasket);
+    document.getElementById('cart-bar').addEventListener('click', openBasket);
     document.getElementById('basket-back-btn').addEventListener('click', () => showView(_basketReturnView));
     document.getElementById('back-to-restaurants')?.addEventListener('click', () => showView('view-restaurants'));
     document.getElementById('back-to-restaurants-2')?.addEventListener('click', () => showView('view-restaurants'));
