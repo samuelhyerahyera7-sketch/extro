@@ -454,23 +454,51 @@
         <h2>Checkout</h2>
       </div>
 
-      <!-- Restaurant name strip -->
-      <div id="co-rest-name" style="padding:10px 20px;background:var(--bg);font-size:0.82rem;font-weight:600;color:var(--muted);border-bottom:1px solid var(--border)"></div>
+      <!-- Map -->
+      <div style="position:relative;height:clamp(160px,28vh,220px);background:#e8e8e8;overflow:hidden;flex-shrink:0">
+        <div id="co-map" style="position:absolute;inset:0"></div>
+        <button id="co-edit-pin-btn" style="position:absolute;bottom:12px;left:50%;transform:translateX(-50%);background:#fff;border:none;border-radius:100px;padding:8px 16px;font-size:0.82rem;font-weight:700;color:var(--ink);box-shadow:0 2px 12px rgba(0,0,0,0.18);cursor:pointer;font-family:inherit;z-index:1;display:flex;align-items:center;gap:6px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M12 22s7-7.58 7-12a7 7 0 1 0-14 0c0 4.42 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg>
+          Edit pin
+        </button>
+      </div>
 
-      <!-- Delivery address -->
-      <div style="background:#fff;border-bottom:1px solid var(--border)">
-        <div id="co-change-addr" style="display:flex;align-items:center;gap:14px;padding:16px 20px;cursor:pointer">
-          <div style="width:42px;height:42px;border-radius:50%;background:#fff8f6;border:2px solid var(--primary);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-            <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M12 22s7-7.58 7-12a7 7 0 1 0-14 0c0 4.42 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg>
-          </div>
-          <div style="flex:1;min-width:0">
-            <div style="font-size:0.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px">Deliver to</div>
-            <div id="co-addr-main" style="font-size:0.97rem;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Loading…</div>
-            <div id="co-addr-sub" style="font-size:0.8rem;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
-          </div>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="15" height="15" style="color:var(--muted);flex-shrink:0"><polyline points="9 18 15 12 9 6"/></svg>
+      <!-- Delivery address row -->
+      <div id="co-change-addr" style="display:flex;align-items:center;gap:14px;padding:16px 20px;background:#fff;border-bottom:1px solid var(--border);cursor:pointer">
+        <div style="width:42px;height:42px;border-radius:50%;background:#fff8f6;border:2px solid var(--primary);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M12 22s7-7.58 7-12a7 7 0 1 0-14 0c0 4.42 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:0.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px">Deliver to</div>
+          <div id="co-addr-main" style="font-size:0.97rem;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Loading…</div>
+          <div id="co-addr-sub" style="font-size:0.8rem;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+        </div>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="15" height="15" style="color:var(--muted);flex-shrink:0"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+
+      <!-- Phone number row -->
+      <div style="display:flex;align-items:center;gap:14px;padding:16px 20px;background:#fff;border-bottom:1px solid var(--border)">
+        <div style="width:42px;height:42px;border-radius:50%;background:#f0fdf4;border:2px solid #16a34a;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.62 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6.29 6.29l.97-.97a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:0.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px">Contact number</div>
+          <input id="co-phone" type="tel" placeholder="Add phone number" style="font-size:0.97rem;font-weight:700;color:var(--ink);border:none;background:none;outline:none;font-family:inherit;width:100%;padding:0">
         </div>
       </div>
+
+      <!-- Estimated delivery row -->
+      <div style="display:flex;align-items:center;gap:14px;padding:16px 20px;background:#fff;border-bottom:1px solid var(--border)">
+        <div style="width:42px;height:42px;border-radius:50%;background:#eff6ff;border:2px solid #3b82f6;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div style="flex:1">
+          <div style="font-size:0.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px">Estimated delivery</div>
+          <div id="co-delivery-time" style="font-size:0.97rem;font-weight:700;color:var(--ink)">25–40 min</div>
+        </div>
+      </div>
+
+      <div style="height:8px;background:var(--bg)"></div>
 
       <!-- Order note -->
       <div style="background:#fff;border-bottom:1px solid var(--border);padding:16px 20px">
@@ -483,7 +511,8 @@
       <!-- Order summary -->
       <div style="background:#fff;padding:16px 20px">
         <div style="font-weight:800;font-size:1rem;color:var(--ink);margin-bottom:2px">Order summary</div>
-        <div id="co-items-list" style="margin-top:10px"></div>
+        <div id="co-rest-name" style="font-size:0.82rem;color:var(--muted);margin-bottom:4px"></div>
+        <div id="co-items-list" style="margin-top:8px"></div>
         <div style="border-top:1px solid var(--border);margin-top:6px;padding-top:14px">
           <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:0.9rem">
             <span style="color:var(--muted)">Subtotal</span><strong id="co-subtotal">R0.00</strong>
@@ -778,6 +807,8 @@
     let searchText = '';
     let currentAddress = null;
     let addrMap = null;
+    let coMap = null;
+    let coMarker = null;
     // ── Mapbox (tracking map only — address map stays on Leaflet/OSM) ──
     const MAPBOX_TOKEN = 'pk.eyJ1Ijoic2FtdWVsaHllcmEiLCJhIjoiY21xcTB3ZTFtMGM4cjJycXpwdzJjcjZybyJ9.CtfDvvXoS6_ueR6OMXyzhA';
     let _mapboxLoaded = false;
@@ -1776,9 +1807,13 @@
       const subtotal = cart.reduce((s, c) => s + cartEntryPrice(c) * c.qty, 0);
       const fee = deliveryFee();
       const total = subtotal + fee;
-      document.getElementById('co-rest-name').textContent = currentRestaurant?.name || '';
+      document.getElementById('co-rest-name').textContent = `Ordering from ${currentRestaurant?.name || 'restaurant'}`;
       document.getElementById('co-addr-main').textContent = currentAddress?.street_address || 'No address saved';
       document.getElementById('co-addr-sub').textContent = [currentAddress?.suburb, currentAddress?.city].filter(Boolean).join(', ');
+      const phoneEl = document.getElementById('co-phone');
+      if (phoneEl && !phoneEl.value) phoneEl.value = profile?.phone || '';
+      const prepTime = currentRestaurant?.prep_time_minutes;
+      document.getElementById('co-delivery-time').textContent = prepTime ? `${prepTime}–${prepTime + 15} min` : '25–40 min';
       document.getElementById('co-subtotal').textContent = money(subtotal);
       document.getElementById('co-fee').textContent = money(fee);
       document.getElementById('co-total').textContent = money(total);
@@ -1789,11 +1824,38 @@
           <span style="font-weight:700;font-size:0.9rem;flex-shrink:0">${money(cartEntryPrice(c) * c.qty)}</span>
         </div>`).join('');
       showView('view-checkout');
+      setTimeout(async () => {
+        if (typeof mapboxgl === 'undefined') await loadMapbox();
+        mapboxgl.accessToken = MAPBOX_TOKEN;
+        const lng = addrLng || 18.4241;
+        const lat = addrLat || -33.9249;
+        if (!coMap) {
+          coMap = new mapboxgl.Map({
+            container: 'co-map',
+            style: 'mapbox://styles/mapbox/streets-v12',
+            center: [lng, lat], zoom: 15,
+            attributionControl: false,
+            interactive: false,
+          });
+          coMap.on('load', () => {
+            coMarker = new mapboxgl.Marker({ color: '#ff4214' }).setLngLat([lng, lat]).addTo(coMap);
+          });
+        } else {
+          coMap.resize();
+          coMap.jumpTo({ center: [lng, lat], zoom: 15 });
+          if (coMarker) coMarker.setLngLat([lng, lat]);
+        }
+      }, 80);
     }
 
     document.getElementById('basket-checkout-btn').addEventListener('click', openCheckout);
     document.getElementById('checkout-btn')?.addEventListener('click', openCheckout);
     document.getElementById('co-back-btn').addEventListener('click', () => showView('view-basket'));
+    document.getElementById('co-edit-pin-btn').addEventListener('click', () => {
+      document.getElementById('addr-back-btn').style.display = 'flex';
+      showView('view-address-setup');
+      if (!addrMap) initAddressMap();
+    });
     document.getElementById('co-change-addr').addEventListener('click', () => {
       document.getElementById('addr-back-btn').style.display = 'flex';
       showView('view-address-setup');
