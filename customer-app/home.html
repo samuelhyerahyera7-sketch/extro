@@ -710,7 +710,7 @@
     </button>
 
     <!-- Bottom sheet -->
-    <div style="position:absolute;bottom:0;left:0;right:0;background:#fff;border-radius:24px 24px 0 0;z-index:20;padding:12px 20px 48px;max-height:60vh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;box-shadow:0 -4px 32px rgba(0,0,0,0.13)">
+    <div style="position:absolute;bottom:0;left:0;right:0;background:#fff;border-radius:24px 24px 0 0;z-index:20;padding:12px 20px 36px;max-height:44vh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;box-shadow:0 -4px 32px rgba(0,0,0,0.13)">
       <div style="width:36px;height:4px;border-radius:2px;background:#e5e7eb;margin:0 auto 18px"></div>
 
       <h2 id="tracking-status-heading" style="font-size:1.2rem;font-weight:800;margin:0 0 5px;color:#1a1d29">Preparing your order…</h2>
@@ -2252,7 +2252,7 @@
           bounds.extend([order.restaurants.lng, order.restaurants.lat]);
           hasBounds = true;
         }
-        if (hasBounds) trackingMap.fitBounds(bounds, { padding: { top: 80, right: 50, bottom: 330, left: 50 }, maxZoom: 15 });
+        if (hasBounds) trackingMap.fitBounds(bounds, { padding: { top: 80, right: 50, bottom: 380, left: 50 }, maxZoom: 15 });
 
         const driverId = order.driver_id || (window.DEMO_MODE ? 'demo-driver' : null);
         if (driverId) {
@@ -2342,7 +2342,7 @@
         if (coords.length > 1) {
           const b = new mapboxgl.LngLatBounds();
           coords.forEach(c => b.extend(c));
-          trackingMap.fitBounds(b, { padding: { top: 80, right: 50, bottom: 330, left: 50 } });
+          trackingMap.fitBounds(b, { padding: { top: 80, right: 50, bottom: 380, left: 50 } });
         }
         setETA(durationMins);
       });
@@ -2432,7 +2432,7 @@
         if (routeCoords.length > 1) {
           const b = new mapboxgl.LngLatBounds();
           routeCoords.forEach(c => b.extend(c));
-          trackingMap.fitBounds(b, { padding: { top: 80, right: 50, bottom: 330, left: 50 } });
+          trackingMap.fitBounds(b, { padding: { top: 80, right: 50, bottom: 380, left: 50 } });
         }
         // Place driver at restaurant during collecting
         placeDriverOnMap(startLat, startLng, order, 'walk', routeCoords);
@@ -2444,6 +2444,13 @@
           renderTrackingSheet({ ...order, status: 'picked_up' });
           renderDriverCard({ name: 'Sipho M.', vehicle: 'motorbike', avatar: null });
           setETA(5);
+
+          // Re-fit now that driver card has made the panel taller
+          if (routeCoords.length > 1 && trackingMap) {
+            const rb = new mapboxgl.LngLatBounds();
+            routeCoords.forEach(c => rb.extend(c));
+            trackingMap.fitBounds(rb, { padding: { top: 80, right: 50, bottom: 380, left: 50 } });
+          }
 
           const total = routeCoords.length;
           let step = 0;
