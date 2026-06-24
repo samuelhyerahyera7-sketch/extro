@@ -2217,36 +2217,50 @@
 
     const DRIVER_ICON_BG = { car: '#1a1d29', motorbike: '#ff4214', bicycle: '#1565c0', walk: '#16a34a' };
     const DRIVER_ICON_SVG = {
-      car: `<svg viewBox="0 0 28 42" fill="none" xmlns="http://www.w3.org/2000/svg" width="22" height="22">
-        <rect x="3" y="6" width="22" height="30" rx="5" fill="white" opacity="0.92"/>
-        <rect x="6" y="8" width="16" height="10" rx="2.5" fill="rgba(26,29,41,0.28)"/>
-        <rect x="0" y="9" width="4.5" height="7.5" rx="2" fill="white"/>
-        <rect x="23.5" y="9" width="4.5" height="7.5" rx="2" fill="white"/>
-        <rect x="0" y="25.5" width="4.5" height="7.5" rx="2" fill="white"/>
-        <rect x="23.5" y="25.5" width="4.5" height="7.5" rx="2" fill="white"/>
-        <rect x="10" y="30" width="8" height="3" rx="1.5" fill="rgba(26,29,41,0.2)"/>
+      /* Side-view motorbike: two proper wheels, frame, seat, handlebar */
+      motorbike: `<svg viewBox="0 0 26 20" fill="none" xmlns="http://www.w3.org/2000/svg" width="26" height="20">
+        <circle cx="5.5" cy="14.5" r="4.8" fill="none" stroke="white" stroke-width="2.2"/>
+        <circle cx="20.5" cy="14.5" r="4.8" fill="none" stroke="white" stroke-width="2.2"/>
+        <circle cx="5.5" cy="14.5" r="1.2" fill="white"/>
+        <circle cx="20.5" cy="14.5" r="1.2" fill="white"/>
+        <path d="M5.5 14.5 L9.5 5.5 L15.5 5.5 L20.5 14.5" stroke="white" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M9.5 5.5 L14.5 5.5" stroke="white" stroke-width="3" stroke-linecap="round"/>
+        <path d="M18 5.5 L23 3.5" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        <path d="M16 5.5 L18.5 5.5 L18 5.5" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        <path d="M10 9.5 L15 9.5 L16 14.5 L9 14.5 Z" fill="white" opacity="0.35"/>
       </svg>`,
-      motorbike: `<svg viewBox="0 0 20 38" fill="none" xmlns="http://www.w3.org/2000/svg" width="18" height="24">
-        <ellipse cx="10" cy="4.5" rx="3.5" ry="4.5" fill="white" opacity="0.9"/>
-        <rect x="8.5" y="8.5" width="3" height="21" rx="1.5" fill="white"/>
-        <path d="M3.5 10.5 L16.5 10.5" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
-        <ellipse cx="10" cy="33.5" rx="3.5" ry="4.5" fill="white" opacity="0.9"/>
-        <rect x="8.5" y="17" width="3" height="5" rx="1" fill="rgba(255,255,255,0.5)"/>
+      /* Side-view bicycle: diamond frame, two wheels */
+      bicycle: `<svg viewBox="0 0 26 20" fill="none" xmlns="http://www.w3.org/2000/svg" width="26" height="20">
+        <circle cx="5" cy="14.5" r="4.8" fill="none" stroke="white" stroke-width="2.2"/>
+        <circle cx="21" cy="14.5" r="4.8" fill="none" stroke="white" stroke-width="2.2"/>
+        <circle cx="5" cy="14.5" r="1.2" fill="white"/>
+        <circle cx="21" cy="14.5" r="1.2" fill="white"/>
+        <path d="M5 14.5 L10 8 L13 14.5 L5 14.5" stroke="white" stroke-width="1.7" fill="none" stroke-linejoin="round"/>
+        <path d="M10 8 L21 14.5" stroke="white" stroke-width="1.7" stroke-linecap="round"/>
+        <path d="M17.5 6.5 L21 14.5" stroke="white" stroke-width="1.7" stroke-linecap="round"/>
+        <path d="M15.5 6.5 L19.5 6.5" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+        <path d="M8.5 7 L12 7" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="10" y1="8" x2="10" y2="5.5" stroke="white" stroke-width="1.7" stroke-linecap="round"/>
       </svg>`,
-      bicycle: `<svg viewBox="0 0 20 38" fill="none" xmlns="http://www.w3.org/2000/svg" width="16" height="22">
-        <ellipse cx="10" cy="4" rx="3" ry="4" fill="white" opacity="0.85"/>
-        <rect x="8.8" y="7.5" width="2.4" height="23" rx="1.2" fill="white"/>
-        <path d="M4 9.5 L16 9.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
-        <ellipse cx="10" cy="34" rx="3" ry="4" fill="white" opacity="0.85"/>
-        <path d="M5 19 L15 19" stroke="white" stroke-width="1.6" stroke-linecap="round"/>
+      /* Top-down car: body, windshields, 4 wheels */
+      car: `<svg viewBox="0 0 18 26" fill="none" xmlns="http://www.w3.org/2000/svg" width="18" height="26">
+        <rect x="2.5" y="3" width="13" height="20" rx="3.5" fill="white" opacity="0.95"/>
+        <rect x="4.5" y="5" width="9" height="6" rx="1.5" fill="rgba(26,29,41,0.38)"/>
+        <rect x="4.5" y="17.5" width="9" height="4" rx="1" fill="rgba(26,29,41,0.22)"/>
+        <rect x="0" y="5" width="3" height="5" rx="1.5" fill="white"/>
+        <rect x="15" y="5" width="3" height="5" rx="1.5" fill="white"/>
+        <rect x="0" y="16.5" width="3" height="5" rx="1.5" fill="white"/>
+        <rect x="15" y="16.5" width="3" height="5" rx="1.5" fill="white"/>
+        <rect x="6.5" y="13" width="5" height="2" rx="1" fill="rgba(26,29,41,0.15)"/>
       </svg>`,
-      walk: `<svg viewBox="0 0 22 38" fill="none" xmlns="http://www.w3.org/2000/svg" width="18" height="24">
-        <circle cx="11" cy="5.5" r="4.5" fill="white"/>
-        <path d="M11 10 Q9 16 9 21" stroke="white" stroke-width="2.8" fill="none" stroke-linecap="round"/>
-        <path d="M11 10 Q13 16 13 21" stroke="white" stroke-width="2.8" fill="none" stroke-linecap="round"/>
-        <path d="M5 13.5 Q8 15 11 14 Q14 15 17 13.5" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/>
-        <path d="M9 21 Q7 27 6 33" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-        <path d="M13 21 Q15 27 16 33" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      /* Walking person: dynamic mid-stride pose */
+      walk: `<svg viewBox="0 0 20 26" fill="none" xmlns="http://www.w3.org/2000/svg" width="20" height="26">
+        <circle cx="13" cy="3" r="2.8" fill="white"/>
+        <path d="M13 5.8 L11 13" stroke="white" stroke-width="2.4" stroke-linecap="round"/>
+        <path d="M12 8.5 L16.5 12" stroke="white" stroke-width="1.9" stroke-linecap="round"/>
+        <path d="M11.5 8.5 L7 11" stroke="white" stroke-width="1.9" stroke-linecap="round"/>
+        <path d="M11 13 L13 19 L15.5 24" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M11 13 L9 18 L5.5 23" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>`
     };
 
@@ -2304,7 +2318,7 @@
           bounds.extend([order.restaurants.lng, order.restaurants.lat]);
           hasBounds = true;
         }
-        if (hasBounds) trackingMap.fitBounds(bounds, { padding: { top: 80, right: 50, bottom: 380, left: 50 }, maxZoom: 15 });
+        if (hasBounds) trackingMap.fitBounds(bounds, { padding: { top: 80, right: 50, bottom: 380, left: 50 }, maxZoom: 14 });
 
         const driverId = order.driver_id || (window.DEMO_MODE ? 'demo-driver' : null);
         if (driverId) {
@@ -2395,7 +2409,6 @@
 
       if (precomputedRoute) {
         drawRouteOnMap(precomputedRoute);
-        trackingMap.panTo(lngLat);
         return;
       }
 
@@ -2406,7 +2419,7 @@
         if (coords.length > 1) {
           const b = new mapboxgl.LngLatBounds();
           coords.forEach(c => b.extend(c));
-          trackingMap.fitBounds(b, { padding: { top: 80, right: 50, bottom: 380, left: 50 } });
+          trackingMap.fitBounds(b, { padding: { top: 80, right: 50, bottom: 380, left: 50 }, maxZoom: 14 });
         }
         setETA(durationMins);
       });
@@ -2496,7 +2509,7 @@
         if (routeCoords.length > 1) {
           const b = new mapboxgl.LngLatBounds();
           routeCoords.forEach(c => b.extend(c));
-          trackingMap.fitBounds(b, { padding: { top: 80, right: 50, bottom: 380, left: 50 } });
+          trackingMap.fitBounds(b, { padding: { top: 80, right: 50, bottom: 380, left: 50 }, maxZoom: 14 });
         }
         // Place driver at restaurant during collecting
         placeDriverOnMap(startLat, startLng, order, 'walk', routeCoords);
@@ -2513,7 +2526,7 @@
           if (routeCoords.length > 1 && trackingMap) {
             const rb = new mapboxgl.LngLatBounds();
             routeCoords.forEach(c => rb.extend(c));
-            trackingMap.fitBounds(rb, { padding: { top: 80, right: 50, bottom: 380, left: 50 } });
+            trackingMap.fitBounds(rb, { padding: { top: 80, right: 50, bottom: 380, left: 50 }, maxZoom: 14 });
           }
 
           const total = routeCoords.length;
