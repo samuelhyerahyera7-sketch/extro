@@ -445,6 +445,65 @@
       </div>
     </div>
 
+    <!-- ── View: Checkout ──────────────────────────────────── -->
+    <div id="view-checkout" style="display:none;padding-bottom:100px">
+      <div class="sticky-subheader">
+        <button class="icon-btn" id="co-back-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        </button>
+        <h2>Checkout</h2>
+      </div>
+
+      <!-- Restaurant name strip -->
+      <div id="co-rest-name" style="padding:10px 20px;background:var(--bg);font-size:0.82rem;font-weight:600;color:var(--muted);border-bottom:1px solid var(--border)"></div>
+
+      <!-- Delivery address -->
+      <div style="background:#fff;border-bottom:1px solid var(--border)">
+        <div id="co-change-addr" style="display:flex;align-items:center;gap:14px;padding:16px 20px;cursor:pointer">
+          <div style="width:42px;height:42px;border-radius:50%;background:#fff8f6;border:2px solid var(--primary);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M12 22s7-7.58 7-12a7 7 0 1 0-14 0c0 4.42 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:0.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px">Deliver to</div>
+            <div id="co-addr-main" style="font-size:0.97rem;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Loading…</div>
+            <div id="co-addr-sub" style="font-size:0.8rem;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+          </div>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="15" height="15" style="color:var(--muted);flex-shrink:0"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+      </div>
+
+      <!-- Order note -->
+      <div style="background:#fff;border-bottom:1px solid var(--border);padding:16px 20px">
+        <div style="font-size:0.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px">Order note</div>
+        <textarea id="co-note" rows="2" placeholder="e.g. Please knock, ring bell twice, leave at door…" style="width:100%;border:1.5px solid var(--border);border-radius:12px;padding:11px 13px;font-family:inherit;font-size:0.9rem;resize:none;color:var(--ink);outline:none;box-sizing:border-box;background:#f7f8fa;line-height:1.5"></textarea>
+      </div>
+
+      <div style="height:8px;background:var(--bg)"></div>
+
+      <!-- Order summary -->
+      <div style="background:#fff;padding:16px 20px">
+        <div style="font-weight:800;font-size:1rem;color:var(--ink);margin-bottom:2px">Order summary</div>
+        <div id="co-items-list" style="margin-top:10px"></div>
+        <div style="border-top:1px solid var(--border);margin-top:6px;padding-top:14px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:0.9rem">
+            <span style="color:var(--muted)">Subtotal</span><strong id="co-subtotal">R0.00</strong>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:0.9rem">
+            <span style="color:var(--muted)">Delivery fee</span><strong id="co-fee">R25.00</strong>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-weight:900;font-size:1.1rem;padding-top:12px;border-top:2px solid var(--border)">
+            <span>Total</span><span id="co-total">R0.00</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fixed CTA -->
+      <div style="position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:var(--shell-width);padding:12px 20px 28px;background:#fff;border-top:1px solid var(--border);z-index:50">
+        <button id="co-place-btn" style="width:100%;height:54px;border-radius:100px;background:var(--primary);color:#fff;border:none;font-size:1rem;font-weight:800;cursor:pointer;font-family:inherit">Place order</button>
+        <p id="co-error" class="error-msg" style="text-align:center;margin-top:10px"></p>
+      </div>
+    </div>
+
     <!-- ── View: Account ────────────────────────────────────── -->
     <div id="view-account" style="display:none;padding-bottom:100px">
       <div class="sticky-subheader">
@@ -763,11 +822,18 @@
       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 
-    const ALL_VIEWS = ['view-profile-complete', 'view-address-setup', 'view-restaurants', 'view-menu', 'view-basket', 'view-orders', 'view-account'];
+    const ALL_VIEWS = ['view-profile-complete', 'view-address-setup', 'view-restaurants', 'view-menu', 'view-basket', 'view-checkout', 'view-orders', 'view-account'];
+    const NAV_VIEWS = ['view-restaurants', 'view-orders', 'view-account'];
     function showView(id) {
       ALL_VIEWS.forEach(v => {
         document.getElementById(v).style.display = v === id ? (v === 'view-profile-complete' ? 'flex' : 'block') : 'none';
       });
+      const showNav = NAV_VIEWS.includes(id);
+      document.getElementById('bottom-nav').style.display = showNav ? 'flex' : 'none';
+      document.getElementById('cart-bar').classList.toggle('cart-bar--no-nav', !showNav);
+      if (['view-basket', 'view-checkout', 'view-profile-complete', 'view-address-setup'].includes(id)) {
+        document.getElementById('cart-bar').style.display = 'none';
+      }
       if (id === 'view-address-setup' && addrMap) setTimeout(() => addrMap.resize(), 80);
       if (id === 'view-orders' && trackingMap) setTimeout(() => trackingMap.resize(), 80);
     }
@@ -1583,8 +1649,9 @@
       const fee = cart.length ? deliveryFee() : 0;
       const total = subtotal + fee;
 
-      // Floating bar
-      document.getElementById('cart-bar').style.display = count ? 'flex' : 'none';
+      // Floating bar — hide when already in basket/checkout/address/onboarding
+      const _inCartView = ['view-basket','view-checkout','view-address-setup','view-profile-complete'].some(v => document.getElementById(v)?.style.display !== 'none');
+      document.getElementById('cart-bar').style.display = (count && !_inCartView) ? 'flex' : 'none';
       document.getElementById('cart-bar-text').textContent = `View basket · ${count}`;
 
       // Basket view counts + totals
@@ -1656,23 +1723,21 @@
       document.body.appendChild(form); form.submit();
     }
 
-    async function doCheckout(addressEl, noteEl, errorEl, btn) {
+    async function doCheckout(noteEl, errorEl, btn) {
       errorEl.textContent = '';
-      const address = addressEl.value.trim();
       if (!cart.length) { errorEl.textContent = 'Your basket is empty.'; return; }
-      if (!address) { errorEl.textContent = 'Please enter a delivery address.'; return; }
+      const address = currentAddress?.street_address || '';
+      if (!address) { errorEl.textContent = 'No delivery address saved. Please set your address first.'; return; }
 
       btn.disabled = true; btn.textContent = 'Placing order…';
 
       const subtotal = cart.reduce((s, c) => s + cartEntryPrice(c) * c.qty, 0);
       const fee = deliveryFee();
       const total = subtotal + fee;
-      const orderNote = (noteEl?.value || '').trim();
 
       if (window.DEMO_MODE) {
         const fakeOrder = {
-          id: 'demo-' + Date.now(),
-          status: 'accepted',
+          id: 'demo-' + Date.now(), status: 'accepted',
           restaurant_id: currentRestaurant.id,
           items: cart.map(c => ({ id: c.item.id, name: c.item.name, price: cartEntryPrice(c), qty: c.qty })),
           subtotal, delivery_fee: fee, total, delivery_address: address,
@@ -1685,10 +1750,9 @@
 
       const { data: order, error } = await sb.from('orders').insert({
         customer_id: profile.id, restaurant_id: currentRestaurant.id,
-        items: cart.map(c => ({ id: c.item.id, name: c.item.name, price: cartEntryPrice(c), qty: c.qty, note: c.note || '', extras: c.extras || [] })),
+        items: cart.map(c => ({ id: c.item.id, name: c.item.name, price: cartEntryPrice(c), qty: c.qty, extras: c.extras || [] })),
         subtotal, delivery_fee: fee, total, delivery_address: address,
         delivery_lat: currentAddress?.lat, delivery_lng: currentAddress?.lng,
-        note: orderNote || null,
       }).select().single();
 
       if (error) { errorEl.textContent = error.message; btn.disabled = false; btn.textContent = 'Place order'; return; }
@@ -1707,23 +1771,36 @@
       openOrderTracking(order.id);
     }
 
-    document.getElementById('basket-checkout-btn').addEventListener('click', function() {
-      doCheckout(
-        document.getElementById('basket-delivery-address'),
-        document.getElementById('basket-order-note'),
-        document.getElementById('basket-error'),
-        this
-      );
-    });
+    function openCheckout() {
+      if (!cart.length) return;
+      const subtotal = cart.reduce((s, c) => s + cartEntryPrice(c) * c.qty, 0);
+      const fee = deliveryFee();
+      const total = subtotal + fee;
+      document.getElementById('co-rest-name').textContent = currentRestaurant?.name || '';
+      document.getElementById('co-addr-main').textContent = currentAddress?.street_address || 'No address saved';
+      document.getElementById('co-addr-sub').textContent = [currentAddress?.suburb, currentAddress?.city].filter(Boolean).join(', ');
+      document.getElementById('co-subtotal').textContent = money(subtotal);
+      document.getElementById('co-fee').textContent = money(fee);
+      document.getElementById('co-total').textContent = money(total);
+      document.getElementById('co-items-list').innerHTML = cart.map(c => `
+        <div style="display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+          <span style="font-size:0.82rem;font-weight:800;color:var(--primary);min-width:24px">${c.qty}×</span>
+          <span style="flex:1;font-size:0.9rem;color:var(--ink);line-height:1.4">${c.item.name}${c.extras?.length ? `<br><span style="color:var(--muted);font-size:0.78rem">${c.extras.map(e=>e.name).join(', ')}</span>` : ''}</span>
+          <span style="font-weight:700;font-size:0.9rem;flex-shrink:0">${money(cartEntryPrice(c) * c.qty)}</span>
+        </div>`).join('');
+      showView('view-checkout');
+    }
 
-    // Legacy checkout-btn (hidden cart panel) — keep for safety
-    document.getElementById('checkout-btn')?.addEventListener('click', function() {
-      doCheckout(
-        document.getElementById('delivery-address'),
-        document.getElementById('order-note'),
-        document.getElementById('checkout-error'),
-        this
-      );
+    document.getElementById('basket-checkout-btn').addEventListener('click', openCheckout);
+    document.getElementById('checkout-btn')?.addEventListener('click', openCheckout);
+    document.getElementById('co-back-btn').addEventListener('click', () => showView('view-basket'));
+    document.getElementById('co-change-addr').addEventListener('click', () => {
+      document.getElementById('addr-back-btn').style.display = 'flex';
+      showView('view-address-setup');
+      if (!addrMap) initAddressMap();
+    });
+    document.getElementById('co-place-btn').addEventListener('click', function() {
+      doCheckout(document.getElementById('co-note'), document.getElementById('co-error'), this);
     });
 
     document.getElementById('bottom-nav').addEventListener('click', e => {
