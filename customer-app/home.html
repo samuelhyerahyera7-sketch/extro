@@ -1097,6 +1097,7 @@
       await loadMapbox();
       mapboxgl.accessToken = MAPBOX_TOKEN;
 
+      if (currentAddress?.lat) { addrLat = currentAddress.lat; addrLng = currentAddress.lng; }
       addrMap = new mapboxgl.Map({
         container: 'addr-map',
         style: 'mapbox://styles/mapbox/streets-v12',
@@ -1888,8 +1889,8 @@
       setTimeout(async () => {
         if (typeof mapboxgl === 'undefined') await loadMapbox();
         mapboxgl.accessToken = MAPBOX_TOKEN;
-        const lng = addrLng || 18.4241;
-        const lat = addrLat || -33.9249;
+        const lng = currentAddress?.lng || addrLng || 18.4241;
+        const lat = currentAddress?.lat || addrLat || -33.9249;
         if (!coMap) {
           coMap = new mapboxgl.Map({
             container: 'co-map',
@@ -2538,6 +2539,7 @@
         return;
       }
       currentAddress = addrs.find(a => a.is_default) || addrs[0];
+      if (currentAddress?.lat) { addrLat = currentAddress.lat; addrLng = currentAddress.lng; }
       updateLocationBar();
       await loadRestaurants();
       showView('view-restaurants');
