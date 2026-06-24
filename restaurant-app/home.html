@@ -8,6 +8,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 </head>
 <body>
   <!-- ── Pending approval screen ───────────────────────────── -->
@@ -525,13 +526,19 @@
     }
 
     async function loadOrders() {
-      const { data, error } = await sb.from('orders').select('*').eq('restaurant_id', restaurant.id).in('status', ['pending', 'accepted', 'preparing', 'ready']).order('created_at', { ascending: false });
+      const { data, error } = await sb.from('orders')
+        .select('*, drivers(id, full_name, vehicle_type, current_lat, current_lng)')
+        .eq('restaurant_id', restaurant.id)
+        .in('status', ['pending','accepted','preparing','ready','driver_assigned','driver_en_route','driver_at_restaurant','driver_collecting'])
+        .order('created_at', { ascending: false });
       if (error) { console.error(error); return; }
       renderOrders(data);
     }
 
     const NEXT_STATUS = { pending: 'accepted', accepted: 'preparing', preparing: 'ready' };
     const NEXT_LABEL  = { pending: 'Accept order', accepted: 'Start preparing', preparing: 'Mark ready' };
+    const DRIVER_PHASE = new Set(['driver_assigned','driver_en_route','driver_at_restaurant','driver_collecting']);
+    const DRIVER_PHASE_LABEL = { driver_assigned:'Driver assigned — on the way', driver_en_route:'Driver en route to you', driver_at_restaurant:'Driver has arrived', driver_collecting:'Driver is collecting the order' };
 
     function renderOrders(orders) {
       const list = document.getElementById('orders-list');
@@ -539,6 +546,27 @@
         const subtotal = o.subtotal || (o.total - (o.delivery_fee || 0));
         const platformFee = Math.round(subtotal * PLATFORM_COMMISSION * 100) / 100;
         const restaurantNet = subtotal - platformFee;
+        const isReady         = o.status === 'ready';
+        const inDriverPhase   = DRIVER_PHASE.has(o.status);
+
+        const driverBanner = inDriverPhase && o.drivers ? `
+          <div style="display:flex;align-items:center;gap:10px;background:#f0fdf4;border-radius:10px;padding:10px 12px;margin-bottom:10px">
+            <div style="width:34px;height:34px;border-radius:50%;background:#16a34a;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">🛵</div>
+            <div>
+              <div style="font-weight:700;font-size:0.82rem;color:#111">${o.drivers.full_name || 'Driver'}</div>
+              <div style="font-size:0.74rem;color:#16a34a">${DRIVER_PHASE_LABEL[o.status] || o.status}</div>
+            </div>
+          </div>` : '';
+
+        const pickupCodeBanner = isReady && o.pickup_code ? `
+          <div style="background:#fff7ed;border:1.5px solid #fed7aa;border-radius:12px;padding:12px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between">
+            <div>
+              <div style="font-size:0.7rem;font-weight:700;color:#ea580c;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:3px">Pickup code</div>
+              <div style="font-size:1.6rem;font-weight:900;letter-spacing:0.3em;color:#111;font-variant-numeric:tabular-nums">${o.pickup_code}</div>
+            </div>
+            <button class="btn btn-outline" data-show-qr="${o.id}" data-code="${o.pickup_code}" style="font-size:0.78rem;padding:8px 12px;flex-shrink:0">Show QR</button>
+          </div>` : '';
+
         return `
         <div class="delivery-card">
           <div class="delivery-card-top">
@@ -547,7 +575,7 @@
               <strong>Order #${o.id.slice(0, 8)}</strong>
               <div style="font-size:0.75rem;color:var(--muted);margin-top:1px">${new Date(o.created_at).toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' })}</div>
             </div>
-            <span class="badge badge-${o.status}">${o.status.replace('_', ' ')}</span>
+            <span class="badge badge-${o.status}">${o.status.replace(/_/g, ' ')}</span>
           </div>
           <ul class="order-items">
             ${(Array.isArray(o.items) ? o.items : []).map(it => `<li>${it.qty} × ${it.name}</li>`).join('')}
@@ -561,9 +589,11 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="11" height="11" style="vertical-align:-1px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             Ready in ~${restaurantPrepTime} min
           </div>
+          ${pickupCodeBanner}
+          ${driverBanner}
           ${NEXT_STATUS[o.status]
             ? `<button class="btn btn-primary btn-block" data-advance="${o.id}" data-next="${NEXT_STATUS[o.status]}">${NEXT_LABEL[o.status]}</button>`
-            : `<p class="muted" style="margin:0;text-align:center;font-size:0.85rem">Waiting for a driver to pick up…</p>`}
+            : (!inDriverPhase ? `<p class="muted" style="margin:0;text-align:center;font-size:0.85rem">Waiting for a driver to pick up…</p>` : '')}
         </div>`;
       }).join('') || `<div class="empty-state">No active orders right now.</div>`;
 
@@ -577,6 +607,24 @@
           loadOrders();
         });
       });
+
+      list.querySelectorAll('[data-show-qr]').forEach(btn => {
+        btn.addEventListener('click', () => openPickupQR(btn.dataset.showQr, btn.dataset.code));
+      });
+    }
+
+    // ── Pickup QR functions ─────────────────────────────────────
+    function openPickupQR(orderId, code) {
+      document.getElementById('pickup-qr-code-display').textContent = code;
+      document.getElementById('pickup-qr-modal').style.display = 'flex';
+      const canvas = document.getElementById('pickup-qr-canvas');
+      QRCode.toCanvas(canvas, `EXTRO-PICKUP:${orderId}`, { width: 220, margin: 2, color: { dark: '#111111', light: '#ffffff' } }, err => {
+        if (err) console.error('QR generation failed', err);
+      });
+    }
+
+    function closePickupQR() {
+      document.getElementById('pickup-qr-modal').style.display = 'none';
     }
 
     function subscribeOrders() {
@@ -680,5 +728,20 @@
       }
     })();
   </script>
+
+  <!-- ── Pickup QR modal ──────────────────────────────────────── -->
+  <div id="pickup-qr-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:600;align-items:center;justify-content:center;padding:24px">
+    <div style="background:#fff;border-radius:20px;padding:28px 24px;width:100%;max-width:340px;text-align:center">
+      <div style="font-size:2rem;margin-bottom:6px">📦</div>
+      <h3 style="font-size:1.05rem;font-weight:800;margin:0 0 4px;color:#111">Pickup QR code</h3>
+      <p style="font-size:0.8rem;color:#6b7280;margin:0 0 20px">Driver scans this or enters the code below</p>
+      <canvas id="pickup-qr-canvas" style="display:block;margin:0 auto 16px;border-radius:10px"></canvas>
+      <div style="background:#f3f4f6;border-radius:12px;padding:14px;margin-bottom:20px">
+        <div style="font-size:0.7rem;font-weight:700;color:#9ca3af;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px">Pickup code</div>
+        <div id="pickup-qr-code-display" style="font-size:2.4rem;font-weight:900;letter-spacing:0.35em;color:#111;font-variant-numeric:tabular-nums">——</div>
+      </div>
+      <button class="btn btn-outline btn-block" onclick="closePickupQR()">Close</button>
+    </div>
+  </div>
 </body>
 </html>

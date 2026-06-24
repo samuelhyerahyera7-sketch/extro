@@ -324,8 +324,8 @@
 <!-- ── QR Scanner modal ───────────────────────────────────────── -->
 <div id="qr-scanner-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:500;flex-direction:column;align-items:center;justify-content:center;padding:24px">
   <div style="width:100%;max-width:360px;text-align:center">
-    <h3 style="color:#fff;font-size:1.1rem;font-weight:800;margin:0 0 8px">Scan delivery QR code</h3>
-    <p style="color:#9ca3af;font-size:0.83rem;margin:0 0 16px">Point camera at the customer's QR code to confirm delivery</p>
+    <h3 id="qr-modal-title" style="color:#fff;font-size:1.1rem;font-weight:800;margin:0 0 8px">Scan QR code</h3>
+    <p id="qr-modal-sub" style="color:#9ca3af;font-size:0.83rem;margin:0 0 16px">Point camera at the QR code</p>
     <div style="position:relative;width:100%;border-radius:16px;overflow:hidden;background:#000">
       <video id="qr-video" style="width:100%;display:block" playsinline></video>
       <canvas id="qr-canvas" style="display:none"></canvas>
@@ -334,7 +334,23 @@
       </div>
     </div>
     <p id="qr-status" style="color:#facc15;font-size:0.85rem;margin:14px 0 0;min-height:1.2em">Initialising camera…</p>
-    <button class="btn btn-outline" style="margin-top:16px;width:100%;color:#fff;border-color:#4b5563" onclick="closeQRScanner()">Cancel</button>
+    <button class="btn btn-outline" style="margin-top:10px;width:100%;color:#fff;border-color:#4b5563" onclick="switchToCodeEntry()">Enter code manually</button>
+    <button class="btn btn-outline" style="margin-top:8px;width:100%;color:#9ca3af;border-color:#374151;font-size:0.82rem" onclick="closeQRScanner()">Cancel</button>
+  </div>
+</div>
+
+<!-- ── Code verification modal ────────────────────────────────── -->
+<div id="code-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:500;align-items:center;justify-content:center;padding:24px">
+  <div style="background:#fff;border-radius:20px;padding:28px 24px;width:100%;max-width:360px">
+    <div style="font-size:2rem;text-align:center;margin-bottom:8px" id="code-modal-icon">🔐</div>
+    <h3 id="code-modal-title" style="margin:0 0 4px;font-size:1.15rem;font-weight:800;text-align:center"></h3>
+    <p id="code-modal-sub" style="color:var(--muted);font-size:0.84rem;margin:0 0 20px;text-align:center"></p>
+    <input id="code-input" type="text" inputmode="numeric" maxlength="6" placeholder="000000"
+      style="width:100%;box-sizing:border-box;font-size:2.2rem;font-weight:900;letter-spacing:0.35em;text-align:center;padding:14px 10px;border:2px solid var(--border);border-radius:14px;font-family:monospace;color:var(--ink)">
+    <p id="code-error" style="color:var(--danger);font-size:0.82rem;margin:8px 0 0;min-height:1em;text-align:center"></p>
+    <button class="btn btn-primary btn-block" style="margin-top:16px" id="code-verify-btn">Confirm code</button>
+    <button class="btn btn-outline btn-block" style="margin-top:8px" id="code-scan-btn">Scan QR instead</button>
+    <button style="display:block;width:100%;margin-top:6px;background:none;border:none;color:var(--muted);font-size:0.84rem;cursor:pointer;padding:6px" onclick="closeCodeModal()">Cancel</button>
   </div>
 </div>
 
@@ -728,9 +744,9 @@
 
     demoGpsInterval = setInterval(() => {
       if (!activeOrder) return;
-      const isPickedUp = activeOrder.status === 'picked_up';
-      const destLat = isPickedUp ? activeOrder.delivery_lat : activeOrder.restaurants?.lat;
-      const destLng = isPickedUp ? activeOrder.delivery_lng : activeOrder.restaurants?.lng;
+      const toCustomer = TO_CUSTOMER.has(activeOrder.status);
+      const destLat = toCustomer ? activeOrder.delivery_lat : activeOrder.restaurants?.lat;
+      const destLng = toCustomer ? activeOrder.delivery_lng : activeOrder.restaurants?.lng;
       if (!destLat) return;
       driverLat += (destLat - driverLat) * 0.07;
       driverLng += (destLng - driverLng) * 0.07;
@@ -816,7 +832,10 @@
 
   // ── Accept ─────────────────────────────────────────────────────
   async function acceptOrder(orderId) {
-    const { data, error } = await sb.from('orders').update({ driver_id: profile.id }).eq('id', orderId).is('driver_id', null).select('*, restaurants(name, address, lat, lng)').single();
+    const { data, error } = await sb.from('orders')
+      .update({ driver_id: profile.id, status: 'driver_assigned', updated_at: new Date().toISOString() })
+      .eq('id', orderId).is('driver_id', null)
+      .select('*, restaurants(name, address, lat, lng)').single();
     if (error || !data) { alert('This order was just taken by another driver.'); loadPool(); return; }
     activeOrder = data;
     unsubscribePool();
@@ -830,44 +849,99 @@
     renderActiveOrder();
   }
 
-  const NEXT_STATUS = { ready: 'picked_up', picked_up: 'delivered' };
-  const NEXT_LABEL  = { ready: 'Confirm pickup', picked_up: 'Confirm delivery' };
+  const NEXT_STATUS = {
+    driver_assigned:      'driver_en_route',
+    driver_en_route:      'driver_at_restaurant',
+    driver_at_restaurant: 'driver_collecting',
+    driver_collecting:    'picked_up',
+    picked_up:            'in_transit',
+    in_transit:           'driver_nearby',
+    driver_nearby:        'driver_arrived',
+    driver_arrived:       'delivered',
+  };
+  const NEXT_LABEL = {
+    driver_assigned:      'Start driving to restaurant',
+    driver_en_route:      "I've arrived at restaurant",
+    driver_at_restaurant: "I'm collecting the order",
+    driver_collecting:    'Enter pickup code',
+    picked_up:            'Start delivery',
+    in_transit:           "I'm nearby",
+    driver_nearby:        "I've arrived at customer",
+    driver_arrived:       'Enter delivery code',
+  };
+  const PHASE_ICON    = { driver_assigned:'🛵', driver_en_route:'🛵', driver_at_restaurant:'🏪', driver_collecting:'📦', picked_up:'✅', in_transit:'🛵', driver_nearby:'📍', driver_arrived:'🔔' };
+  const PHASE_HEADING = { driver_assigned:'Delivery assigned', driver_en_route:'En route to restaurant', driver_at_restaurant:'At the restaurant', driver_collecting:'Collecting order', picked_up:'Order collected', in_transit:'En route to customer', driver_nearby:'Almost there', driver_arrived:'At customer location' };
+  const PHASE_SUB     = { driver_assigned:'Head to the restaurant to collect the order', driver_en_route:'Tap when you arrive at the restaurant', driver_at_restaurant:'Park up and walk in to collect the order', driver_collecting:'Collect the order then enter the pickup code', picked_up:'Head to the customer now', in_transit:"Tap when you're close to the customer", driver_nearby:'Tap when you arrive at the customer', driver_arrived:'Get the 6-digit code from the customer' };
+  const TO_CUSTOMER   = new Set(['picked_up','in_transit','driver_nearby','driver_arrived']);
+  const PHASES        = Object.keys(NEXT_STATUS);
 
   function renderActiveOrder() {
     const o = activeOrder;
-    const isReady = o.status === 'ready';
+    const s = o.status;
+    const toCustomer = TO_CUSTOMER.has(s);
+    const phaseIdx   = PHASES.indexOf(s);
+    const progress   = phaseIdx >= 0 ? Math.round((phaseIdx / PHASES.length) * 100) : 0;
+    const nextLabel  = NEXT_LABEL[s];
+
     document.getElementById('active-order-card').innerHTML = `
       <div class="delivery-card active-delivery-card">
-        <div class="delivery-card-top">
-          <span class="delivery-icon">${ICON_BAG}</span>
-          <div class="delivery-card-info"><strong>${o.restaurants?.name || 'Restaurant'}</strong></div>
-          <span class="badge badge-${o.status}">${o.status.replace('_', ' ')}</span>
+        <div style="margin-bottom:14px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+            <span style="font-size:0.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em">${toCustomer ? 'Delivery' : 'Collection'}</span>
+            <span style="font-size:0.72rem;color:var(--muted)">Step ${phaseIdx + 1} of ${PHASES.length}</span>
+          </div>
+          <div style="height:5px;background:var(--border);border-radius:100px">
+            <div style="height:5px;width:${progress}%;background:var(--primary);border-radius:100px;transition:width .4s"></div>
+          </div>
         </div>
-        <div class="phase-chip ${isReady ? 'phase-pickup' : 'phase-drop'}">
-          ${isReady ? '📍 Head to restaurant for pickup' : '🏠 Head to customer for drop-off'}
+
+        <div style="display:flex;align-items:center;gap:12px;padding:4px 0 14px;border-bottom:1px solid var(--border)">
+          <div style="width:46px;height:46px;border-radius:50%;background:${toCustomer ? '#fff3f0' : '#f0f9ff'};display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0">${PHASE_ICON[s] || '🛵'}</div>
+          <div>
+            <div style="font-weight:800;font-size:0.97rem;color:var(--ink)">${PHASE_HEADING[s] || s}</div>
+            <div style="font-size:0.8rem;color:var(--muted);margin-top:2px">${PHASE_SUB[s] || ''}</div>
+          </div>
         </div>
-        ${routeLineHTML(o.restaurants?.address, o.delivery_address)}
-        ${NEXT_STATUS[o.status]
-          ? `<button class="btn btn-primary btn-block" id="advance-btn">${NEXT_LABEL[o.status]}</button>`
-          : `<p style="text-align:center;color:var(--success);font-weight:700;margin:0;padding:10px 0">✅ Delivered — excellent work!</p>`}
+
+        ${routeLineHTML(o.restaurants?.name || o.restaurants?.address || '—', o.delivery_address || '—')}
+
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0 12px;border-top:1px solid var(--border)">
+          <span style="font-size:0.8rem;color:var(--muted)">Your earnings</span>
+          <span style="font-weight:800;color:var(--success);font-size:1rem">+R${Number(o.delivery_fee || 0).toFixed(0)}</span>
+        </div>
+
+        ${nextLabel
+          ? `<button class="btn btn-primary btn-block" id="advance-btn" style="height:50px;font-size:0.97rem">${nextLabel}</button>`
+          : `<div style="text-align:center;padding:14px 0"><div style="font-size:2rem">🎉</div><p style="color:var(--success);font-weight:800;margin:4px 0 0">Delivered — great work!</p></div>`}
       </div>`;
+
     document.getElementById('advance-btn')?.addEventListener('click', advanceOrder);
     initActiveMap(o);
   }
 
-  async function advanceOrder() {
-    if (activeOrder.status === 'picked_up') {
-      openQRScanner();
-    } else {
-      await doAdvanceOrder();
-    }
+  function advanceOrder() {
+    const s = activeOrder.status;
+    if (s === 'driver_collecting') { openCodeModal('pickup');   return; }
+    if (s === 'driver_arrived')    { openCodeModal('delivery'); return; }
+    doAdvanceOrder();
   }
 
   async function doAdvanceOrder() {
     const next = NEXT_STATUS[activeOrder.status];
-    await sb.from('orders').update({ status: next, updated_at: new Date().toISOString() }).eq('id', activeOrder.id);
+    if (!next) return;
+
+    const updates = { status: next, updated_at: new Date().toISOString() };
+    if (next === 'driver_at_restaurant') updates.driver_arrived_restaurant_at = new Date().toISOString();
+    if (next === 'driver_arrived')       updates.driver_arrived_customer_at   = new Date().toISOString();
+
+    const { data: updated } = await sb.from('orders')
+      .update(updates).eq('id', activeOrder.id)
+      .select('pickup_code,delivery_code,status,driver_arrived_restaurant_at,driver_arrived_customer_at,pickup_confirmed_at')
+      .single();
+    if (updated) Object.assign(activeOrder, updated);
+
     sb.functions.invoke('order-notify', { body: { order_id: activeOrder.id } }).catch(() => {});
-    activeOrder.status = next;
+
     if (next === 'delivered') {
       todayEarnings += Number(activeOrder.delivery_fee) || 0;
       todayCount++;
@@ -884,11 +958,62 @@
     }
   }
 
+  // ── Code verification ──────────────────────────────────────────
+  let codeModalType = null;
+
+  function openCodeModal(type) {
+    codeModalType = type;
+    const isPickup = type === 'pickup';
+    document.getElementById('code-modal-icon').textContent   = isPickup ? '📦' : '🔐';
+    document.getElementById('code-modal-title').textContent  = isPickup ? 'Enter pickup code'   : 'Enter delivery code';
+    document.getElementById('code-modal-sub').textContent    = isPickup ? 'Get the 6-digit code from the restaurant' : 'Get the 6-digit code from the customer';
+    document.getElementById('code-input').value = '';
+    document.getElementById('code-error').textContent = '';
+    document.getElementById('code-modal').style.display = 'flex';
+    document.getElementById('code-input').focus();
+  }
+
+  function closeCodeModal() {
+    document.getElementById('code-modal').style.display = 'none';
+    codeModalType = null;
+  }
+
+  document.getElementById('code-verify-btn').addEventListener('click', async () => {
+    const entered = document.getElementById('code-input').value.trim();
+    const errEl   = document.getElementById('code-error');
+    // Demo mode: any code works
+    if (window.DEMO_MODE) { closeCodeModal(); await doAdvanceOrder(); return; }
+    const expected = codeModalType === 'pickup' ? activeOrder.pickup_code : activeOrder.delivery_code;
+    if (!expected || entered !== expected) {
+      errEl.textContent = 'Incorrect code. Please try again.';
+      document.getElementById('code-input').select();
+      return;
+    }
+    closeCodeModal();
+    await doAdvanceOrder();
+  });
+
+  document.getElementById('code-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('code-verify-btn').click();
+  });
+
+  document.getElementById('code-scan-btn').addEventListener('click', () => {
+    const type = codeModalType;
+    closeCodeModal();
+    openQRScanner(type);
+  });
+
   // ── QR Scanner ─────────────────────────────────────────────────
   let qrStream = null;
   let qrRafId = null;
 
-  function openQRScanner() {
+  let qrScannerMode = null; // 'pickup' | 'delivery'
+
+  function openQRScanner(mode) {
+    qrScannerMode = mode || 'delivery';
+    const isPickup = qrScannerMode === 'pickup';
+    document.getElementById('qr-modal-title').textContent = isPickup ? 'Scan pickup QR' : 'Scan delivery QR';
+    document.getElementById('qr-modal-sub').textContent   = isPickup ? 'Scan the QR code at the restaurant counter' : 'Ask the customer to show their QR code';
     document.getElementById('qr-scanner-modal').style.display = 'flex';
     document.getElementById('qr-status').textContent = 'Initialising camera…';
     const video = document.getElementById('qr-video');
@@ -928,12 +1053,15 @@
   }
 
   function handleQRScan(value) {
-    const expected = `extro:${activeOrder.id}`;
+    // Demo mode: any scan counts
+    if (window.DEMO_MODE) { closeQRScanner(); doAdvanceOrder(); return; }
+    const prefix   = qrScannerMode === 'pickup' ? 'EXTRO-PICKUP:' : 'EXTRO-DELIVERY:';
+    const expected = `${prefix}${activeOrder.id}`;
     if (value === expected) {
       closeQRScanner();
       doAdvanceOrder();
     } else {
-      document.getElementById('qr-status').textContent = 'Wrong QR code — scan the customer\'s code for this order.';
+      document.getElementById('qr-status').textContent = 'Wrong QR code — please try again.';
       qrRafId = requestAnimationFrame(() => startQRScan());
     }
   }
@@ -943,6 +1071,12 @@
     if (qrStream) { qrStream.getTracks().forEach(t => t.stop()); qrStream = null; }
     document.getElementById('qr-video').srcObject = null;
     document.getElementById('qr-scanner-modal').style.display = 'none';
+  }
+
+  function switchToCodeEntry() {
+    const mode = qrScannerMode || 'delivery';
+    closeQRScanner();
+    openCodeModal(mode);
   }
 
   // ── Map ────────────────────────────────────────────────────────
@@ -977,9 +1111,8 @@
 
   function fitMapBounds() {
     if (!activeMap) return;
-    const relevant = activeOrder?.status === 'picked_up'
-      ? [driverMarker, dropMarker]
-      : [driverMarker, pickupMarker];
+    const toCustomer = TO_CUSTOMER.has(activeOrder?.status);
+    const relevant = toCustomer ? [driverMarker, dropMarker] : [driverMarker, pickupMarker];
     const points = relevant.filter(Boolean).map(m => m.getLatLng());
     if (points.length > 1) activeMap.fitBounds(L.latLngBounds(points), { padding: [60, 60], maxZoom: 16, animate: true });
     else if (points.length === 1) activeMap.panTo(points[0], { animate: true });
@@ -998,7 +1131,7 @@
   async function updateRoute() {
     if (!activeMap || !activeOrder) return;
     const src  = driverMarker?.getLatLng();
-    const dest = activeOrder.status === 'picked_up' ? dropMarker?.getLatLng() : pickupMarker?.getLatLng();
+    const dest = TO_CUSTOMER.has(activeOrder.status) ? dropMarker?.getLatLng() : pickupMarker?.getLatLng();
     if (!src || !dest) return;
 
     // Show info bar immediately with loading state
@@ -1080,7 +1213,7 @@
 
     await loadEarnings();
 
-    const { data: existing } = await sb.from('orders').select('*, restaurants(name, address, lat, lng)').eq('driver_id', profile.id).in('status', ['ready', 'picked_up']).maybeSingle();
+    const { data: existing } = await sb.from('orders').select('*, restaurants(name, address, lat, lng)').eq('driver_id', profile.id).in('status', ['driver_assigned','driver_en_route','driver_at_restaurant','driver_collecting','picked_up','in_transit','driver_nearby','driver_arrived']).maybeSingle();
     if (existing) {
       activeOrder = existing; startLocationSharing(); showActiveOrder();
     } else if (isOnline) {

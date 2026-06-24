@@ -764,10 +764,12 @@
         </div>
       </div>
 
-      <!-- QR code block (shown when picked_up) -->
-      <div id="qr-block" style="display:none;text-align:center;margin-bottom:16px;padding:16px;background:#f9fafb;border-radius:16px;border:1.5px solid #e5e7eb">
-        <p style="font-size:0.82rem;color:#6b7280;margin:0 0 12px;font-weight:500">Show this code to your driver to confirm delivery</p>
-        <canvas id="order-qr-canvas" style="border-radius:10px"></canvas>
+      <!-- QR code block (shown when driver_arrived) -->
+      <div id="qr-block" style="display:none;text-align:center;margin-bottom:16px;padding:16px 16px 12px;background:#fff7ed;border-radius:16px;border:1.5px solid #fed7aa">
+        <p style="font-size:0.82rem;color:#ea580c;margin:0 0 4px;font-weight:700">🔐 Your delivery code</p>
+        <p style="font-size:0.76rem;color:#9a3412;margin:0 0 12px">Show this QR or read the number to your driver</p>
+        <canvas id="order-qr-canvas" style="border-radius:10px;display:block;margin:0 auto 10px"></canvas>
+        <div id="delivery-code-display" style="font-size:2rem;font-weight:900;letter-spacing:0.35em;color:#111;font-variant-numeric:tabular-nums"></div>
       </div>
     </div>
   </div>
@@ -2100,21 +2102,28 @@
 
     function renderTrackingSheet(order) {
       const headings = {
-        pending:   'Waiting for restaurant…',
-        accepted:  'Restaurant accepted your order',
-        preparing: 'Your food is being prepared',
-        ready:     'Order ready — driver collecting',
-        picked_up: 'On the way to you!',
-        delivered: 'Delivered! 🎉',
+        pending:              'Waiting for restaurant…',
+        accepted:             'Restaurant accepted your order',
+        preparing:            'Your food is being prepared',
+        ready:                'Order ready — driver on the way',
+        driver_assigned:      'Driver assigned to your order',
+        driver_en_route:      'Driver is on the way to restaurant',
+        driver_at_restaurant: 'Driver arrived at restaurant',
+        driver_collecting:    'Driver is collecting your order',
+        picked_up:            'Order collected — heading to you!',
+        in_transit:           'On the way to you!',
+        driver_nearby:        'Driver is nearby!',
+        driver_arrived:       'Driver has arrived — share your code',
+        delivered:            'Delivered! 🎉',
       };
       const heading = document.getElementById('tracking-status-heading');
-      if (heading) heading.textContent = headings[order.status] || order.status;
+      if (heading) heading.textContent = headings[order.status] || order.status.replace(/_/g, ' ');
 
-      // Phase stepper: 1=Preparing 2=Collecting 3=On the way
+      // Phase stepper: 1=Preparing  2=Collecting  3=On the way
       const phaseMap = {
-        pending:   1, accepted: 1, preparing: 1,
-        ready:     2,
-        picked_up: 3,
+        pending: 1, accepted: 1, preparing: 1,
+        ready: 2, driver_assigned: 2, driver_en_route: 2, driver_at_restaurant: 2, driver_collecting: 2,
+        picked_up: 3, in_transit: 3, driver_nearby: 3, driver_arrived: 3,
         delivered: 4,
       };
       const activePhase = phaseMap[order.status] ?? 1;
@@ -2122,29 +2131,22 @@
       const CHECK = '✓';
 
       function setBubble(n, state) {
-        const emojis = { 1: '🍳', 2: '📦', 3: '🚲' };
-        const labels = { 1: 'Preparing', 2: 'Collecting', 3: 'On the way' };
+        const emojis = { 1: '🍳', 2: '📦', 3: '🛵' };
         const bubble = document.getElementById(`ts-bubble-${n}`);
         const label  = document.getElementById(`ts-label-${n}`);
         if (!bubble) return;
         if (state === 'done') {
-          bubble.style.background = DONE;
-          bubble.style.fontSize = '1.1rem';
-          bubble.textContent = CHECK;
-          bubble.style.color = '#fff';
-          if (label) { label.style.color = DONE; }
+          bubble.style.background = DONE; bubble.style.fontSize = '1.1rem';
+          bubble.textContent = CHECK; bubble.style.color = '#fff';
+          if (label) label.style.color = DONE;
         } else if (state === 'active') {
-          bubble.style.background = ORANGE;
-          bubble.style.fontSize = '1.3rem';
-          bubble.textContent = emojis[n];
-          bubble.style.color = '';
-          if (label) { label.style.color = ORANGE; }
+          bubble.style.background = ORANGE; bubble.style.fontSize = '1.3rem';
+          bubble.textContent = emojis[n]; bubble.style.color = '';
+          if (label) label.style.color = ORANGE;
         } else {
-          bubble.style.background = GREY;
-          bubble.style.fontSize = '1.3rem';
-          bubble.textContent = emojis[n];
-          bubble.style.color = '';
-          if (label) { label.style.color = '#9ca3af'; }
+          bubble.style.background = GREY; bubble.style.fontSize = '1.3rem';
+          bubble.textContent = emojis[n]; bubble.style.color = '';
+          if (label) label.style.color = '#9ca3af';
         }
       }
 
@@ -2154,7 +2156,6 @@
       }
 
       if (activePhase >= 4) {
-        // delivered — all done
         setBubble(1, 'done'); setBubble(2, 'done'); setBubble(3, 'done');
         setLine(1, true); setLine(2, true);
       } else {
@@ -2165,8 +2166,8 @@
         setLine(2, activePhase > 2);
       }
 
-      if (order.status === 'picked_up') {
-        showQRBlock(order.id);
+      if (order.status === 'driver_arrived') {
+        showQRBlock(order);
       } else {
         hideQRBlock();
       }
@@ -2430,13 +2431,15 @@
       if (heading && text) heading.textContent = `${emoji} ${text}`;
     }
 
-    function showQRBlock(orderId) {
+    function showQRBlock(order) {
       const block = document.getElementById('qr-block');
       const canvas = document.getElementById('order-qr-canvas');
       if (!block || !canvas) return;
       block.style.display = 'block';
+      const codeEl = document.getElementById('delivery-code-display');
+      if (codeEl) codeEl.textContent = order.delivery_code || '';
       if (typeof QRCode !== 'undefined') {
-        QRCode.toCanvas(canvas, `extro:${orderId}`, { width: 180, margin: 2 }, () => {});
+        QRCode.toCanvas(canvas, `EXTRO-DELIVERY:${order.id}`, { width: 180, margin: 2, color: { dark: '#111111', light: '#ffffff' } }, () => {});
       }
     }
 
