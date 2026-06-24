@@ -434,42 +434,208 @@
     (async () => {
       if (window.DEMO_MODE) { window.location.href = 'home.html?demo=1'; return; }
       const profile = await getCurrentProfile();
-      if (profile && profile.role === role) {
-        // Show "Welcome back" banner instead of silently redirecting
-        const name = profile.first_name || profile.full_name || 'back';
-        // Inject keyframe animations (bypass overflow:hidden clip issue on mobile)
-        const ks = document.createElement('style');
-        ks.textContent = `
-          @keyframes _bannerUp   { from { transform:translateY(100%) } to { transform:translateY(0) } }
-          @keyframes _bannerDown { from { transform:translateY(0) }    to { transform:translateY(100%) } }
-        `;
-        document.head.appendChild(ks);
+      if (!(profile && profile.role === role)) return;
 
-        const banner = document.createElement('div');
-        banner.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1.5px solid #e5e7eb;padding:16px 20px 28px;z-index:100;box-shadow:0 -4px 24px rgba(0,0,0,0.08);animation:_bannerUp 0.4s cubic-bezier(0.32,0.72,0,1) forwards';
-        banner.innerHTML = `
-          <p style="margin:0 0 12px;font-size:0.88rem;color:#6b7280;text-align:center">You're already signed in</p>
-          <button id="wb-continue" style="width:100%;height:52px;border-radius:10px;border:none;background:var(--primary);color:#fff;font-size:1rem;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;margin-bottom:10px">
-            Continue as ${name}
-          </button>
-          <button id="wb-signout" style="width:100%;height:44px;border-radius:10px;border:1.5px solid #e5e7eb;background:#fff;color:#374151;font-size:0.9rem;font-weight:600;cursor:pointer;font-family:Inter,sans-serif">
-            Sign out
-          </button>`;
-        document.body.appendChild(banner);
+      const name = profile.first_name || profile.full_name || 'back';
 
-        function slideDown(cb) {
-          banner.style.animation = '_bannerDown 0.35s cubic-bezier(0.32,0.72,0,1) forwards';
-          banner.addEventListener('animationend', cb, { once: true });
+      // ── Styles ──────────────────────────────────────────────────────
+      const st = document.createElement('style');
+      st.textContent = `
+        #wb-sheet {
+          position: fixed;
+          bottom: 0; left: 0; right: 0;
+          z-index: 100;
+          background: #fff;
+          border-radius: 20px 20px 0 0;
+          box-shadow: 0 -4px 32px rgba(0,0,0,0.13);
+          will-change: transform;
+          -webkit-user-select: none;
+          user-select: none;
+          -webkit-tap-highlight-color: transparent;
         }
+        #wb-handle-row {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          padding: 10px 20px 8px;
+          cursor: pointer;
+        }
+        #wb-handle-pill {
+          width: 40px; height: 4px;
+          border-radius: 2px;
+          background: #d1d5db;
+          margin-bottom: 8px;
+          flex-shrink: 0;
+        }
+        #wb-tab-label {
+          font-size: 0.78rem;
+          font-weight: 700;
+          color: #6b7280;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          opacity: 0;
+          transition: opacity 0.15s;
+          pointer-events: none;
+        }
+        #wb-body {
+          padding: 2px 20px 36px;
+        }
+        #wb-body-label {
+          margin: 0 0 14px;
+          font-size: 0.88rem;
+          color: #6b7280;
+          text-align: center;
+          font-family: Inter, sans-serif;
+        }
+        #wb-continue {
+          display: block;
+          width: 100%; height: 52px;
+          border-radius: 14px; border: none;
+          background: var(--primary, #ff4214);
+          color: #fff;
+          font-size: 1rem; font-weight: 700;
+          cursor: pointer;
+          font-family: Inter, sans-serif;
+          margin-bottom: 10px;
+        }
+        #wb-signout {
+          display: block;
+          width: 100%; height: 44px;
+          border-radius: 14px;
+          border: 1.5px solid #e5e7eb;
+          background: #fff;
+          color: #374151;
+          font-size: 0.9rem; font-weight: 600;
+          cursor: pointer;
+          font-family: Inter, sans-serif;
+        }
+      `;
+      document.head.appendChild(st);
 
-        document.getElementById('wb-continue').addEventListener('click', () => {
-          slideDown(() => { window.location.href = 'home.html'; });
-        });
-        document.getElementById('wb-signout').addEventListener('click', async () => {
-          await signOut();
-          slideDown(() => banner.remove());
-        });
+      // ── DOM ─────────────────────────────────────────────────────────
+      const sheet = document.createElement('div');
+      sheet.id = 'wb-sheet';
+      sheet.innerHTML = `
+        <div id="wb-handle-row">
+          <div id="wb-handle-pill"></div>
+          <div id="wb-tab-label">
+            <svg id="wb-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="18 15 12 9 6 15"/>
+            </svg>
+            Signed in
+          </div>
+        </div>
+        <div id="wb-body">
+          <p id="wb-body-label">You're already signed in</p>
+          <button id="wb-continue">Continue as ${name}</button>
+          <button id="wb-signout">Sign out</button>
+        </div>
+      `;
+      document.body.appendChild(sheet);
+
+      // ── Helpers ─────────────────────────────────────────────────────
+      const getHandle = () => document.getElementById('wb-handle-row');
+      const getTab    = () => document.getElementById('wb-tab-label');
+      const getArrow  = () => document.getElementById('wb-arrow').querySelector('polyline');
+
+      let expanded = false;
+      let curY = 0;
+
+      function sheetH()  { return sheet.offsetHeight; }
+      function handleH() { return getHandle().offsetHeight; }
+      function collY()   { return sheetH() - handleH(); }
+
+      function setY(y, animate) {
+        sheet.style.transition = animate
+          ? 'transform 0.38s cubic-bezier(0.32,0.72,0,1)'
+          : 'none';
+        sheet.style.transform = `translateY(${y}px)`;
+        curY = y;
       }
+
+      function syncLabel() {
+        const fraction = Math.min(1, curY / (collY() || 1));
+        getTab().style.opacity = fraction.toFixed(2);
+        getArrow().setAttribute('points',
+          expanded ? '6 9 12 15 18 9' : '18 15 12 9 6 15');
+      }
+
+      function expand() {
+        expanded = true;
+        setY(0, true);
+        syncLabel();
+      }
+
+      function collapse() {
+        expanded = false;
+        setY(collY(), true);
+        syncLabel();
+      }
+
+      function slideOut(cb) {
+        setY(sheetH(), true);
+        setTimeout(cb, 400);
+      }
+
+      // ── Initial slide-up ─────────────────────────────────────────────
+      requestAnimationFrame(() => {
+        setY(sheetH(), false);          // off-screen, no animation
+        void sheet.offsetHeight;        // force reflow so browser commits the position
+        setTimeout(() => collapse(), 60); // animate up to collapsed tab
+      });
+
+      // ── Drag ────────────────────────────────────────────────────────
+      let dragging = false, moved = false;
+      let startCY = 0, startY = 0, lastCY = 0, lastT = 0, vel = 0;
+
+      function cy(e) { return e.touches ? e.touches[0].clientY : e.clientY; }
+
+      function onStart(e) {
+        if (e.target.closest('#wb-continue,#wb-signout')) return;
+        dragging = true; moved = false;
+        startCY = cy(e); startY = curY;
+        lastCY = startCY; lastT = Date.now(); vel = 0;
+        sheet.style.transition = 'none';
+      }
+
+      function onMove(e) {
+        if (!dragging) return;
+        e.preventDefault();
+        const y = cy(e), now = Date.now(), dt = now - lastT;
+        if (dt > 0) vel = (y - lastCY) / dt;
+        lastCY = y; lastT = now;
+        const dy = y - startCY;
+        if (Math.abs(dy) > 4) moved = true;
+        const newY = Math.max(0, Math.min(sheetH(), startY + dy));
+        sheet.style.transform = `translateY(${newY}px)`;
+        curY = newY;
+        getTab().style.opacity = String(Math.min(1, curY / (collY() || 1)));
+      }
+
+      function onEnd() {
+        if (!dragging) return;
+        dragging = false;
+        if (!moved) { expanded ? collapse() : expand(); return; }
+        (vel > 0.3 || curY > collY() * 0.45) ? collapse() : expand();
+      }
+
+      sheet.addEventListener('touchstart', onStart, { passive: true });
+      window.addEventListener('touchmove',  onMove,  { passive: false });
+      window.addEventListener('touchend',   onEnd);
+      sheet.addEventListener('mousedown',   e => { onStart(e); e.preventDefault(); });
+      window.addEventListener('mousemove',  onMove);
+      window.addEventListener('mouseup',    onEnd);
+
+      // ── Buttons ──────────────────────────────────────────────────────
+      document.getElementById('wb-continue').addEventListener('click', () => {
+        slideOut(() => { window.location.href = 'home.html'; });
+      });
+      document.getElementById('wb-signout').addEventListener('click', async () => {
+        await signOut();
+        slideOut(() => sheet.remove());
+      });
     })();
   </script>
 </body>
