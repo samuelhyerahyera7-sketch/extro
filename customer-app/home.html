@@ -1832,12 +1832,16 @@
         const fakeOrder = {
           id: 'demo-' + Date.now(), status: 'accepted',
           restaurant_id: currentRestaurant.id,
+          restaurants: { name: currentRestaurant.name, lat: currentRestaurant.lat, lng: currentRestaurant.lng },
           items: cart.map(c => ({ id: c.item.id, name: c.item.name, price: cartEntryPrice(c), qty: c.qty })),
           subtotal, delivery_fee: fee, total, delivery_address: address,
+          delivery_lat: currentAddress?.lat || -25.7512,
+          delivery_lng: currentAddress?.lng || 28.1884,
         };
         cart = []; renderCart();
         btn.disabled = false; btn.textContent = 'Place order';
-        openOrderTracking(fakeOrder.id);
+        showView('view-home');
+        openOrderTracking(fakeOrder.id, fakeOrder);
         return;
       }
 
@@ -2042,32 +2046,41 @@
       showView('view-orders');
     }
 
-    async function openOrderTracking(orderId) {
+    async function openOrderTracking(orderId, _demoOrder) {
       // Show full-screen overlay
       document.getElementById('tracking-overlay').style.display = 'block';
       document.body.style.overflow = 'hidden';
 
-      const { data: order } = await sb.from('orders').select('*, restaurants(name,lat,lng)').eq('id', orderId).single();
+      let order;
+      if (_demoOrder) {
+        order = _demoOrder;
+      } else {
+        const { data } = await sb.from('orders').select('*, restaurants(name,lat,lng)').eq('id', orderId).single();
+        order = data;
+      }
       if (!order) return;
 
       renderTrackingSheet(order);
       initTrackingMap(order);
 
-      if (order.driver_id) {
+      if (order.driver_id && !window.DEMO_MODE) {
         fetchDriverInfo(order.driver_id).then(renderDriverCard);
         subscribeDriverLocation(order.driver_id);
       }
 
-      sb.channel(`order-${orderId}`)
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${orderId}` }, payload => {
-          const updated = { ...order, ...payload.new };
-          renderTrackingSheet(updated);
-          if (payload.new.driver_id && !order.driver_id) {
-            fetchDriverInfo(payload.new.driver_id).then(renderDriverCard);
-            subscribeDriverLocation(payload.new.driver_id);
-          }
-        })
-        .subscribe();
+      // In demo mode the simulation drives all phases — skip the channel listener
+      if (!window.DEMO_MODE) {
+        sb.channel(`order-${orderId}`)
+          .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${orderId}` }, payload => {
+            const updated = { ...order, ...payload.new };
+            renderTrackingSheet(updated);
+            if (payload.new.driver_id && !order.driver_id) {
+              fetchDriverInfo(payload.new.driver_id).then(renderDriverCard);
+              subscribeDriverLocation(payload.new.driver_id);
+            }
+          })
+          .subscribe();
+      }
     }
 
     function closeTrackingOverlay() {
@@ -2078,6 +2091,8 @@
       if (trackingMap) { trackingMap.remove(); trackingMap = null; }
       _cachedRoute = null; _cacheFromLat = null; _cacheFromLng = null;
       if (driverChannel) { sb.removeChannel(driverChannel); driverChannel = null; }
+      if (window._demoSimInterval) { clearInterval(window._demoSimInterval); window._demoSimInterval = null; }
+      if (window._demoSimTimeout) { clearTimeout(window._demoSimTimeout); window._demoSimTimeout = null; }
       hideQRBlock();
     }
 
@@ -2394,63 +2409,93 @@
 
     async function startDemoDriverSimulation(order) {
       if (window._demoSimInterval) { clearInterval(window._demoSimInterval); window._demoSimInterval = null; }
+      if (window._demoSimTimeout) { clearTimeout(window._demoSimTimeout); window._demoSimTimeout = null; }
 
       const startLat = order.restaurants?.lat ?? -25.746;
       const startLng = order.restaurants?.lng ?? 28.188;
       const endLat   = order.delivery_lat   || -25.7512;
       const endLng   = order.delivery_lng   || 28.1884;
 
-      setDriverStatusLabel('🚶', 'Driver is collecting your order');
+      // ── Phase 1: Preparing (30 seconds) ────────────────────────
+      renderTrackingSheet({ ...order, status: 'preparing' });
 
-      // Fetch the real road route from restaurant → delivery address
-      const { coords: routeCoords, durationMins } = await fetchRoadRoute(startLat, startLng, endLat, endLng);
-      setETA(durationMins);
+      window._demoSimTimeout = setTimeout(async () => {
+        if (!trackingMap) return;
 
-      // Draw the full route on the map immediately
-      drawRouteOnMap(routeCoords);
-      if (routeCoords.length > 1) {
-        const b = new mapboxgl.LngLatBounds();
-        routeCoords.forEach(c => b.extend(c));
-        trackingMap.fitBounds(b, { padding: 60 });
-      }
+        // ── Phase 2: Collecting (20 seconds) ──────────────────────
+        renderTrackingSheet({ ...order, status: 'ready' });
+        setDriverStatusLabel('📦', 'Driver is collecting your order');
 
-      const total = routeCoords.length;
-      let step = 0;
-      const STEP_MS = 1400;
-
-      function tick() {
-        if (!trackingMap || step >= total) {
-          clearInterval(window._demoSimInterval); window._demoSimInterval = null;
-          setDriverStatusLabel('✅', 'Order delivered!');
-          const st = JSON.parse(localStorage.getItem('extro_demo_store_v1') || '{}');
-          const o = (st.orders || []).find(o => o.id === order.id);
-          if (o) { o.status = 'delivered'; o.updated_at = new Date().toISOString(); }
-          localStorage.setItem('extro_demo_store_v1', JSON.stringify(st));
-          return;
+        // Fetch road route and show it during collecting phase
+        const { coords: routeCoords, durationMins } = await fetchRoadRoute(startLat, startLng, endLat, endLng);
+        drawRouteOnMap(routeCoords);
+        if (routeCoords.length > 1) {
+          const b = new mapboxgl.LngLatBounds();
+          routeCoords.forEach(c => b.extend(c));
+          trackingMap.fitBounds(b, { padding: 60 });
         }
+        // Place driver at restaurant during collecting
+        placeDriverOnMap(startLat, startLng, order, 'walk', routeCoords);
 
-        const [cLng, cLat] = routeCoords[step]; // OSRM returns [lng, lat]
-        const progress = step / total;
+        window._demoSimTimeout = setTimeout(() => {
+          if (!trackingMap) return;
 
-        // Phase labels based on progress through route
-        let iconType, emoji, text;
-        if (progress < 0.08)      { iconType = 'walk'; emoji = '🚶'; text = 'Driver is collecting your order'; }
-        else if (progress < 0.88) { iconType = 'bike'; emoji = '🚲'; text = 'Driver is cycling to you'; }
-        else                       { iconType = 'walk'; emoji = '🚶'; text = 'Driver is almost at your door'; }
+          // ── Phase 3: On the way (5 minutes = 300 000ms) ───────────
+          renderTrackingSheet({ ...order, status: 'picked_up' });
+          renderDriverCard({ name: 'Sipho M.', vehicle: 'motorbike', avatar: null });
+          setETA(5);
 
-        // Update driver position in shared demo store
-        const store = JSON.parse(localStorage.getItem('extro_demo_store_v1') || '{}');
-        const d = (store.drivers || []).find(d => d.id === 'demo-driver');
-        if (d) { d.current_lat = cLat; d.current_lng = cLng; d.updated_at = new Date().toISOString(); }
-        localStorage.setItem('extro_demo_store_v1', JSON.stringify(store));
+          const total = routeCoords.length;
+          let step = 0;
+          const STEP_MS = Math.round(300000 / Math.max(total, 1));
 
-        placeDriverOnMap(cLat, cLng, order, iconType, routeCoords);
-        setDriverStatusLabel(emoji, text);
-        step++;
-      }
+          function tick() {
+            if (!trackingMap || step >= total) {
+              clearInterval(window._demoSimInterval); window._demoSimInterval = null;
 
-      tick(); // show driver immediately at restaurant
-      window._demoSimInterval = setInterval(tick, STEP_MS);
+              // ── Phase 4: Delivered ─────────────────────────────────
+              renderTrackingSheet({ ...order, status: 'delivered' });
+              setDriverStatusLabel('🎉', 'Order delivered!');
+              const st = JSON.parse(localStorage.getItem('extro_demo_store_v1') || '{}');
+              const o = (st.orders || []).find(o => o.id === order.id);
+              if (o) { o.status = 'delivered'; o.updated_at = new Date().toISOString(); }
+              localStorage.setItem('extro_demo_store_v1', JSON.stringify(st));
+              setTimeout(() => openRatingModal(), 1500);
+              return;
+            }
+
+            const [cLng, cLat] = routeCoords[step];
+            const progress = step / total;
+            const iconType = progress > 0.9 ? 'walk' : 'bike';
+            const emoji    = progress > 0.9 ? '🛵' : '🛵';
+            const text     = progress > 0.9 ? 'Driver is almost at your door' : 'Driver is on the way to you';
+
+            const store = JSON.parse(localStorage.getItem('extro_demo_store_v1') || '{}');
+            const d = (store.drivers || []).find(d => d.id === 'demo-driver');
+            if (d) { d.current_lat = cLat; d.current_lng = cLng; d.updated_at = new Date().toISOString(); }
+            localStorage.setItem('extro_demo_store_v1', JSON.stringify(store));
+
+            placeDriverOnMap(cLat, cLng, order, iconType, routeCoords);
+            setDriverStatusLabel(emoji, text);
+
+            // Update ETA countdown
+            const remMins = Math.max(0, Math.round((1 - progress) * 5));
+            const el = document.getElementById('tracking-eta-text');
+            if (el) {
+              if (remMins <= 0) { el.textContent = 'Arriving now…'; }
+              else {
+                const arr = new Date(Date.now() + remMins * 60000);
+                const fmt = t => t.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' });
+                el.textContent = `Arrives ${fmt(arr)} – ${fmt(new Date(arr.getTime() + 2 * 60000))}`;
+              }
+            }
+            step++;
+          }
+
+          tick();
+          window._demoSimInterval = setInterval(tick, STEP_MS);
+        }, 20000); // 20s collecting phase
+      }, 30000); // 30s preparing phase
     }
 
     function subscribeDriverLocation(driverId) {

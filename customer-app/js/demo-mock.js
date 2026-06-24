@@ -396,15 +396,6 @@
           rows.push(row); return row;
         });
         saveStore(store);
-        if (this.table === 'orders') {
-          const orderId = inserted[0].id;
-          setTimeout(() => {
-            const s = loadStore();
-            const o = (s.orders || []).find(o => o.id === orderId);
-            if (o) { o.status = 'picked_up'; o.driver_id = 'demo-driver'; o.updated_at = new Date().toISOString(); }
-            saveStore(s);
-          }, 2000);
-        }
         const result = inserted.map(r => attachRelations(this.table, r, store));
         return this.singleMode ? { data: result[0], error: null } : { data: result, error: null };
       }
