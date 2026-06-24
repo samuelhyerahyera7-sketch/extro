@@ -437,7 +437,7 @@
         // Show "Welcome back" banner instead of silently redirecting
         const name = profile.first_name || profile.full_name || 'back';
         const banner = document.createElement('div');
-        banner.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1.5px solid #e5e7eb;padding:16px 20px 28px;z-index:100;box-shadow:0 -4px 24px rgba(0,0,0,0.08);transform:translateY(100%);transition:transform 0.35s cubic-bezier(0.32,0.72,0,1)';
+        banner.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1.5px solid #e5e7eb;padding:16px 20px 28px;z-index:100;box-shadow:0 -4px 24px rgba(0,0,0,0.08);transform:translateY(100%);transition:transform 0.4s cubic-bezier(0.32,0.72,0,1);will-change:transform';
         banner.innerHTML = `
           <p style="margin:0 0 12px;font-size:0.88rem;color:#6b7280;text-align:center">You're already signed in</p>
           <button id="wb-continue" style="width:100%;height:52px;border-radius:10px;border:none;background:var(--primary);color:#fff;font-size:1rem;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;margin-bottom:10px">
@@ -447,8 +447,8 @@
             Sign out
           </button>`;
         document.body.appendChild(banner);
-        // Slide up
-        requestAnimationFrame(() => requestAnimationFrame(() => { banner.style.transform = 'translateY(0)'; }));
+        // Slide up — setTimeout is more reliable than double-rAF when body has overflow:hidden
+        setTimeout(() => { banner.style.transform = 'translateY(0)'; }, 30);
 
         function slideDown(cb) {
           banner.style.transform = 'translateY(100%)';
