@@ -2252,7 +2252,7 @@
           bounds.extend([order.restaurants.lng, order.restaurants.lat]);
           hasBounds = true;
         }
-        if (hasBounds) trackingMap.fitBounds(bounds, { padding: 60, maxZoom: 16 });
+        if (hasBounds) trackingMap.fitBounds(bounds, { padding: { top: 80, right: 50, bottom: 330, left: 50 }, maxZoom: 15 });
 
         const driverId = order.driver_id || (window.DEMO_MODE ? 'demo-driver' : null);
         if (driverId) {
@@ -2342,7 +2342,7 @@
         if (coords.length > 1) {
           const b = new mapboxgl.LngLatBounds();
           coords.forEach(c => b.extend(c));
-          trackingMap.fitBounds(b, { padding: 60 });
+          trackingMap.fitBounds(b, { padding: { top: 80, right: 50, bottom: 330, left: 50 } });
         }
         setETA(durationMins);
       });
@@ -2432,7 +2432,7 @@
         if (routeCoords.length > 1) {
           const b = new mapboxgl.LngLatBounds();
           routeCoords.forEach(c => b.extend(c));
-          trackingMap.fitBounds(b, { padding: 60 });
+          trackingMap.fitBounds(b, { padding: { top: 80, right: 50, bottom: 330, left: 50 } });
         }
         // Place driver at restaurant during collecting
         placeDriverOnMap(startLat, startLng, order, 'walk', routeCoords);
