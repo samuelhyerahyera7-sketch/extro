@@ -583,7 +583,7 @@
       requestAnimationFrame(() => {
         setY(sheetH(), false);          // off-screen, no animation
         void sheet.offsetHeight;        // force reflow so browser commits the position
-        setTimeout(() => collapse(), 60); // animate up to collapsed tab
+        setTimeout(() => expand(), 60); // animate up fully expanded
       });
 
       // ── Drag ────────────────────────────────────────────────────────
