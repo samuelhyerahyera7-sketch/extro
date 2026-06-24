@@ -710,7 +710,7 @@
     </button>
 
     <!-- Bottom sheet -->
-    <div style="position:absolute;bottom:0;left:0;right:0;background:#fff;border-radius:24px 24px 0 0;z-index:20;padding:12px 20px 48px;max-height:60vh;overflow-y:auto;box-shadow:0 -4px 32px rgba(0,0,0,0.13)">
+    <div style="position:absolute;bottom:0;left:0;right:0;background:#fff;border-radius:24px 24px 0 0;z-index:20;padding:12px 20px 48px;max-height:60vh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;box-shadow:0 -4px 32px rgba(0,0,0,0.13)">
       <div style="width:36px;height:4px;border-radius:2px;background:#e5e7eb;margin:0 auto 18px"></div>
 
       <h2 id="tracking-status-heading" style="font-size:1.2rem;font-weight:800;margin:0 0 5px;color:#1a1d29">Preparing your order…</h2>
@@ -997,13 +997,16 @@
         row.querySelector('.addr-building-check').style.display = row.dataset.type === type ? 'block' : 'none';
       });
       document.getElementById('addr-building-sheet').style.display = 'none';
+      document.body.style.overflow = '';
     }
 
     document.getElementById('addr-type-trigger').addEventListener('click', () => {
       document.getElementById('addr-building-sheet').style.display = 'block';
+      document.body.style.overflow = 'hidden';
     });
     document.getElementById('addr-building-backdrop').addEventListener('click', () => {
       document.getElementById('addr-building-sheet').style.display = 'none';
+      document.body.style.overflow = '';
     });
     document.getElementById('addr-building-list').addEventListener('click', e => {
       const row = e.target.closest('.addr-building-row');
@@ -2362,10 +2365,12 @@
       document.querySelectorAll('#rating-stars button').forEach(b => b.style.opacity = '0.35');
       document.getElementById('rating-error').textContent = '';
       document.getElementById('rating-modal').style.display = 'flex';
+      document.body.style.overflow = 'hidden';
     }
 
     function closeRatingModal() {
       document.getElementById('rating-modal').style.display = 'none';
+      document.body.style.overflow = '';
       _ratingOrderId = null; _ratingDriverId = null; _selectedStar = 0;
     }
 
