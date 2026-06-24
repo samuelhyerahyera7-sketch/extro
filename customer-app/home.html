@@ -1529,7 +1529,8 @@
     // ── Item detail sheet ──────────────────────────────────────
     let _sheetItem = null;
     let _sheetQty = 1;
-    let _sheetExtras = new Set();
+    let _sheetGroupSels = new Map();
+    let _sheetAddonSels = new Set();
     let _sheetAllergens = new Set();
     const ALLERGENS = ['Nuts','Dairy','Gluten','Shellfish','Soy','Eggs','Sesame','Fish'];
 
@@ -1537,43 +1538,67 @@
       _sheetItem = menuItems.find(i => String(i.id) === String(itemId));
       if (!_sheetItem) return;
       _sheetQty = 1;
-      _sheetExtras = new Set();
+      _sheetGroupSels = new Map();
+      _sheetAddonSels = new Set();
       _sheetAllergens = new Set();
 
       const inCart = cart.find(c => String(c.item.id) === String(itemId));
-      const extras = _sheetItem.extras || [];
+      const rawExtras = _sheetItem.extras || [];
+      const _groups = rawExtras.filter(e => e.group != null);
+      const _addons = rawExtras.filter(e => e.group == null);
       const isGrocery = (currentRestaurant?.category || '').toLowerCase().includes('grocer');
 
-      // Photo header
       const photoWrap = document.getElementById('item-sheet-photo-wrap');
       photoWrap.innerHTML = `<div class="item-sheet-handle"></div>${_sheetItem.photo_url ? `<img src="${_sheetItem.photo_url}" alt="${_sheetItem.name}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:22px 22px 0 0">` : `<div class="item-photo-header-emoji">${catEmoji(currentRestaurant?.category)}</div>`}`;
 
-      document.getElementById('item-sheet-body').innerHTML = `
-        <div style="font-weight:800;font-size:1.2rem;margin-bottom:4px;line-height:1.3">${_sheetItem.name}</div>
-        <div style="font-size:1.1rem;font-weight:800;color:var(--primary);margin-bottom:${_sheetItem.description ? 8 : extras.length ? 16 : 20}px">R${Number(_sheetItem.price).toFixed(2)}</div>
-        ${_sheetItem.description ? `<p style="color:var(--muted);font-size:0.85rem;margin:0 0 ${extras.length ? 16 : 20}px;line-height:1.55">${_sheetItem.description}</p>` : ''}
-        ${inCart ? `<div style="background:#fef9c3;border-radius:10px;padding:8px 12px;font-size:0.8rem;color:#854d0e;margin-bottom:14px">Already in basket · ${inCart.qty} added</div>` : ''}
+      const groupsHtml = _groups.map((g, gi) => {
+        const isRadio = (g.max || 1) === 1;
+        const badge = g.required
+          ? `<span style="font-size:0.68rem;font-weight:700;background:#fee2e2;color:#991b1b;padding:3px 9px;border-radius:100px;flex-shrink:0;white-space:nowrap">Required</span>`
+          : `<span style="font-size:0.68rem;font-weight:700;background:var(--bg);color:var(--muted);padding:3px 9px;border-radius:100px;flex-shrink:0;white-space:nowrap">Optional</span>`;
+        const sub = isRadio ? 'Choose 1' : `Choose up to ${g.max || g.options.length}`;
+        return `<div style="border-top:1.5px solid var(--border);padding:14px 0 4px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:2px">${badge}<span style="font-size:0.95rem;font-weight:800;color:var(--ink);flex:1;order:-1">${g.group}</span></div>
+          <div style="font-size:0.78rem;color:var(--muted);margin-bottom:6px">${sub}</div>
+          ${g.options.map((opt, oi) => `
+            <label style="display:flex;align-items:center;padding:11px 0;border-top:1px solid #f3f4f6;cursor:pointer;gap:12px">
+              <input type="${isRadio ? 'radio' : 'checkbox'}" ${isRadio ? `name="sgrp_${gi}"` : ''}
+                class="grp-opt-input" data-gi="${gi}" data-oi="${oi}"
+                style="width:20px;height:20px;accent-color:var(--primary);cursor:pointer;flex-shrink:0">
+              <span style="flex:1;font-size:0.92rem;color:var(--ink)">${opt.name}</span>
+              <span style="color:var(--muted);font-size:0.88rem;font-weight:500">${Number(opt.price) > 0 ? '+R' + Number(opt.price).toFixed(2) : 'Free'}</span>
+            </label>`).join('')}
+        </div>`;
+      }).join('');
 
-        ${extras.length ? `
-        <div style="margin-bottom:8px">
-          <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px">Add extras</div>
-          ${extras.map((ex, idx) => `
-            <label style="display:flex;align-items:center;padding:12px 0;border-top:1px solid var(--border);cursor:pointer;gap:12px">
-              <input type="checkbox" class="extra-check" data-idx="${idx}" style="width:20px;height:20px;accent-color:var(--primary);cursor:pointer;flex-shrink:0">
-              <span style="flex:1;font-size:0.92rem">${ex.name}</span>
+      const addonsHtml = _addons.length ? `
+        <div style="border-top:1.5px solid var(--border);padding:14px 0 4px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px">
+            <span style="font-size:0.95rem;font-weight:800;color:var(--ink)">Add extras</span>
+            <span style="font-size:0.68rem;font-weight:700;background:var(--bg);color:var(--muted);padding:3px 9px;border-radius:100px">Optional</span>
+          </div>
+          ${_addons.map((ex, ai) => `
+            <label style="display:flex;align-items:center;padding:11px 0;border-top:1px solid #f3f4f6;cursor:pointer;gap:12px">
+              <input type="checkbox" class="addon-check" data-ai="${ai}"
+                style="width:20px;height:20px;accent-color:var(--primary);cursor:pointer;flex-shrink:0">
+              <span style="flex:1;font-size:0.92rem;color:var(--ink)">${ex.name}</span>
               <span style="color:var(--muted);font-size:0.88rem;font-weight:500">+R${Number(ex.price).toFixed(2)}</span>
             </label>`).join('')}
-        </div>` : ''}
+        </div>` : '';
 
+      document.getElementById('item-sheet-body').innerHTML = `
+        <div style="font-weight:800;font-size:1.2rem;margin-bottom:4px;line-height:1.3">${_sheetItem.name}</div>
+        <div style="font-size:1.1rem;font-weight:800;color:var(--primary);margin-bottom:${_sheetItem.description ? 8 : rawExtras.length ? 16 : 20}px">R${Number(_sheetItem.price).toFixed(2)}</div>
+        ${_sheetItem.description ? `<p style="color:var(--muted);font-size:0.85rem;margin:0 0 ${rawExtras.length ? 16 : 20}px;line-height:1.55">${_sheetItem.description}</p>` : ''}
+        ${inCart ? `<div style="background:#fef9c3;border-radius:10px;padding:8px 12px;font-size:0.8rem;color:#854d0e;margin-bottom:14px">Already in basket · ${inCart.qty} added</div>` : ''}
+        ${groupsHtml}
+        ${addonsHtml}
         ${isGrocery ? '' : `
-        <div style="margin-top:${extras.length ? 8 : 0}px;padding-top:${extras.length ? 12 : 0}px;${extras.length ? 'border-top:1px solid var(--border);' : ''}margin-bottom:4px">
+        <div style="margin-top:${rawExtras.length ? 8 : 0}px;padding-top:${rawExtras.length ? 12 : 0}px;${rawExtras.length ? 'border-top:1px solid var(--border);' : ''}margin-bottom:4px">
           <div style="font-size:1rem;font-weight:700;margin-bottom:8px">Special instructions</div>
-          <textarea id="item-note" rows="3"
-            placeholder="Add a note"
+          <textarea id="item-note" rows="3" placeholder="Add a note"
             style="width:100%;border:none;border-radius:12px;padding:12px 14px;font-family:inherit;font-size:0.9rem;resize:none;box-sizing:border-box;background:var(--bg);color:var(--ink);outline:none;line-height:1.5;min-height:80px"></textarea>
-          ${extras.length ? '<p style="font-size:0.78rem;color:var(--muted);margin:4px 0 0">You may be charged for extras.</p>' : ''}
         </div>
-
         <div id="allergy-row" style="display:flex;align-items:center;padding:16px 0;border-top:1px solid var(--border);margin-top:14px;cursor:pointer">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="22" height="22" style="flex-shrink:0;margin-right:12px;color:var(--muted)"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           <div style="flex:1">
@@ -1593,16 +1618,26 @@
         </div>`}
         <div style="height:6px"></div>`;
 
-      // Extras checkboxes
-      document.querySelectorAll('.extra-check').forEach(cb => {
-        cb.addEventListener('change', () => {
-          const idx = parseInt(cb.dataset.idx);
-          cb.checked ? _sheetExtras.add(idx) : _sheetExtras.delete(idx);
+      document.querySelectorAll('.grp-opt-input').forEach(input => {
+        input.addEventListener('change', () => {
+          const gi = parseInt(input.dataset.gi);
+          const oi = parseInt(input.dataset.oi);
+          if (!_sheetGroupSels.has(gi)) _sheetGroupSels.set(gi, new Set());
+          const sel = _sheetGroupSels.get(gi);
+          if (input.type === 'radio') { sel.clear(); sel.add(oi); }
+          else { input.checked ? sel.add(oi) : sel.delete(oi); }
           updateSheetBtn();
         });
       });
 
-      // Allergy toggle
+      document.querySelectorAll('.addon-check').forEach(cb => {
+        cb.addEventListener('change', () => {
+          const ai = parseInt(cb.dataset.ai);
+          cb.checked ? _sheetAddonSels.add(ai) : _sheetAddonSels.delete(ai);
+          updateSheetBtn();
+        });
+      });
+
       document.getElementById('allergy-row')?.addEventListener('click', () => {
         const panel = document.getElementById('allergy-panel');
         const chevron = document.getElementById('allergy-chevron');
@@ -1625,19 +1660,30 @@
 
     function updateSheetBtn() {
       if (!_sheetItem) return;
-      const extras = _sheetItem.extras || [];
-      const extrasTotal = [..._sheetExtras].reduce((sum, idx) => sum + Number((extras[idx] || {}).price || 0), 0);
+      const rawExtras = _sheetItem.extras || [];
+      const _groups = rawExtras.filter(e => e.group != null);
+      const _addons = rawExtras.filter(e => e.group == null);
+      const requiredUnmet = _groups.some((g, gi) => g.required && (!_sheetGroupSels.has(gi) || _sheetGroupSels.get(gi).size === 0));
+      let extrasTotal = 0;
+      _sheetGroupSels.forEach((optSet, gi) => {
+        const g = _groups[gi]; if (!g) return;
+        optSet.forEach(oi => { extrasTotal += Number((g.options[oi] || {}).price || 0); });
+      });
+      _sheetAddonSels.forEach(ai => { extrasTotal += Number((_addons[ai] || {}).price || 0); });
       const unitPrice = Number(_sheetItem.price) + extrasTotal;
       const total = (unitPrice * _sheetQty).toFixed(2);
       document.getElementById('item-sheet-qty').textContent = _sheetQty;
       document.getElementById('item-sheet-dec').style.opacity = _sheetQty <= 1 ? '0.4' : '1';
-      document.getElementById('item-sheet-add').textContent = `Add ${_sheetQty > 1 ? _sheetQty + '× ' : ''}to basket · R${total}`;
+      const btn = document.getElementById('item-sheet-add');
+      btn.textContent = requiredUnmet ? 'Select required options' : `Add ${_sheetQty > 1 ? _sheetQty + '× ' : ''}to basket · R${total}`;
+      btn.style.opacity = requiredUnmet ? '0.5' : '1';
+      btn.disabled = requiredUnmet;
     }
 
     function closeItemSheet() {
       document.getElementById('item-sheet').style.display = 'none';
       _sheetItem = null; _sheetQty = 1;
-      _sheetExtras = new Set(); _sheetAllergens = new Set();
+      _sheetGroupSels = new Map(); _sheetAddonSels = new Set(); _sheetAllergens = new Set();
     }
 
     document.getElementById('item-sheet-backdrop').addEventListener('click', closeItemSheet);
@@ -1645,11 +1691,21 @@
     document.getElementById('item-sheet-inc').addEventListener('click', () => { _sheetQty++; updateSheetBtn(); });
     document.getElementById('item-sheet-add').addEventListener('click', () => {
       if (!_sheetItem) return;
+      const rawExtras = _sheetItem.extras || [];
+      const _groups = rawExtras.filter(e => e.group != null);
+      const _addons = rawExtras.filter(e => e.group == null);
+      const requiredUnmet = _groups.some((g, gi) => g.required && (!_sheetGroupSels.has(gi) || _sheetGroupSels.get(gi).size === 0));
+      if (requiredUnmet) return;
+      const chosenExtras = [];
+      _sheetGroupSels.forEach((optSet, gi) => {
+        const g = _groups[gi]; if (!g) return;
+        optSet.forEach(oi => { const opt = g.options[oi]; if (opt) chosenExtras.push({ name: opt.name, price: Number(opt.price || 0) }); });
+      });
+      _sheetAddonSels.forEach(ai => { const ex = _addons[ai]; if (ex) chosenExtras.push({ name: ex.name, price: Number(ex.price || 0) }); });
       const noteVal = (document.getElementById('item-note')?.value || '').trim();
       const allergenStr = _sheetAllergens.size > 0 ? `Allergies: ${[..._sheetAllergens].join(', ')}` : '';
       const note = [noteVal, allergenStr].filter(Boolean).join(' · ');
-      const extras = (_sheetItem.extras || []).filter((_, idx) => _sheetExtras.has(idx));
-      addToCart(_sheetItem.id, _sheetQty, note, extras);
+      addToCart(_sheetItem.id, _sheetQty, note, chosenExtras);
       closeItemSheet();
     });
 
