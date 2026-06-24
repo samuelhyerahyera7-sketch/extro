@@ -174,7 +174,7 @@
     </div>
 
     <!-- ── View: Address setup ───────────────────────────────── -->
-    <div id="view-address-setup" style="display:none;flex-direction:column;height:100dvh;overflow:hidden;background:#fff">
+    <div id="view-address-setup" style="display:none;padding-bottom:88px">
 
       <!-- Header -->
       <div class="sticky-subheader">
@@ -207,9 +207,6 @@
           Edit pin
         </button>
       </div>
-
-      <!-- Scrollable detail area (map stays fixed above) -->
-      <div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:88px">
 
       <!-- Detected address -->
       <div style="padding:14px 20px;background:#fff;border-bottom:1px solid var(--border)">
@@ -307,10 +304,8 @@
 
       <p class="addr-save-error" id="addr-save-error" style="padding:0 20px"></p>
 
-      </div><!-- end scrollable detail area -->
-
       <!-- Fixed save button -->
-      <div style="position:absolute;bottom:0;left:0;right:0;padding:12px 20px 28px;background:#fff;border-top:1px solid var(--border);z-index:100">
+      <div style="position:fixed;bottom:0;left:0;right:0;padding:12px 20px 28px;background:#fff;border-top:1px solid var(--border);z-index:100">
         <button id="addr-save-btn" style="width:100%;height:54px;border-radius:14px;background:var(--primary);color:#fff;border:none;font-size:1rem;font-weight:700;cursor:pointer;font-family:inherit">Save and continue</button>
       </div>
     </div>
@@ -774,8 +769,7 @@
     const ALL_VIEWS = ['view-profile-complete', 'view-address-setup', 'view-restaurants', 'view-menu', 'view-basket', 'view-orders', 'view-account'];
     function showView(id) {
       ALL_VIEWS.forEach(v => {
-        const _flexViews = ['view-profile-complete', 'view-address-setup'];
-      document.getElementById(v).style.display = v === id ? (_flexViews.includes(v) ? 'flex' : 'block') : 'none';
+        document.getElementById(v).style.display = v === id ? (v === 'view-profile-complete' ? 'flex' : 'block') : 'none';
       });
       if (id === 'view-address-setup' && addrMap) setTimeout(() => addrMap.resize(), 80);
       if (id === 'view-orders' && trackingMap) setTimeout(() => trackingMap.resize(), 80);
@@ -1261,7 +1255,7 @@
     let _menuCategory = 'all';
 
     async function openRestaurant(id) {
-      currentRestaurant = restaurants.find(r => r.id === id);
+      currentRestaurant = restaurants.find(r => String(r.id) === String(id));
       if (!currentRestaurant?.is_open) return;
       _menuCategory = 'all';
       const { data, error } = await sb.from('menu_items').select('*').eq('restaurant_id', id).eq('available', true);
@@ -1390,8 +1384,11 @@
           <button class="menu-card-add" data-open="${item.id}" aria-label="Add ${item.name}">+</button>
         </div>`).join('')}</div>`;
 
-      list.querySelectorAll('[data-open]').forEach(el => {
+      list.querySelectorAll('.menu-card').forEach(el => {
         el.addEventListener('click', () => openItemSheet(el.dataset.open));
+      });
+      list.querySelectorAll('.menu-card-add').forEach(el => {
+        el.addEventListener('click', e => { e.stopPropagation(); openItemSheet(el.dataset.open); });
       });
     }
 
@@ -1403,13 +1400,13 @@
     const ALLERGENS = ['Nuts','Dairy','Gluten','Shellfish','Soy','Eggs','Sesame','Fish'];
 
     function openItemSheet(itemId) {
-      _sheetItem = menuItems.find(i => i.id === itemId);
+      _sheetItem = menuItems.find(i => String(i.id) === String(itemId));
       if (!_sheetItem) return;
       _sheetQty = 1;
       _sheetExtras = new Set();
       _sheetAllergens = new Set();
 
-      const inCart = cart.find(c => c.item.id === itemId);
+      const inCart = cart.find(c => String(c.item.id) === String(itemId));
       const extras = _sheetItem.extras || [];
       const isGrocery = (currentRestaurant?.category || '').toLowerCase().includes('grocer');
 
@@ -1527,7 +1524,7 @@
     }
 
     function addToCart(itemId, qty = 1, note = '', extras = []) {
-      const item = menuItems.find(i => i.id === itemId);
+      const item = menuItems.find(i => String(i.id) === String(itemId));
       if (!item) return;
       const extrasKey = extras.map(e => e.name).sort().join(',');
       const existing = cart.find(c => c.item.id === itemId && c.note === note && (c.extras || []).map(e => e.name).sort().join(',') === extrasKey);
