@@ -804,6 +804,7 @@
     let parkedMarker = null;
     let routeLine = null;
     let _driverPrevLat = null, _driverPrevLng = null;
+    let _driverVehicleType = null;
     let trackedOrder = null;
     let driverChannel = null;
     let _renderOrderId = null;
@@ -2068,7 +2069,10 @@
       initTrackingMap(order);
 
       if (order.driver_id && !window.DEMO_MODE) {
-        fetchDriverInfo(order.driver_id).then(renderDriverCard);
+        fetchDriverInfo(order.driver_id).then(info => {
+          _driverVehicleType = info.vehicle;
+          renderDriverCard(info);
+        });
         subscribeDriverLocation(order.driver_id);
       }
 
@@ -2080,7 +2084,10 @@
             Object.assign(order, payload.new);
             renderTrackingSheet(updated);
             if (payload.new.driver_id && !order.driver_id) {
-              fetchDriverInfo(payload.new.driver_id).then(renderDriverCard);
+              fetchDriverInfo(payload.new.driver_id).then(info => {
+                _driverVehicleType = info.vehicle;
+                renderDriverCard(info);
+              });
               subscribeDriverLocation(payload.new.driver_id);
             }
             // Walking phase: place driver at restaurant with walk icon + parked scooter
@@ -2312,8 +2319,9 @@
       'driver_assigned','driver_en_route',
       'driver_at_restaurant','driver_collecting',
     ]);
-    function statusToIconType(status) {
-      return WALK_STATUSES.has(status) ? 'walk' : 'motorbike';
+    function statusToIconType(status, vehicleType) {
+      if (WALK_STATUSES.has(status)) return 'walk';
+      return vehicleType === 'car' ? 'car' : 'motorbike';
     }
 
     // ── Walking marker creation ────────────────────────────────────
@@ -2353,7 +2361,12 @@
         // ── Bike image marker (delivering to customer) ───────────
         const inner = _makeImageMarker('assets/extro-bike.png', 70, 'motorbike');
         Object.assign(wrapper.style, { lineHeight: '0' });
-        wrapper.appendChild(inner.firstChild); // move <img> up
+        wrapper.appendChild(inner.firstChild);
+      } else if (norm === 'car') {
+        // ── Car image marker (car driver delivering to customer) ─
+        const inner = _makeImageMarker('assets/extro-car.png', 65, 'car');
+        Object.assign(wrapper.style, { lineHeight: '0' });
+        wrapper.appendChild(inner.firstChild);
       } else if (norm === 'walk') {
         // ── Walking rider marker (collecting from restaurant) ────
         const inner = _makeImageMarker('assets/extro-walking-rider.png', 52, 'walk');
@@ -2539,7 +2552,7 @@
       // ── Resolve icon type from status if not explicitly passed ──
       const norm = iconType
         ? (iconType === 'bike' ? 'bicycle' : iconType)
-        : statusToIconType(order?.status || 'pending');
+        : statusToIconType(order?.status || 'pending', _driverVehicleType);
 
       // ── Bearing: direction of travel ────────────────────────────
       let bearing = null;
@@ -2679,6 +2692,7 @@
 
         // ── Phase 2: Driver assigned + en route to restaurant (10s) ─
         demoStatus('driver_assigned');
+        _driverVehicleType = 'motorbike';
         renderDriverCard({ name: 'Sipho M.', vehicle: 'motorbike', avatar: null });
         setDriverStatusLabel('🛵', 'Driver assigned — heading to restaurant');
 
@@ -2691,24 +2705,31 @@
           trackingMap.fitBounds(b, { padding: { top: 80, right: 50, bottom: 380, left: 50 }, maxZoom: 14 });
         }
 
-        // Animate driver approaching restaurant (first 30% of route, reversed)
-        const approachCoords = [...routeCoords].reverse().slice(0, Math.floor(routeCoords.length * 0.3));
+        // ── Phase 2b: Animate driver approaching restaurant (~6s) ──
+        // Start ~500m away from restaurant and drive toward it linearly.
+        const APPROACH_N  = 14;
+        const demoStartLat = restLat + 0.004;
+        const demoStartLng = restLng - 0.004;
+        const approachPts  = Array.from({ length: APPROACH_N }, (_, i) => {
+          const t = i / (APPROACH_N - 1);
+          return [demoStartLng + (restLng - demoStartLng) * t,
+                  demoStartLat + (restLat - demoStartLat) * t];
+        });
         let aStep = 0;
-        const APPROACH_MS = Math.round(10000 / Math.max(approachCoords.length, 1));
         window._demoSimInterval = setInterval(() => {
-          if (!trackingMap || aStep >= approachCoords.length) {
+          if (!trackingMap || aStep >= approachPts.length) {
             clearInterval(window._demoSimInterval); window._demoSimInterval = null;
 
-            // ── Phase 3: Driver at restaurant — park + walk (12s) ──
+            // ── Phase 3: Driver at restaurant — park + walk (4s) ──
             demoStatus('driver_at_restaurant');
             setDriverStatusLabel('🏪', 'Driver arrived at restaurant');
             placeParkedScooter(restLat, restLng);
-            placeDriverOnMap(restLat, restLng, order, 'walk');
+            placeDriverOnMap(restLat, restLng, { ...order, status: 'driver_at_restaurant' }, 'walk');
 
             window._demoSimTimeout = setTimeout(() => {
               if (!trackingMap) return;
 
-              // ── Phase 4: Collecting (8s) ────────────────────────
+              // ── Phase 4: Collecting (3s) ────────────────────────
               demoStatus('driver_collecting');
               setDriverStatusLabel('📦', 'Driver collecting your order');
 
@@ -2716,7 +2737,7 @@
                 if (!trackingMap) return;
                 removeParkedScooter();
 
-                // ── Phase 5: Picked up — ride to customer (5 min) ──
+                // ── Phase 5: Picked up — ride to customer (~15s) ──
                 demoStatus('picked_up');
                 setETA(durationMins || 5);
                 setDriverStatusLabel('🛵', 'Order collected — on the way!');
@@ -2727,15 +2748,17 @@
                   trackingMap.fitBounds(rb, { padding: { top: 80, right: 50, bottom: 380, left: 50 }, maxZoom: 14 });
                 }
 
-                const total = routeCoords.length;
-                let step = 0;
-                const STEP_MS = Math.round(300000 / Math.max(total, 1));
+                const total   = routeCoords.length;
+                let step      = 0;
+                let nearby    = false;
+                // 15 seconds total to traverse the full route in demo
+                const STEP_MS = Math.max(50, Math.round(15000 / Math.max(total, 1)));
 
                 function tick() {
                   if (!trackingMap || step >= total) {
                     clearInterval(window._demoSimInterval); window._demoSimInterval = null;
 
-                    // ── Phase 6: Driver arrived ──────────────────
+                    // ── Phase 6: Driver arrived (show QR) ────────
                     demoStatus('driver_arrived');
                     setDriverStatusLabel('🔔', 'Driver is at your door!');
                     showQRBlock({ ...order, delivery_code: '429163' });
@@ -2757,21 +2780,19 @@
 
                   const [cLng, cLat] = routeCoords[step];
                   const progress = step / total;
-                  const nearEnd  = progress > 0.88;
-                  const iconType = nearEnd ? 'walk' : 'motorbike';
 
-                  if (nearEnd && step === Math.floor(total * 0.88)) {
+                  // Switch to driver_nearby at 85% of route — stays on bike
+                  if (progress > 0.85 && !nearby) {
+                    nearby = true;
                     demoStatus('driver_nearby');
                     setDriverStatusLabel('📍', 'Driver is nearby!');
                   }
 
-                  const store = JSON.parse(localStorage.getItem('extro_demo_store_v1') || '{}');
-                  const d = (store.drivers || []).find(d => d.id === 'demo-driver');
-                  if (d) { d.current_lat = cLat; d.current_lng = cLng; d.updated_at = new Date().toISOString(); }
-                  localStorage.setItem('extro_demo_store_v1', JSON.stringify(store));
+                  placeDriverOnMap(cLat, cLng,
+                    { ...order, status: nearby ? 'driver_nearby' : 'in_transit' },
+                    'motorbike', routeCoords);
 
-                  placeDriverOnMap(cLat, cLng, order, iconType, routeCoords);
-                  if (!nearEnd) setDriverStatusLabel('🛵', 'Driver is on the way to you');
+                  if (!nearby) setDriverStatusLabel('🛵', 'Driver is on the way to you');
 
                   const remMins = Math.max(0, Math.round((1 - progress) * (durationMins || 5)));
                   const etaEl = document.getElementById('tracking-eta-text');
@@ -2788,17 +2809,17 @@
 
                 tick();
                 window._demoSimInterval = setInterval(tick, STEP_MS);
-              }, 8000); // 8s collecting
-            }, 12000); // 12s at restaurant
+              }, 3000); // 3s collecting
+            }, 4000); // 4s at restaurant
             return;
           }
 
-          const [cLng, cLat] = approachCoords[aStep];
-          placeDriverOnMap(cLat, cLng, order, 'motorbike');
+          const [aLng, aLat] = approachPts[aStep];
+          placeDriverOnMap(aLat, aLng, { ...order, status: 'driver_en_route' }, 'motorbike');
           aStep++;
-        }, APPROACH_MS);
+        }, Math.round(6000 / APPROACH_N)); // ~6s total approach
 
-      }, 15000); // 15s preparing
+      }, 4000); // 4s preparing
     }
 
     function subscribeDriverLocation(driverId) {
