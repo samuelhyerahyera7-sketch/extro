@@ -2358,20 +2358,11 @@
       wrapper.dataset.markerType = norm;
 
       if (norm === 'motorbike') {
-        // ── Bike image marker (delivering to customer) ───────────
-        const inner = _makeImageMarker('assets/extro-bike.png', 70, 'motorbike');
-        Object.assign(wrapper.style, { lineHeight: '0' });
-        wrapper.appendChild(inner.firstChild);
+        wrapper.appendChild(_makeImageMarker('assets/extro-bike.png', 70, 'motorbike'));
       } else if (norm === 'car') {
-        // ── Car image marker (car driver delivering to customer) ─
-        const inner = _makeImageMarker('assets/extro-car.png', 65, 'car');
-        Object.assign(wrapper.style, { lineHeight: '0' });
-        wrapper.appendChild(inner.firstChild);
+        wrapper.appendChild(_makeImageMarker('assets/extro-car.png', 65, 'car'));
       } else if (norm === 'walk') {
-        // ── Walking rider marker (collecting from restaurant) ────
-        const inner = _makeImageMarker('assets/extro-walking-rider.png', 52, 'walk');
-        Object.assign(wrapper.style, { lineHeight: '0' });
-        wrapper.appendChild(inner.firstChild);
+        wrapper.appendChild(_makeImageMarker('assets/extro-walking-rider.png', 52, 'walk'));
       } else {
         // ── SVG circle for bicycle / car ─────────────────────────
         wrapper.style.cssText = 'width:52px;height:52px;';
@@ -2696,14 +2687,14 @@
         renderDriverCard({ name: 'Sipho M.', vehicle: 'motorbike', avatar: null });
         setDriverStatusLabel('🛵', 'Driver assigned — heading to restaurant');
 
-        // Fetch the road route once (restaurant → customer)
-        const { coords: routeCoords, durationMins } = await fetchRoadRoute(restLat, restLng, endLat, endLng);
-        drawRouteOnMap(routeCoords);
-        if (routeCoords.length > 1) {
-          const b = new mapboxgl.LngLatBounds();
-          routeCoords.forEach(c => b.extend(c));
-          trackingMap.fitBounds(b, { padding: { top: 80, right: 50, bottom: 380, left: 50 }, maxZoom: 14 });
-        }
+        // Kick off route fetch in background — approach animation starts immediately
+        const routePromise = fetchRoadRoute(restLat, restLng, endLat, endLng);
+
+        // Straight-line placeholder so the map shows route + correct bounds right away
+        drawRouteOnMap([[restLng, restLat], [endLng, endLat]]);
+        const _pb = new mapboxgl.LngLatBounds();
+        _pb.extend([restLng, restLat]); _pb.extend([endLng, endLat]);
+        trackingMap.fitBounds(_pb, { padding: { top: 80, right: 50, bottom: 380, left: 50 }, maxZoom: 14 });
 
         // ── Phase 2b: Animate driver approaching restaurant (~6s) ──
         // Start ~500m away from restaurant and drive toward it linearly.
@@ -2733,15 +2724,20 @@
               demoStatus('driver_collecting');
               setDriverStatusLabel('📦', 'Driver collecting your order');
 
-              window._demoSimTimeout = setTimeout(() => {
+              window._demoSimTimeout = setTimeout(async () => {
                 if (!trackingMap) return;
                 removeParkedScooter();
 
                 // ── Phase 5: Picked up — ride to customer (~15s) ──
+                // Route fetch started in Phase 2 — should be ready by now
+                const { coords: routeCoords, durationMins } = await routePromise;
+                if (!trackingMap) return;
+
                 demoStatus('picked_up');
                 setETA(durationMins || 5);
                 setDriverStatusLabel('🛵', 'Order collected — on the way!');
 
+                drawRouteOnMap(routeCoords);
                 if (routeCoords.length > 1) {
                   const rb = new mapboxgl.LngLatBounds();
                   routeCoords.forEach(c => rb.extend(c));
@@ -2751,7 +2747,6 @@
                 const total   = routeCoords.length;
                 let step      = 0;
                 let nearby    = false;
-                // 15 seconds total to traverse the full route in demo
                 const STEP_MS = Math.max(50, Math.round(15000 / Math.max(total, 1)));
 
                 function tick() {
@@ -2769,10 +2764,11 @@
                       hideQRBlock();
                       demoStatus('delivered');
                       setDriverStatusLabel('🎉', 'Order delivered!');
-                      const st = JSON.parse(localStorage.getItem('extro_demo_store_v1') || '{}');
+                      const DEMO_KEY = 'extro_demo_store_v2';
+                      const st = JSON.parse(localStorage.getItem(DEMO_KEY) || '{}');
                       const o  = (st.orders || []).find(o => o.id === order.id);
                       if (o) { o.status = 'delivered'; o.updated_at = new Date().toISOString(); }
-                      localStorage.setItem('extro_demo_store_v1', JSON.stringify(st));
+                      localStorage.setItem(DEMO_KEY, JSON.stringify(st));
                       setTimeout(() => openRatingModal(), 1500);
                     }, 8000);
                     return;
@@ -2781,7 +2777,6 @@
                   const [cLng, cLat] = routeCoords[step];
                   const progress = step / total;
 
-                  // Switch to driver_nearby at 85% of route — stays on bike
                   if (progress > 0.85 && !nearby) {
                     nearby = true;
                     demoStatus('driver_nearby');
