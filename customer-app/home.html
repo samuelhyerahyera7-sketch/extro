@@ -2667,48 +2667,53 @@
       if (window._demoSimInterval) { clearInterval(window._demoSimInterval); window._demoSimInterval = null; }
       if (window._demoSimTimeout) { clearTimeout(window._demoSimTimeout); window._demoSimTimeout = null; }
 
-      const restLat = order.restaurants?.lat ?? -25.746;
-      const restLng = order.restaurants?.lng ?? 28.188;
-      const endLat  = order.delivery_lat || -25.7512;
-      const endLng  = order.delivery_lng || 28.1884;
+      const restLat      = order.restaurants?.lat ?? -25.746;
+      const restLng      = order.restaurants?.lng ?? 28.188;
+      const endLat       = order.delivery_lat || -25.7512;
+      const endLng       = order.delivery_lng || 28.1884;
+      const demoStartLat = restLat + 0.004;   // ~450m north of restaurant
+      const demoStartLng = restLng - 0.004;   // ~350m west of restaurant
 
       function demoStatus(status) { renderTrackingSheet({ ...order, status }); }
 
-      // ── Phase 1: Preparing (15s) ───────────────────────────────
+      // Pre-fetch both routes during Phase 1 (4 s window).
+      // Sequential to respect _routeFetching: delivery route first, then approach.
+      const routePromise   = fetchRoadRoute(restLat, restLng, endLat, endLng);
+      const approachPromise = routePromise.then(() =>
+        fetchRoadRoute(demoStartLat, demoStartLng, restLat, restLng)
+      );
+
+      // ── Phase 1: Preparing (4s) ────────────────────────────────
       demoStatus('preparing');
       setDriverStatusLabel('🍳', 'Restaurant is preparing your order');
 
       window._demoSimTimeout = setTimeout(async () => {
         if (!trackingMap) return;
 
-        // ── Phase 2: Driver assigned + en route to restaurant (10s) ─
+        // ── Phase 2: Driver assigned + en route to restaurant ──────
         demoStatus('driver_assigned');
         _driverVehicleType = 'motorbike';
         renderDriverCard({ name: 'Sipho M.', vehicle: 'motorbike', avatar: null });
         setDriverStatusLabel('🛵', 'Driver assigned — heading to restaurant');
 
-        // Kick off route fetch in background — approach animation starts immediately
-        const routePromise = fetchRoadRoute(restLat, restLng, endLat, endLng);
+        // Both routes should be resolved by now (fetched during 4 s Phase 1)
+        const { coords: routeCoords, durationMins } = await routePromise;
+        const { coords: approachCoords }            = await approachPromise;
+        if (!trackingMap) return;
 
-        // Straight-line placeholder so the map shows route + correct bounds right away
-        drawRouteOnMap([[restLng, restLat], [endLng, endLat]]);
+        // Draw the real delivery route line (restaurant → customer)
+        drawRouteOnMap(routeCoords);
         const _pb = new mapboxgl.LngLatBounds();
-        _pb.extend([restLng, restLat]); _pb.extend([endLng, endLat]);
+        routeCoords.forEach(c => _pb.extend(c));
+        _pb.extend([demoStartLng, demoStartLat]);
         trackingMap.fitBounds(_pb, { padding: { top: 80, right: 50, bottom: 380, left: 50 }, maxZoom: 14 });
 
-        // ── Phase 2b: Animate driver approaching restaurant (~6s) ──
-        // Start ~500m away from restaurant and drive toward it linearly.
-        const APPROACH_N  = 14;
-        const demoStartLat = restLat + 0.004;
-        const demoStartLng = restLng - 0.004;
-        const approachPts  = Array.from({ length: APPROACH_N }, (_, i) => {
-          const t = i / (APPROACH_N - 1);
-          return [demoStartLng + (restLng - demoStartLng) * t,
-                  demoStartLat + (restLat - demoStartLat) * t];
-        });
+        // ── Phase 2b: Animate driver along real road to restaurant (~6s) ──
         let aStep = 0;
+        const APPROACH_STEP_MS = Math.max(80, Math.round(6000 / Math.max(approachCoords.length, 1)));
+
         window._demoSimInterval = setInterval(() => {
-          if (!trackingMap || aStep >= approachPts.length) {
+          if (!trackingMap || aStep >= approachCoords.length) {
             clearInterval(window._demoSimInterval); window._demoSimInterval = null;
 
             // ── Phase 3: Driver at restaurant — park + walk (4s) ──
@@ -2724,15 +2729,11 @@
               demoStatus('driver_collecting');
               setDriverStatusLabel('📦', 'Driver collecting your order');
 
-              window._demoSimTimeout = setTimeout(async () => {
+              window._demoSimTimeout = setTimeout(() => {
                 if (!trackingMap) return;
                 removeParkedScooter();
 
-                // ── Phase 5: Picked up — ride to customer (~15s) ──
-                // Route fetch started in Phase 2 — should be ready by now
-                const { coords: routeCoords, durationMins } = await routePromise;
-                if (!trackingMap) return;
-
+                // ── Phase 5: Picked up — ride along real road to customer (~15s) ──
                 demoStatus('picked_up');
                 setETA(durationMins || 5);
                 setDriverStatusLabel('🛵', 'Order collected — on the way!');
@@ -2753,7 +2754,7 @@
                   if (!trackingMap || step >= total) {
                     clearInterval(window._demoSimInterval); window._demoSimInterval = null;
 
-                    // ── Phase 6: Driver arrived (show QR) ────────
+                    // ── Phase 6: Driver arrived ────────────────────
                     demoStatus('driver_arrived');
                     setDriverStatusLabel('🔔', 'Driver is at your door!');
                     showQRBlock({ ...order, delivery_code: '429163' });
@@ -2809,10 +2810,10 @@
             return;
           }
 
-          const [aLng, aLat] = approachPts[aStep];
+          const [aLng, aLat] = approachCoords[aStep];
           placeDriverOnMap(aLat, aLng, { ...order, status: 'driver_en_route' }, 'motorbike');
           aStep++;
-        }, Math.round(6000 / APPROACH_N)); // ~6s total approach
+        }, APPROACH_STEP_MS);
 
       }, 4000); // 4s preparing
     }
