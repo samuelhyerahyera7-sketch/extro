@@ -2103,6 +2103,7 @@
     function closeTrackingOverlay() {
       document.getElementById('tracking-overlay').style.display = 'none';
       document.body.style.overflow = '';
+      if (_animFrame) { cancelAnimationFrame(_animFrame); _animFrame = null; }
       if (trackingMarker) { trackingMarker.remove(); trackingMarker = null; }
       if (parkedMarker)   { parkedMarker.remove();   parkedMarker = null; }
       routeLine = null;
@@ -2302,19 +2303,95 @@
       </svg>`
     };
 
+    // ── Driver marker factory ──────────────────────────────────────
+    // For motorbike: uses the branded Extro bike image (assets/extro-bike.png).
+    // For walk/bicycle/car: keeps the coloured SVG circle icon.
     function makeMapboxDriverEl(type) {
       const norm = type === 'bike' ? 'bicycle' : (type || 'motorbike');
-      const bg   = DRIVER_ICON_BG[norm]  || DRIVER_ICON_BG.motorbike;
-      const svg  = DRIVER_ICON_SVG[norm] || DRIVER_ICON_SVG.motorbike;
       const wrapper = document.createElement('div');
-      wrapper.style.cssText = 'width:52px;height:52px;';
+      wrapper.dataset.markerType = norm;
+
+      if (norm === 'motorbike') {
+        // Bike image marker — sized for mobile readability
+        const img = document.createElement('img');
+        img.src = 'assets/extro-bike.png';
+        img.className = 'driver-bike-img';
+        img.alt = '';
+        img.style.cssText = [
+          'width:70px',
+          'height:auto',
+          'display:block',
+          'filter:drop-shadow(0 4px 14px rgba(0,0,0,0.5))',
+          'transition:transform 0.45s cubic-bezier(0.25,0.8,0.25,1)',
+          'transform-origin:center center',
+          'will-change:transform',
+        ].join(';');
+        // Fallback: if image fails to load, swap in the SVG circle
+        img.onerror = () => {
+          wrapper.innerHTML = '';
+          _appendSVGCircle(wrapper, norm);
+        };
+        wrapper.style.cssText = 'line-height:0;';
+        wrapper.appendChild(img);
+      } else {
+        // SVG circle for walk / bicycle / car
+        wrapper.style.cssText = 'width:52px;height:52px;';
+        _appendSVGCircle(wrapper, norm);
+      }
+      return wrapper;
+    }
+
+    function _appendSVGCircle(wrapper, norm) {
+      const bg  = DRIVER_ICON_BG[norm]  || DRIVER_ICON_BG.motorbike;
+      const svg = DRIVER_ICON_SVG[norm] || DRIVER_ICON_SVG.motorbike;
       const circle = document.createElement('div');
       circle.className = 'driver-icon-circle';
       circle.dataset.iconType = norm;
       circle.style.cssText = `width:52px;height:52px;border-radius:50%;background:${bg};border:3px solid #fff;box-shadow:0 4px 18px rgba(0,0,0,0.38);display:flex;align-items:center;justify-content:center;transition:transform 0.25s ease;`;
       circle.innerHTML = svg;
       wrapper.appendChild(circle);
-      return wrapper;
+    }
+
+    // ── Smooth marker animation ────────────────────────────────────
+    // Interpolates the marker from its current position to (toLat, toLng)
+    // over `ms` milliseconds using an ease-in-out curve, so the bike
+    // glides instead of jumping on each GPS update.
+    let _animFrame = null;
+    function animateMarkerTo(marker, toLat, toLng, ms) {
+      if (_animFrame) { cancelAnimationFrame(_animFrame); _animFrame = null; }
+      const from = marker.getLngLat();
+      const fromLat = from.lat, fromLng = from.lng;
+      const t0 = performance.now();
+      function ease(t) { return t < 0.5 ? 2*t*t : -1+(4-2*t)*t; }
+      function frame(now) {
+        if (!trackingMarker) return;
+        const raw = Math.min((now - t0) / ms, 1);
+        const e   = ease(raw);
+        marker.setLngLat([fromLng + (toLng - fromLng) * e, fromLat + (toLat - fromLat) * e]);
+        if (raw < 1) _animFrame = requestAnimationFrame(frame);
+        else _animFrame = null;
+      }
+      _animFrame = requestAnimationFrame(frame);
+    }
+
+    // ── Apply rotation to bike image or SVG circle ─────────────────
+    // The Extro bike image naturally faces RIGHT (east = bearing 90°).
+    // Formula: rotate by (bearing − 90) so east=0°, north=−90°, south=90°.
+    // When heading west the image flips via scaleX(−1) so it always faces
+    // the correct horizontal direction.
+    function _applyBearing(markerEl, bearing) {
+      if (bearing === null) return;
+      const img    = markerEl.querySelector('.driver-bike-img');
+      const circle = markerEl.querySelector('.driver-icon-circle');
+      if (img) {
+        const westbound = bearing > 90 && bearing < 270;
+        const angle = westbound ? -(bearing - 270) : (bearing - 90);
+        img.style.transform = westbound
+          ? `scaleX(-1) rotate(${angle}deg)`
+          : `rotate(${angle}deg)`;
+      } else if (circle) {
+        circle.style.transform = `rotate(${bearing}deg)`;
+      }
     }
 
     async function initTrackingMap(order) {
@@ -2418,12 +2495,16 @@
       }
     }
 
+    // ── Place / move driver marker on map ─────────────────────────
+    // Called on every GPS update (live) and every demo tick.
+    // • First call: creates the Mapbox marker with the Extro bike image.
+    // • Subsequent calls: smoothly animates to the new position and rotates
+    //   the bike image to face the direction of travel.
     function placeDriverOnMap(lat, lng, order, iconType, precomputedRoute) {
       if (!trackingMap) return;
-      const lngLat = [lng, lat];
       const norm = iconType === 'bike' ? 'bicycle' : (iconType || null);
 
-      // Calculate bearing from previous position for rotation
+      // ── Bearing (direction of travel) ──────────────────────────
       let bearing = null;
       if (_driverPrevLat != null && (_driverPrevLat !== lat || _driverPrevLng !== lng)) {
         bearing = calcBearing(_driverPrevLat, _driverPrevLng, lat, lng);
@@ -2431,18 +2512,27 @@
       _driverPrevLat = lat; _driverPrevLng = lng;
 
       if (!trackingMarker) {
-        trackingMarker = new mapboxgl.Marker({ element: makeMapboxDriverEl(norm || 'motorbike') }).setLngLat(lngLat).addTo(trackingMap);
+        // ── First appearance: create marker ─────────────────────
+        const el = makeMapboxDriverEl(norm || 'motorbike');
+        trackingMarker = new mapboxgl.Marker({ element: el, anchor: 'center' })
+          .setLngLat([lng, lat])
+          .addTo(trackingMap);
+        if (bearing !== null) _applyBearing(el, bearing);
       } else {
-        trackingMarker.setLngLat(lngLat);
-        const circle = trackingMarker.getElement()?.querySelector('.driver-icon-circle');
-        if (circle) {
-          if (norm && circle.dataset.iconType !== norm) {
-            circle.dataset.iconType = norm;
-            circle.style.background = DRIVER_ICON_BG[norm] || DRIVER_ICON_BG.motorbike;
-            circle.innerHTML = DRIVER_ICON_SVG[norm] || DRIVER_ICON_SVG.motorbike;
-          }
-          if (bearing !== null) circle.style.transform = `rotate(${bearing}deg)`;
+        // ── Live GPS update: animate smoothly to new position ───
+        // 800 ms matches a comfortable GPS update interval.
+        animateMarkerTo(trackingMarker, lat, lng, 800);
+
+        // Swap icon if type changed (e.g. motorbike → walk at restaurant)
+        const el = trackingMarker.getElement();
+        const currentType = el?.dataset?.markerType;
+        if (norm && currentType !== norm) {
+          el.replaceChildren(...makeMapboxDriverEl(norm).childNodes);
+          el.dataset.markerType = norm;
         }
+
+        // Rotate bike image / circle to face direction of travel
+        if (bearing !== null) _applyBearing(el, bearing);
       }
 
       if (precomputedRoute) {
@@ -2450,7 +2540,7 @@
         return;
       }
 
-      if (!order?.delivery_lat) { trackingMap.panTo(lngLat); return; }
+      if (!order?.delivery_lat) { trackingMap.panTo([lng, lat]); return; }
       fetchRoadRoute(lat, lng, order.delivery_lat, order.delivery_lng).then(({ coords, durationMins }) => {
         if (!trackingMap) return;
         drawRouteOnMap(coords);
