@@ -2327,24 +2327,45 @@
     // ── Walking marker creation ────────────────────────────────────
     // Returns a wrapper <div> containing the walking-rider image.
     // Both images face RIGHT naturally, so the same bearing formula applies.
+    // Uses a canvas to remove white/near-white pixels so the marker floats
+    // cleanly over the Mapbox GL canvas (mix-blend-mode can't reach WebGL layers).
     function _makeImageMarker(src, widthPx, fallbackNorm) {
       const wrapper = document.createElement('div');
-      wrapper.style.cssText = 'line-height:0;';
-      const img = document.createElement('img');
-      img.src = src;
-      img.className = 'driver-bike-img';
-      img.alt = '';
-      img.style.cssText = [
+      wrapper.style.cssText = 'line-height:0;filter:drop-shadow(0 3px 10px rgba(0,0,0,0.45))';
+
+      const canvas = document.createElement('canvas');
+      canvas.className = 'driver-bike-img';
+      canvas.style.cssText = [
         `width:${widthPx}px`,
         'height:auto',
         'display:block',
-        'mix-blend-mode:multiply',
         'transition:transform 0.45s cubic-bezier(0.25,0.8,0.25,1)',
         'transform-origin:center center',
         'will-change:transform',
       ].join(';');
-      img.onerror = () => { wrapper.innerHTML = ''; _appendSVGCircle(wrapper, fallbackNorm); };
-      wrapper.appendChild(img);
+
+      const imgEl = new Image();
+      imgEl.crossOrigin = 'anonymous';
+      imgEl.onload = () => {
+        const scale = 2;
+        const cw = widthPx * scale;
+        const ch = Math.round(imgEl.height * (widthPx / imgEl.width) * scale);
+        canvas.width  = cw;
+        canvas.height = ch;
+        canvas.style.height = Math.round(ch / scale) + 'px';
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(imgEl, 0, 0, cw, ch);
+        const id = ctx.getImageData(0, 0, cw, ch);
+        const d  = id.data;
+        for (let i = 0; i < d.length; i += 4) {
+          if (d[i] > 240 && d[i + 1] > 240 && d[i + 2] > 240) d[i + 3] = 0;
+        }
+        ctx.putImageData(id, 0, 0);
+      };
+      imgEl.onerror = () => { wrapper.innerHTML = ''; _appendSVGCircle(wrapper, fallbackNorm); };
+      imgEl.src = src;
+
+      wrapper.appendChild(canvas);
       return wrapper;
     }
 
