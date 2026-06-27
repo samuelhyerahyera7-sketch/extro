@@ -752,15 +752,20 @@
             <div id="tracking-driver-vehicle" style="font-size:0.8rem;color:#6b7280;margin-top:2px">🚲 Bicycle</div>
           </div>
         </div>
-        <div style="margin-top:12px;display:flex;gap:10px">
-          <div style="flex:1;padding:10px 6px;background:#fff;border-radius:12px;text-align:center;border:1.5px solid #e5e7eb">
+        <div style="margin-top:12px;display:flex;gap:8px">
+          <button id="driver-chat-btn" onclick="openCustomerChat()" style="flex:1;padding:10px 6px;background:#fff;border-radius:12px;text-align:center;border:1.5px solid #e5e7eb;cursor:pointer;position:relative;font-family:inherit">
             <div style="font-size:1.2rem;margin-bottom:2px">💬</div>
             <div style="font-size:0.75rem;font-weight:600;color:#374151">Message</div>
-          </div>
-          <div style="flex:1;padding:10px 6px;background:#fff;border-radius:12px;text-align:center;border:1.5px solid #e5e7eb">
+            <span id="chat-unread-badge" style="display:none;position:absolute;top:5px;right:5px;background:#ff5a3c;color:#fff;border-radius:50%;width:17px;height:17px;font-size:0.62rem;font-weight:700;align-items:center;justify-content:center">0</span>
+          </button>
+          <a id="driver-call-btn" href="#" style="flex:1;padding:10px 6px;background:#fff;border-radius:12px;text-align:center;border:1.5px solid #e5e7eb;cursor:pointer;text-decoration:none;display:block">
             <div style="font-size:1.2rem;margin-bottom:2px">📞</div>
             <div style="font-size:0.75rem;font-weight:600;color:#374151">Call</div>
-          </div>
+          </a>
+          <a id="driver-whatsapp-btn" href="#" target="_blank" rel="noopener" style="flex:1;padding:10px 6px;background:#dcfce7;border-radius:12px;text-align:center;border:1.5px solid #bbf7d0;cursor:pointer;text-decoration:none;display:block">
+            <div style="font-size:1.2rem;margin-bottom:2px">💚</div>
+            <div style="font-size:0.75rem;font-weight:600;color:#16a34a">WhatsApp</div>
+          </a>
         </div>
       </div>
 
@@ -771,6 +776,28 @@
         <canvas id="order-qr-canvas" style="border-radius:10px;display:block;margin:0 auto 10px"></canvas>
         <div id="delivery-code-display" style="font-size:2rem;font-weight:900;letter-spacing:0.35em;color:#111;font-variant-numeric:tabular-nums"></div>
       </div>
+    </div>
+  </div>
+
+  <!-- ── Customer ↔ Driver chat ───────────────────────────────── -->
+  <div id="customer-chat-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:500" onclick="closeCustomerChat()"></div>
+  <div id="customer-chat-sheet" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:501;background:#fff;border-radius:24px 24px 0 0;height:72vh;flex-direction:column;box-shadow:0 -4px 32px rgba(0,0,0,0.18)">
+    <div style="padding:14px 20px 12px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:12px">
+      <div style="flex:1">
+        <div style="font-weight:800;font-size:1rem;color:#1a1d29">Chat with driver</div>
+        <div style="font-size:0.74rem;color:#6b7280;margin-top:1px">Messages are private between you and your driver</div>
+      </div>
+      <button onclick="closeCustomerChat()" style="background:none;border:none;cursor:pointer;padding:4px;color:#6b7280">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div id="customer-chat-messages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column"></div>
+    <div style="padding:12px 16px 32px;border-top:1px solid #e5e7eb;display:flex;gap:10px;align-items:center">
+      <input id="customer-chat-input" type="text" placeholder="Type a message…" onkeydown="if(event.key==='Enter')sendCustomerChatMessage()"
+        style="flex:1;padding:12px 16px;border:1.5px solid #e5e7eb;border-radius:100px;font-size:0.9rem;color:#1a1d29;outline:none;font-family:inherit">
+      <button onclick="sendCustomerChatMessage()" style="width:46px;height:46px;border-radius:50%;background:#ff5a3c;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
     </div>
   </div>
 
@@ -2216,15 +2243,18 @@
 
     async function fetchDriverInfo(driverId) {
       const [{ data: prof }, { data: drv }] = await Promise.all([
-        sb.from('profiles').select('full_name,first_name,avatar_url').eq('id', driverId).maybeSingle(),
-        sb.from('drivers').select('vehicle_type,avatar_url').eq('id', driverId).maybeSingle(),
+        sb.from('profiles').select('full_name,first_name,avatar_url,phone').eq('id', driverId).maybeSingle(),
+        sb.from('drivers').select('vehicle_type,avatar_url,phone').eq('id', driverId).maybeSingle(),
       ]);
       return {
         name: prof?.full_name || prof?.first_name || 'Your driver',
         avatar: drv?.avatar_url || prof?.avatar_url || null,
         vehicle: drv?.vehicle_type || 'bicycle',
+        phone: drv?.phone || prof?.phone || null,
       };
     }
+
+    let _driverPhone = null;
 
     function renderDriverCard(info) {
       if (!info) return;
@@ -2243,6 +2273,93 @@
       if (nameEl) nameEl.textContent = info.name;
       if (vehicleEl) vehicleEl.textContent = `${vehicleEmoji} ${vehicleLabel}`;
       card.style.display = 'block';
+
+      // Wire up phone buttons
+      _driverPhone = info.phone || null;
+      const intlPhone = _driverPhone ? _driverPhone.replace(/^0/, '27').replace(/\s/g, '') : null;
+      const callBtn = document.getElementById('driver-call-btn');
+      const waBtn   = document.getElementById('driver-whatsapp-btn');
+      if (callBtn) {
+        if (intlPhone) { callBtn.href = `tel:${intlPhone}`; callBtn.style.opacity = '1'; }
+        else { callBtn.href = '#'; callBtn.style.opacity = '0.4'; callBtn.onclick = e => e.preventDefault(); }
+      }
+      if (waBtn) {
+        if (intlPhone) { waBtn.href = `https://wa.me/${intlPhone}?text=${encodeURIComponent('Hi, I\'m waiting for my Extro delivery 👋')}`; waBtn.style.opacity = '1'; }
+        else { waBtn.href = '#'; waBtn.style.opacity = '0.4'; waBtn.onclick = e => e.preventDefault(); }
+      }
+    }
+
+    // ── Customer in-app chat ───────────────────────────────────────
+    let _chatChannel = null;
+    let _chatOrderId = null;
+
+    function openCustomerChat() {
+      _chatOrderId = trackedOrder?.id || null;
+      if (!_chatOrderId && !window.DEMO_MODE) return;
+      document.getElementById('customer-chat-overlay').style.display = 'block';
+      document.getElementById('customer-chat-sheet').style.display  = 'flex';
+      _loadCustomerChat();
+      _subscribeCustomerChat();
+      setTimeout(() => document.getElementById('customer-chat-input').focus(), 200);
+    }
+
+    function closeCustomerChat() {
+      document.getElementById('customer-chat-overlay').style.display = 'none';
+      document.getElementById('customer-chat-sheet').style.display  = 'none';
+      if (_chatChannel) { sb.removeChannel(_chatChannel); _chatChannel = null; }
+    }
+
+    async function _loadCustomerChat() {
+      const el = document.getElementById('customer-chat-messages');
+      if (window.DEMO_MODE) {
+        el.innerHTML = _chatBubble(false, 'Hi! I\'m on my way, should be there in about 5 mins 🛵', '14:32') +
+                       _chatBubble(true,  'Thanks! Gate code is 1234 😊', '14:33');
+        el.scrollTop = el.scrollHeight; return;
+      }
+      const { data } = await sb.from('messages').select('*')
+        .eq('order_id', _chatOrderId).eq('conversation', 'customer_driver')
+        .order('created_at', { ascending: true });
+      _renderCustomerChat(data || []);
+    }
+
+    function _renderCustomerChat(msgs) {
+      const el = document.getElementById('customer-chat-messages');
+      if (!msgs.length) { el.innerHTML = '<p style="text-align:center;color:#9ca3af;font-size:0.82rem;margin-top:24px">No messages yet — say hi! 👋</p>'; return; }
+      el.innerHTML = msgs.map(m => {
+        const mine = m.sender_id === profile?.id;
+        const t = new Date(m.created_at).toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' });
+        return _chatBubble(mine, m.body, t);
+      }).join('');
+      el.scrollTop = el.scrollHeight;
+    }
+
+    function _chatBubble(mine, body, time) {
+      return `<div style="display:flex;justify-content:${mine ? 'flex-end' : 'flex-start'};margin-bottom:6px">
+        <div style="max-width:76%;background:${mine ? '#ff5a3c' : '#f3f4f6'};color:${mine ? '#fff' : '#1a1d29'};border-radius:${mine ? '18px 18px 4px 18px' : '18px 18px 18px 4px'};padding:10px 13px;font-size:0.88rem;line-height:1.45">
+          ${body.replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+          <div style="font-size:0.65rem;opacity:0.65;margin-top:3px;text-align:right">${time}</div>
+        </div></div>`;
+    }
+
+    async function sendCustomerChatMessage() {
+      const input = document.getElementById('customer-chat-input');
+      const body  = input.value.trim();
+      if (!body) return;
+      input.value = '';
+      if (window.DEMO_MODE) {
+        const el = document.getElementById('customer-chat-messages');
+        el.innerHTML += _chatBubble(true, body, new Date().toLocaleTimeString('en-ZA',{hour:'2-digit',minute:'2-digit'}));
+        el.scrollTop = el.scrollHeight; return;
+      }
+      await sb.from('messages').insert({ order_id: _chatOrderId, conversation: 'customer_driver', sender_role: 'customer', sender_id: profile.id, body });
+    }
+
+    function _subscribeCustomerChat() {
+      if (_chatChannel) sb.removeChannel(_chatChannel);
+      if (window.DEMO_MODE || !_chatOrderId) return;
+      _chatChannel = sb.channel(`chat-${_chatOrderId}-cd`)
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `order_id=eq.${_chatOrderId}` }, () => _loadCustomerChat())
+        .subscribe();
     }
 
     function calcBearing(lat1, lng1, lat2, lng2) {

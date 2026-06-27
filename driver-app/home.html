@@ -81,6 +81,11 @@
           <button class="vehicle-chip" data-v="car">🚗 Car</button>
         </div>
       </div>
+      <div class="form-group" style="margin-top:20px">
+        <label>Phone number</label>
+        <input type="tel" id="ob-phone" placeholder="e.g. 072 123 4567" inputmode="tel" style="width:100%;box-sizing:border-box">
+        <p style="font-size:0.75rem;color:var(--muted);margin:4px 0 0">Used so customers and restaurants can contact you</p>
+      </div>
       <p class="ob-error" id="ob-err-1"></p>
       <button class="btn btn-primary btn-block" id="ob-next-1" style="margin-top:28px">Continue →</button>
     </div>
@@ -382,6 +387,28 @@
     <button class="btn btn-primary btn-block" style="margin-top:16px" id="code-verify-btn">Confirm code</button>
     <button class="btn btn-outline btn-block" style="margin-top:8px" id="code-scan-btn">Scan QR instead</button>
     <button style="display:block;width:100%;margin-top:6px;background:none;border:none;color:var(--muted);font-size:0.84rem;cursor:pointer;padding:6px" onclick="closeCodeModal()">Cancel</button>
+  </div>
+</div>
+
+<!-- ── Driver chat sheet ──────────────────────────────────────── -->
+<div id="driver-chat-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:600" onclick="closeDriverChat()"></div>
+<div id="driver-chat-sheet" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:601;background:#fff;border-radius:24px 24px 0 0;height:72vh;flex-direction:column;box-shadow:0 -4px 32px rgba(0,0,0,0.18)">
+  <div style="padding:14px 20px 12px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:12px">
+    <div style="flex:1">
+      <div id="driver-chat-title" style="font-weight:800;font-size:1rem;color:#1a1d29"></div>
+      <div id="driver-chat-sub" style="font-size:0.74rem;color:#6b7280;margin-top:1px"></div>
+    </div>
+    <button onclick="closeDriverChat()" style="background:none;border:none;cursor:pointer;padding:4px;color:#6b7280">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div id="driver-chat-messages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column"></div>
+  <div style="padding:12px 16px 32px;border-top:1px solid #e5e7eb;display:flex;gap:10px;align-items:center">
+    <input id="driver-chat-input" type="text" placeholder="Type a message…" onkeydown="if(event.key==='Enter')sendDriverChatMessage()"
+      style="flex:1;padding:12px 16px;border:1.5px solid #e5e7eb;border-radius:100px;font-size:0.9rem;color:#1a1d29;outline:none;font-family:inherit">
+    <button onclick="sendDriverChatMessage()" style="width:46px;height:46px;border-radius:50%;background:#ff5a3c;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    </button>
   </div>
 </div>
 
@@ -735,6 +762,7 @@
       }
     }
 
+    const obPhone = document.getElementById('ob-phone')?.value.trim() || null;
     await sb.from('drivers').upsert({
       id: profile.id,
       vehicle_type: obVehicleType,
@@ -742,6 +770,7 @@
       id_document_url: idDocUrl || 'pending',
       vehicle_document_url: vehicleDocUrl,
       avatar_url: avatarUrl,
+      phone: obPhone,
       id_verified: false,
       status: 'pending',
     });
@@ -960,6 +989,17 @@
           : `<div style="text-align:center;padding:14px 0"><div style="font-size:2rem">🎉</div><p style="color:var(--success);font-weight:800;margin:4px 0 0">Delivered — great work!</p></div>`}
 
         <div style="display:flex;gap:8px;margin-top:10px">
+          <button onclick="openDriverChat('customer_driver')" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:10px 0;border:1.5px solid #e5e7eb;border-radius:12px;background:#fff;font-size:0.78rem;font-weight:700;color:#1a1d29;cursor:pointer;font-family:inherit;position:relative">
+            <span style="font-size:1.1rem">💬</span> Customer
+            <span id="driver-chat-cust-badge" style="display:none;position:absolute;top:5px;right:5px;background:#ff5a3c;color:#fff;border-radius:50%;width:16px;height:16px;font-size:0.6rem;font-weight:700;align-items:center;justify-content:center">!</span>
+          </button>
+          <button onclick="openDriverChat('restaurant_driver')" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:10px 0;border:1.5px solid #e5e7eb;border-radius:12px;background:#fff;font-size:0.78rem;font-weight:700;color:#1a1d29;cursor:pointer;font-family:inherit;position:relative">
+            <span style="font-size:1.1rem">🏪</span> Restaurant
+            <span id="driver-chat-rest-badge" style="display:none;position:absolute;top:5px;right:5px;background:#ff5a3c;color:#fff;border-radius:50%;width:16px;height:16px;font-size:0.6rem;font-weight:700;align-items:center;justify-content:center">!</span>
+          </button>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:8px">
           <a href="https://www.google.com/maps/dir/?api=1&destination=${toCustomer ? o.delivery_lat : o.restaurants?.lat},${toCustomer ? o.delivery_lng : o.restaurants?.lng}&travelmode=driving"
              target="_blank" rel="noopener"
              style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:11px 0;border:1.5px solid #e5e7eb;border-radius:12px;background:#fff;font-size:0.82rem;font-weight:700;color:#1a1d29;text-decoration:none">
@@ -1320,6 +1360,87 @@
     } else if (isOnline) {
       startLocationSharing(); subscribePool(); loadPool();
     }
+  }
+
+  // ── Driver chat ────────────────────────────────────────────────
+  let _driverChatConv = null;   // 'customer_driver' | 'restaurant_driver'
+  let _driverChatCh   = null;
+
+  function openDriverChat(conversation) {
+    if (!activeOrder) return;
+    _driverChatConv = conversation;
+    const isCustomer = conversation === 'customer_driver';
+    document.getElementById('driver-chat-title').textContent = isCustomer ? 'Chat with Customer' : 'Chat with Restaurant';
+    document.getElementById('driver-chat-sub').textContent   = isCustomer
+      ? 'Private chat between you and the customer'
+      : 'Private chat between you and the restaurant';
+    document.getElementById('driver-chat-overlay').style.display = 'block';
+    document.getElementById('driver-chat-sheet').style.display   = 'flex';
+    _loadDriverChat();
+    _subscribeDriverChat();
+    setTimeout(() => document.getElementById('driver-chat-input').focus(), 200);
+  }
+
+  function closeDriverChat() {
+    document.getElementById('driver-chat-overlay').style.display = 'none';
+    document.getElementById('driver-chat-sheet').style.display   = 'none';
+    if (_driverChatCh) { sb.removeChannel(_driverChatCh); _driverChatCh = null; }
+  }
+
+  async function _loadDriverChat() {
+    const el = document.getElementById('driver-chat-messages');
+    if (window.DEMO_MODE) {
+      const isCustomer = _driverChatConv === 'customer_driver';
+      el.innerHTML = isCustomer
+        ? _driverChatBubble(false,'Hi! How far away are you?','12:10') + _driverChatBubble(true,'About 3 minutes, on my way! 🛵','12:11')
+        : _driverChatBubble(false,'The order will be ready in 5 minutes','12:05') + _driverChatBubble(true,'No problem, I\'ll wait outside','12:06');
+      el.scrollTop = el.scrollHeight; return;
+    }
+    const { data } = await sb.from('messages').select('*')
+      .eq('order_id', activeOrder.id).eq('conversation', _driverChatConv)
+      .order('created_at', { ascending: true });
+    _renderDriverChat(data || []);
+  }
+
+  function _renderDriverChat(msgs) {
+    const el = document.getElementById('driver-chat-messages');
+    if (!msgs.length) { el.innerHTML = '<p style="text-align:center;color:#9ca3af;font-size:0.82rem;margin-top:24px">No messages yet 👋</p>'; return; }
+    el.innerHTML = msgs.map(m => {
+      const mine = m.sender_id === profile?.id;
+      const t = new Date(m.created_at).toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' });
+      return _driverChatBubble(mine, m.body, t);
+    }).join('');
+    el.scrollTop = el.scrollHeight;
+  }
+
+  function _driverChatBubble(mine, body, time) {
+    return `<div style="display:flex;justify-content:${mine?'flex-end':'flex-start'};margin-bottom:6px">
+      <div style="max-width:76%;background:${mine?'#ff5a3c':'#f3f4f6'};color:${mine?'#fff':'#1a1d29'};border-radius:${mine?'18px 18px 4px 18px':'18px 18px 18px 4px'};padding:10px 13px;font-size:0.88rem;line-height:1.45">
+        ${body.replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+        <div style="font-size:0.65rem;opacity:0.65;margin-top:3px;text-align:right">${time}</div>
+      </div></div>`;
+  }
+
+  async function sendDriverChatMessage() {
+    const input = document.getElementById('driver-chat-input');
+    const body  = input.value.trim();
+    if (!body || !activeOrder) return;
+    input.value = '';
+    if (window.DEMO_MODE) {
+      const el = document.getElementById('driver-chat-messages');
+      el.innerHTML += _driverChatBubble(true, body, new Date().toLocaleTimeString('en-ZA',{hour:'2-digit',minute:'2-digit'}));
+      el.scrollTop = el.scrollHeight; return;
+    }
+    await sb.from('messages').insert({ order_id: activeOrder.id, conversation: _driverChatConv, sender_role: 'driver', sender_id: profile.id, body });
+  }
+
+  function _subscribeDriverChat() {
+    if (_driverChatCh) sb.removeChannel(_driverChatCh);
+    if (window.DEMO_MODE || !activeOrder) return;
+    _driverChatCh = sb.channel(`driver-chat-${activeOrder.id}-${_driverChatConv}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `order_id=eq.${activeOrder.id}` },
+        p => { if (p.new.conversation === _driverChatConv) _loadDriverChat(); })
+      .subscribe();
   }
 
   function showPending() {
