@@ -220,6 +220,13 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
         <span id="route-dist" style="color:#9ca3af"></span>
       </div>
+      <div id="turn-instruction" style="display:none;margin:0 20px 8px;background:#fff;border:1.5px solid #e5e7eb;border-radius:12px;padding:10px 14px;align-items:center;gap:12px">
+        <span id="turn-icon" style="font-size:1.6rem;min-width:32px;text-align:center;display:block"></span>
+        <div style="flex:1;min-width:0">
+          <div id="turn-text" style="font-weight:700;font-size:0.9rem;color:#1a1d29;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+          <div id="turn-dist" style="font-size:0.75rem;color:#6b7280;margin-top:1px"></div>
+        </div>
+      </div>
       <div id="active-map" class="active-map"></div>
     </div>
 
@@ -951,6 +958,21 @@
         ${nextLabel
           ? `<button class="btn btn-primary btn-block" id="advance-btn" style="height:50px;font-size:0.97rem">${nextLabel}</button>`
           : `<div style="text-align:center;padding:14px 0"><div style="font-size:2rem">🎉</div><p style="color:var(--success);font-weight:800;margin:4px 0 0">Delivered — great work!</p></div>`}
+
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <a href="https://www.google.com/maps/dir/?api=1&destination=${toCustomer ? o.delivery_lat : o.restaurants?.lat},${toCustomer ? o.delivery_lng : o.restaurants?.lng}&travelmode=driving"
+             target="_blank" rel="noopener"
+             style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:11px 0;border:1.5px solid #e5e7eb;border-radius:12px;background:#fff;font-size:0.82rem;font-weight:700;color:#1a1d29;text-decoration:none">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z" fill="#4285F4"/></svg>
+            Google Maps
+          </a>
+          <a href="https://waze.com/ul?ll=${toCustomer ? o.delivery_lat : o.restaurants?.lat},${toCustomer ? o.delivery_lng : o.restaurants?.lng}&navigate=yes"
+             target="_blank" rel="noopener"
+             style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:11px 0;border:1.5px solid #e5e7eb;border-radius:12px;background:#fff;font-size:0.82rem;font-weight:700;color:#1a1d29;text-decoration:none">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="10" r="7" fill="#33CCFF"/><circle cx="9" cy="13" r="1.5" fill="#fff"/><circle cx="15" cy="13" r="1.5" fill="#fff"/><path d="M9 16c1-1.5 5-1.5 6 0" stroke="#fff" stroke-width="1.2" stroke-linecap="round"/></svg>
+            Waze
+          </a>
+        </div>
       </div>`;
 
     document.getElementById('advance-btn')?.addEventListener('click', advanceOrder);
@@ -1158,12 +1180,40 @@
 
   async function fetchRoute(fromLat, fromLng, toLat, toLng) {
     try {
-      const url = `https://router.project-osrm.org/route/v1/driving/${fromLng},${fromLat};${toLng},${toLat}?overview=full&geometries=geojson`;
+      const url = `https://router.project-osrm.org/route/v1/driving/${fromLng},${fromLat};${toLng},${toLat}?overview=full&geometries=geojson&steps=true`;
       const res = await fetch(url);
       if (!res.ok) return null;
       const data = await res.json();
       return data.code === 'Ok' ? data.routes[0] : null;
     } catch (_) { return null; }
+  }
+
+  function formatStep(step) {
+    if (!step) return null;
+    const type = step.maneuver?.type || '';
+    const mod  = step.maneuver?.modifier || '';
+    const name = step.name || '';
+    const dist = step.distance || 0;
+    const distStr = dist >= 1000 ? `${(dist / 1000).toFixed(1)} km` : `${Math.round(dist)} m`;
+
+    const ICONS = {
+      'turn-left':'↰','turn-right':'↱','turn-slight left':'↖','turn-slight right':'↗',
+      'turn-sharp left':'↰','turn-sharp right':'↱','turn-uturn':'↩',
+      'continue':'↑','new name':'↑','depart':'↑','arrive':'📍',
+      'roundabout':'↻','rotary':'↻','fork-left':'↙','fork-right':'↘',
+    };
+    const key   = mod ? `${type}-${mod}` : type;
+    const icon  = ICONS[key] || ICONS[type] || '↑';
+
+    let action = '';
+    if (type === 'depart')    action = 'Head';
+    else if (type === 'arrive') action = 'Arrive at destination';
+    else if (type === 'roundabout' || type === 'rotary') action = 'Take the roundabout';
+    else if (mod) action = `Turn ${mod}`;
+    else action = 'Continue';
+
+    const onStreet = name ? ` onto ${name}` : '';
+    return { icon, text: type === 'arrive' ? action : `${action}${onStreet}`, dist: distStr };
   }
 
   async function updateRoute() {
@@ -1185,6 +1235,7 @@
     if (routePolyline) { activeMap.removeLayer(routePolyline); routePolyline = null; }
 
     const route = await fetchRoute(src.lat, src.lng, dest.lat, dest.lng);
+    const turnEl = document.getElementById('turn-instruction');
     if (route?.geometry) {
       routeLayer = L.geoJSON(route.geometry, {
         style: { color: '#ff5a3c', weight: 5, opacity: 0.9, lineCap: 'round', lineJoin: 'round' },
@@ -1195,6 +1246,17 @@
       if (etaEl)  etaEl.textContent  = `~${mins} min`;
       if (distEl) distEl.textContent = `${km} km`;
 
+      // Show next turn instruction from first OSRM step
+      const steps = route.legs?.[0]?.steps || [];
+      const nextStep = steps.find(s => s.maneuver?.type !== 'depart') || steps[0];
+      const fmt = formatStep(nextStep);
+      if (fmt && turnEl) {
+        document.getElementById('turn-icon').textContent = fmt.icon;
+        document.getElementById('turn-text').textContent = fmt.text;
+        document.getElementById('turn-dist').textContent = `In ${fmt.dist}`;
+        turnEl.style.display = 'flex';
+      }
+
       // Fit to actual route bounds
       activeMap.fitBounds(routeLayer.getBounds(), { padding: [60, 60], maxZoom: 16, animate: true });
     } else {
@@ -1202,6 +1264,7 @@
       routePolyline = L.polyline([src, dest], { color: '#ff5a3c', weight: 4, dashArray: '10 8', opacity: 0.8 }).addTo(activeMap);
       if (etaEl)  etaEl.textContent  = 'Route unavailable';
       if (distEl) distEl.textContent = '';
+      if (turnEl) turnEl.style.display = 'none';
       fitMapBounds();
     }
   }
